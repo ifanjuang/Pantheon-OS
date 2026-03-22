@@ -83,4 +83,8 @@ Données souveraines. Zéro cloud obligatoire.
 
 ## Documentation technique
 
-Voir [`DEVPLAN.md`](./DEVPLAN.md) — document de référence complet pour le développement.
+| Fichier | Contenu |
+|---------|---------|
+| [`DEVPLAN.md`](./DEVPLAN.md) | Référence complète de développement — modules, BDD, API, agents |
+| [`ARCHITECTURE.md`](./ARCHITECTURE.md) | Flux de données, formats inter-modules, modularité |
+| [`INSTALL.md`](./INSTALL.md) | Installation, configuration, maintenance, production |
