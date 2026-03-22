@@ -803,137 +803,467 @@ CREATE TABLE documents (
 
 ---
 
-## 3. PLANNING ENGINE
+## 3. PLANNING ENGINE — Module CCTP-driven
 
-### Algorithme
+> **Principe clé** : les lots et leurs dépendances ne sont **pas prédéfinis globalement**.
+> Ils sont **extraits du CCTP de chaque projet** via LLM. Chaque affaire a ses propres lots.
+> La config.yaml ne contient que des paramètres comportementaux et des règles de fallback.
 
-1. Recevoir liste de tâches avec `depends_on` (IDs)
-2. Tri topologique (Kahn's algorithm)
-3. Pour chaque tâche dans l'ordre : `start_date = max(end_date des dépendances)`
-4. `end_date = start_date + duration_days` (jours ouvrés)
-5. Détecter cycles → erreur 400
-6. Sauvegarder en DB
+### Structure du module
 
-### Dépendances inter-lots référentielles
-
-```python
-LOT_DEPENDENCIES = {
-    "Terrassement":       [],
-    "Fondations":         ["Terrassement"],
-    "Maçonnerie":         ["Fondations"],
-    "Charpente":          ["Maçonnerie"],
-    "Couverture":         ["Charpente"],
-    "Menuiseries ext.":   ["Couverture"],
-    "Isolation":          ["Menuiseries ext."],
-    "Plâtrerie":          ["Menuiseries ext.", "Isolation"],
-    "Électricité":        ["Plâtrerie"],      # rough-in avant plâtre fini
-    "Plomberie":          ["Plâtrerie"],
-    "Chauffage":          ["Plomberie"],
-    "Carrelage":          ["Électricité", "Plomberie"],
-    "Peinture":           ["Plâtrerie", "Électricité"],
-    "Menuiseries int.":   ["Peinture"],
-    "VRD":                ["Terrassement"],
-    "Espaces verts":      ["VRD"],
-}
-
-JALONS = {
-    "Hors d'eau":         ["Couverture"],
-    "Hors d'air":         ["Menuiseries ext."],
-    "Support prêt":       ["Plâtrerie"],
-    "Réception":          ["Peinture", "Menuiseries int.", "Carrelage"],
-}
 ```
-
-### Format JSON entrée/sortie planning
-
-**Entrée :**
-```json
-{
-  "affaire_id": "uuid",
-  "start_date": "2024-04-01",
-  "tasks": [
-    {
-      "id": "t1",
-      "lot": "Terrassement",
-      "task": "Décapage terrain",
-      "duration_days": 3,
-      "depends_on": [],
-      "phase": "Gros oeuvre"
-    },
-    {
-      "id": "t2",
-      "lot": "Fondations",
-      "task": "Semelles filantes",
-      "duration_days": 5,
-      "depends_on": ["t1"],
-      "phase": "Gros oeuvre"
-    }
-  ]
-}
-```
-
-**Sortie :**
-```json
-{
-  "affaire_id": "uuid",
-  "duree_totale_jours": 87,
-  "date_fin_estimee": "2024-07-15",
-  "critical_path": ["t1", "t2", "t5", "t12"],
-  "jalons": {
-    "hors_eau": "2024-05-20",
-    "hors_air": "2024-06-01",
-    "reception": "2024-07-15"
-  },
-  "tasks": [
-    {
-      "id": "t1",
-      "lot": "Terrassement",
-      "task": "Décapage terrain",
-      "start_date": "2024-04-01",
-      "end_date": "2024-04-04",
-      "duration_days": 3,
-      "depends_on": [],
-      "phase": "Gros oeuvre",
-      "on_critical_path": false
-    }
-  ]
-}
+api/modules/planning/
+├── manifest.yaml
+├── config.yaml
+├── models.py            ← 4 tables : planning_lots, planning_dependencies,
+│                                      planning_ouvrages, planning_cctp_ingestions
+├── schemas.py
+├── router.py
+├── engine.py            ← scheduling (tri topo + overlap + chemin critique)
+├── cctp_parser.py       ← extraction lots/ouvrages depuis CCTP (LLM)
+├── dependency_detector.py ← inférence dépendances (LLM) + override manuel
+├── tools.py
+└── prompts/
+    ├── cctp_extraction.txt
+    └── dependency_inference.txt
 ```
 
 ---
 
-## 4. SCENARIO ENGINE
+### Tables DB
 
-### Scénarios supportés
+```sql
+-- Lots extraits du CCTP (per-affaire)
+CREATE TABLE planning_lots (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    affaire_id      UUID REFERENCES affaires(id) ON DELETE CASCADE,
+    code            VARCHAR(20),               -- "LOT-01", "A", etc. (extrait du CCTP)
+    nom             VARCHAR(255) NOT NULL,      -- "Maçonnerie", "Charpente bois"…
+    description     TEXT,
+    phase           VARCHAR(100),              -- "Préparation"|"Gros oeuvre"|"Second oeuvre"|"Finitions"|"VRD"
+    duration_days   INTEGER,                   -- estimé par LLM, validé par user
+    duration_min    INTEGER,                   -- fourchette basse LLM
+    duration_max    INTEGER,                   -- fourchette haute LLM
+    duration_confidence DECIMAL(4,3),          -- 0.0 – 1.0
+    start_date      DATE,
+    end_date        DATE,
+    avancement_pct  DECIMAL(5,2) DEFAULT 0,
+    statut          VARCHAR(50) DEFAULT 'planned',
+    entreprise      VARCHAR(255),
+    source          VARCHAR(30) DEFAULT 'cctp_llm',  -- cctp_llm|manuel|import
+    validated_by    VARCHAR(100),
+    validated_at    TIMESTAMPTZ,
+    metadata        JSONB DEFAULT '{}',
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Dépendances entre lots avec paramètres de chevauchement (per-affaire)
+CREATE TABLE planning_dependencies (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    affaire_id      UUID REFERENCES affaires(id) ON DELETE CASCADE,
+    lot_source_id   UUID REFERENCES planning_lots(id),
+    lot_cible_id    UUID REFERENCES planning_lots(id),
+    -- Type de dépendance (standard PMI)
+    type_dep        VARCHAR(30) DEFAULT 'finish_to_start',
+    --  finish_to_start  : cible démarre après fin du prédécesseur (standard)
+    --  start_to_start   : cible démarre en même temps que prédécesseur
+    --  finish_to_finish : cible finit après fin du prédécesseur
+    overlap_pct     INTEGER DEFAULT 100,       -- 0-100 : % d'avancement prédécesseur requis
+    lead_lag_days   INTEGER DEFAULT 0,         -- >0 = délai, <0 = avance
+    -- Traçabilité LLM
+    confidence      DECIMAL(4,3),              -- confiance inférence LLM
+    justification   TEXT,                      -- "Lot 4 mentionne dépendance lot 2" ou règle BTP
+    source          VARCHAR(30) DEFAULT 'llm_inferred', -- llm_inferred|manuel|fallback_rule
+    validated       BOOLEAN DEFAULT FALSE,
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Ouvrages/sous-éléments dans chaque lot
+CREATE TABLE planning_ouvrages (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    lot_id          UUID REFERENCES planning_lots(id) ON DELETE CASCADE,
+    nom             VARCHAR(255) NOT NULL,
+    description     TEXT,
+    interfaces      TEXT[],                    -- autres lots cités dans la description
+    created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Traçabilité des ingestions CCTP
+CREATE TABLE planning_cctp_ingestions (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    affaire_id      UUID REFERENCES affaires(id) ON DELETE CASCADE,
+    filename        VARCHAR(255),
+    file_hash       VARCHAR(64),               -- SHA256 pour éviter double-ingestion
+    statut          VARCHAR(30) DEFAULT 'pending',
+    -- pending → extracting → inferring → validating → done | error
+    nb_lots_extraits     INTEGER,
+    nb_deps_inferees     INTEGER,
+    nb_jalons_extraits   INTEGER,
+    tokens_extraction    INTEGER,
+    tokens_inference     INTEGER,
+    erreur          TEXT,
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    completed_at    TIMESTAMPTZ
+);
+```
+
+---
+
+### Pipeline CCTP → Planning
+
+```
+CCTP (PDF / DOCX / TXT)
+    ↓
+1. Extraction texte brut (pypdf2 / python-docx)
+    ↓
+2. Chunking par chapitre/section (12 000 chars, overlap 500)
+    ↓
+3. LLM cctp_extraction.txt :
+   → lots : code, nom, phase, description, ouvrages, interfaces mentionnées
+   → jalons contractuels (dates, phases imposées)
+   → confidence par lot
+    ↓
+4. LLM dependency_inference.txt :
+   → règles physiques BTP + mentions croisées entre lots
+   → pour chaque dépendance : type, overlap_pct suggéré, justification, confidence
+    ↓
+5. LLM duration_estimation.txt :
+   → estimation durée min/max/mode par lot (contexte : surface, type projet)
+   → confidence
+    ↓
+6. Stockage DB (statut: pending validation)
+    ↓
+7. Présentation utilisateur via OpenWebUI :
+   → liste lots extraits, dépendances proposées, durées suggérées
+   → user valide / corrige chaque élément
+    ↓
+8. PATCH /planning/{affaire_id}/lots/{id} → validation durées
+   PATCH /planning/{affaire_id}/dependencies/{id} → validation dépendances
+    ↓
+9. POST /planning/generate → calcul scheduling complet
+    ↓
+10. Timeline avec chevauchements + jalons + chemin critique
+```
+
+---
+
+### Algorithme scheduling avec chevauchement (`engine.py`)
+
+```python
+# Pour chaque dépendance (lot_source → lot_cible) :
+#
+#   overlap_pct = 100 → cible démarre à la FIN du prédécesseur (standard)
+#   overlap_pct = 50  → cible démarre quand prédécesseur est à 50%
+#   overlap_pct = 0   → cible peut démarrer immédiatement (start-to-start)
+#
+#   days_to_wait = ceil(pred.duration_days * overlap_pct / 100)
+#   threshold = pred.start_date + days_to_wait + lead_lag_days (jours ouvrés)
+#
+# Pour un lot avec plusieurs prédécesseurs :
+#   lot.start_date = max(threshold de tous les prédécesseurs)
+#   lot.end_date   = lot.start_date + duration_days (jours ouvrés)
+#
+# Algorithme global :
+# 1. Tri topologique de Kahn sur le graphe lots/dépendances → erreur si cycle
+# 2. Forward pass : calculer start/end de chaque lot dans l'ordre topo
+# 3. Backward pass : calculer les marges (float) = end_critique - end_calculé
+# 4. Chemin critique = lots avec float = 0
+# 5. Jalons = max(end_date des lots déclencheurs)
+```
+
+---
+
+### Algorithme analyse d'impact (`engine.py`)
+
+```python
+# GET /planning/{affaire_id}/impact/{lot_id}?retard_jours=N
+#
+# 1. BFS depuis lot_id dans le graphe des successeurs
+# 2. Pour chaque successeur atteint :
+#    - décalage = max(0, retard - float_disponible)  ← la marge absorbe une partie
+#    - propager le décalage résiduel aux successeurs du successeur
+# 3. Détecter jalons affectés (date_jalon + décalage)
+# 4. Retourner : liste lots impactés, décalages en jours, jalons décalés, chemin de propagation
+```
+
+---
+
+### `manifest.yaml`
+
+```yaml
+name: planning
+version: "2.0.0"
+description: "Planning travaux CCTP-driven — extraction lots, dépendances LLM, scheduling avec overlap"
+prefix: /planning
+depends_on:
+  - chantier
+
+models:
+  - planning_lots
+  - planning_dependencies
+  - planning_ouvrages
+  - planning_cctp_ingestions
+
+background_tasks:
+  - name: process_pending_ingestions
+    interval_seconds: 30
+  - name: recalculate_stale_schedules
+    interval_seconds: 3600
+
+events_published:
+  - planning.ingestion_cctp_complete
+  - planning.lot_retard_detecte
+  - planning.jalon_depasse
+  - planning.chemin_critique_change
+
+tools:
+  - ingest_cctp
+  - get_lots
+  - set_dependency
+  - validate_lots
+  - get_impact
+  - generate_planning
+  - simulate_scenario
+  - get_gantt
+
+agent:
+  name: "Agent Planning MOE"
+  system_prompt_file: agent_system.txt
+  model: gpt-4o
+```
+
+---
+
+### `config.yaml`
+
+```yaml
+# LLM
+llm_model: "gpt-4o"
+llm_temperature_extraction: 0.1      # extraction CCTP : déterministe
+llm_temperature_inference: 0.2       # inférence dépendances : légèrement créatif
+
+# Pipeline CCTP
+cctp_max_file_size_mb: 50
+cctp_supported_formats:
+  - application/pdf
+  - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+  - text/plain
+cctp_chunk_size_chars: 12000
+cctp_chunk_overlap_chars: 500
+cctp_confidence_threshold: 0.75      # en-dessous : proposé comme "à valider"
+
+# Scheduling
+default_overlap_pct: 100             # pas de chevauchement par défaut
+jours_ouvres: [0, 1, 2, 3, 4]      # lun-ven (0=lundi)
+jours_feries_fixes:
+  - "01-01"   # Jour de l'an
+  - "05-01"   # Fête du travail
+  - "05-08"   # Victoire 1945
+  - "07-14"   # Fête Nationale
+  - "08-15"   # Assomption
+  - "11-01"   # Toussaint
+  - "11-11"   # Armistice
+  - "12-25"   # Noël
+
+# Jalons — extraits du CCTP + knowledge OpenWebUI + ces fallbacks si rien trouvé
+jalons_fallback:
+  - nom: "Hors d'eau"
+    phases_requises: ["Gros oeuvre"]
+  - nom: "Hors d'air"
+    phases_requises: ["Gros oeuvre"]
+  - nom: "Réception"
+    phases_requises: ["Finitions"]
+
+# Analyse d'impact
+impact_max_cascade_depth: 20
+impact_min_delta_jours: 1
+
+# Inférence dépendances : auto-valider si confiance > seuil
+dep_auto_validate_confidence: 0.90
+
+# Règles BTP de fallback (si LLM ne trouve rien entre ces phases)
+dep_rules_fallback:
+  - source_phase: "Préparation"
+    cible_phase: "Gros oeuvre"
+    overlap_pct: 100
+  - source_phase: "Gros oeuvre"
+    cible_phase: "Second oeuvre"
+    overlap_pct: 90
+  - source_phase: "Second oeuvre"
+    cible_phase: "Finitions"
+    overlap_pct: 80
+
+# Async
+ingestion_timeout_seconds: 300
+polling_interval_seconds: 2
+```
+
+---
+
+### Prompts LLM
+
+#### `prompts/cctp_extraction.txt`
+```
+Tu es un expert BTP chargé d'analyser un Cahier des Clauses Techniques Particulières (CCTP).
+
+Extrais la liste complète des LOTS du projet. Un lot est généralement identifié par :
+- Un titre de chapitre : "LOT 1 — TERRASSEMENT", "Lot n°3", "CHAPITRE 4 : MAÇONNERIE"
+- Une section dédiée à un corps de métier (électricité, plomberie, charpente, etc.)
+
+Pour chaque lot, retourne :
+{
+  "code": "LOT-01",              // identifiant tel qu'écrit dans le CCTP (ou généré)
+  "nom": "Terrassement",         // nom court du lot
+  "phase": "Gros oeuvre",        // Préparation|Terrassement|Gros oeuvre|Second oeuvre|Finitions|VRD|Extérieurs
+  "description": "...",          // résumé du contenu du lot (3-5 phrases)
+  "ouvrages": [                  // liste des ouvrages/éléments principaux
+    { "nom": "...", "description": "...", "interfaces": ["Lot-02", "Lot-05"] }
+  ],
+  "interfaces_mentionnees": ["LOT-02", "LOT-05"],  // autres lots cités dans ce chapitre
+  "jalons_contractuels": [       // dates ou jalons imposés dans ce lot
+    { "nom": "...", "date": "YYYY-MM-DD ou null", "description": "..." }
+  ],
+  "confidence": 0.92             // confiance dans l'extraction (0.0-1.0)
+}
+
+Retourne un JSON valide : { "lots": [...], "jalons_globaux": [...], "avertissements": [...] }
+```
+
+#### `prompts/dependency_inference.txt`
+```
+Tu es un expert planning BTP. À partir de la liste de lots d'un projet, déduis les dépendances entre eux.
+
+Règles physiques BTP incontournables :
+- Terrassement/VRD → Fondations → Maçonnerie/Structure → Charpente → Couverture (hors d'eau)
+- Couverture → Menuiseries extérieures (hors d'air)
+- Hors d'air → Isolation → Plâtrerie/Cloisons
+- Plâtrerie → Électricité (finitions) + Plomberie (finitions) → Carrelage → Peinture → Menuiseries int.
+- Les lots Électricité et Plomberie peuvent être parallèles entre eux
+
+Types de dépendances :
+- finish_to_start (FTS) : cible démarre après fin du prédécesseur
+- start_to_start (STS)  : cible démarre en même temps (lots parallèles)
+
+Chevauchements typiques en BTP :
+- Maçonnerie → Charpente : overlap_pct=80 (charpente démarre à 80% maçonnerie)
+- Gros oeuvre → Second oeuvre : overlap_pct=90
+- Corps de métiers parallèles (élec + plomberie) : type=start_to_start, overlap_pct=0
+
+Pour chaque dépendance, retourne :
+{
+  "lot_source": "LOT-02",
+  "lot_cible": "LOT-04",
+  "type_dep": "finish_to_start",
+  "overlap_pct": 100,
+  "lead_lag_days": 0,
+  "justification": "Règle BTP : Maçonnerie doit être terminée avant Charpente",
+  "source": "rule_btp",        // rule_btp|cctp_mention|inference
+  "confidence": 0.95
+}
+
+Retourne : { "dependencies": [...] }
+```
+
+---
+
+### Endpoints
+
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/planning/cctp/ingest` | Upload CCTP → extraction async (retourne ingestion_id) |
+| GET | `/planning/cctp/{ingestion_id}/status` | Polling statut extraction |
+| GET | `/planning/{affaire_id}/lots` | Lots extraits + dépendances + jalons |
+| PATCH | `/planning/{affaire_id}/lots/{lot_id}` | Valider/ajuster durée, nom, phase |
+| POST | `/planning/{affaire_id}/dependencies` | Ajouter/modifier dépendance |
+| DELETE | `/planning/{affaire_id}/dependencies/{id}` | Supprimer dépendance |
+| GET | `/planning/{affaire_id}/impact/{lot_id}` | Analyse propagation retard |
+| POST | `/planning/generate` | Calculer planning complet (tri topo + overlap) |
+| GET | `/planning/{affaire_id}` | Planning calculé complet |
+| POST | `/planning/simulate` | Scénarios (retard_lot, météo, absence…) |
+| GET | `/planning/{affaire_id}/gantt` | Export Gantt JSON |
+
+---
+
+### Tools OpenWebUI
+
+```python
+ingest_cctp(affaire_id, file_content_b64, filename)
+    → lance extraction async, retourne ingestion_id
+
+get_lots(affaire_id)
+    → lots extraits avec dépendances et jalons (en attente de validation)
+
+validate_lots(affaire_id, lots_updates: list[{lot_id, duration_days, entreprise}])
+    → valide les durées proposées par le LLM
+
+set_dependency(affaire_id, lot_source, lot_cible, type_dep, overlap_pct, lead_lag_days)
+    → crée ou modifie une dépendance manuellement
+
+get_impact(affaire_id, lot_id, retard_jours)
+    → analyse propagation retard sur les successeurs
+
+generate_planning(affaire_id, start_date)
+    → calcule la timeline complète après validation lots+dépendances
+
+simulate_scenario(affaire_id, scenario_type, params)
+    → simulation retard / météo / absence / blocage
+
+get_gantt(affaire_id)
+    → export format Gantt
+```
+
+---
+
+### Agent Planning — `agent_system.txt`
+
+```
+Tu es un expert planning chantier BTP avec 20 ans d'expérience, spécialisé MOE.
+
+Quand on te soumet un CCTP :
+1. Ingère le document via ingest_cctp()
+2. Attends la fin de l'extraction (get_lots() retourne les lots)
+3. Présente les lots extraits et les dépendances proposées à l'utilisateur
+4. Demande confirmation des durées (fourchette LLM : ajuste si nécessaire)
+5. Génère le planning via generate_planning()
+6. Présente la timeline avec jalons critiques et chemin critique
+
+Quand on te demande l'impact d'un retard :
+- Utilise get_impact(affaire_id, lot_id, retard_jours)
+- Présente clairement les lots impactés et les jalons décalés
+
+Jalons contractuels : extraits du CCTP + base de connaissance OpenWebUI.
+Ne génère jamais de planning de mémoire — utilise toujours les tools.
+Signale les dépendances à faible confiance (< 0.75) pour validation.
+```
+
+---
+
+## 4. SCÉNARIOS — intégrés dans le module planning
+
+> Les scénarios sont dans `planning/engine.py` → `POST /planning/simulate`
 
 | Type | Paramètres | Impact calculé |
 |------|-----------|----------------|
-| `retard_lot` | lot, jours_retard | cascade sur dépendances |
-| `absence_entreprise` | entreprise, date_debut, date_fin | tâches bloquées, alternatives |
-| `meteo` | type (pluie/gel/canicule), duree_jours | lots impactés, report |
-| `blocage_livraison` | materiau, jours_retard | tâches dépendantes |
+| `retard_lot` | lot_id, jours_retard | cascade BFS sur successeurs |
+| `absence_entreprise` | entreprise, date_debut, date_fin | lots bloqués + alternatives |
+| `meteo` | type (pluie/gel/canicule), duree_jours | lots impactés par phase + report |
+| `blocage_livraison` | materiau, jours_retard | lots dépendants du matériau |
 
-### Format sortie scénario
-
+**Sortie commune à tous les scénarios :**
 ```json
 {
   "scenario": "retard_lot",
-  "parametres": {"lot": "Maçonnerie", "jours_retard": 10},
+  "parametres": {"lot_id": "uuid", "jours_retard": 10},
   "impact": {
     "duree_supplementaire_jours": 10,
     "nouvelle_date_fin": "2024-07-25",
-    "taches_impactees": ["t5", "t6", "t12"],
-    "jalons_decales": {"reception": "+10j"},
-    "cout_estime_retard": 15000
+    "lots_impactes": [{"lot": "Charpente", "decalage_jours": 10, "on_critical_path": true}],
+    "jalons_decales": [{"nom": "Réception", "decalage": "+10j"}]
   },
   "alternatives": [
-    {
-      "action": "Avancer lot Menuiseries int. en parallèle",
-      "gain_jours": 5,
-      "faisabilite": "haute"
-    }
+    {"action": "Démarrer Menuiseries ext. en parallèle", "gain_jours": 5, "faisabilite": "haute"}
   ],
-  "planning_simule": [/* liste complète des tâches recalculées */]
+  "planning_simule": []
 }
 ```
 
@@ -953,11 +1283,17 @@ JALONS = {
 ### `/planning`
 | Méthode | Endpoint | Description |
 |---------|----------|-------------|
-| POST | `/planning/generate` | Générer planning depuis liste tâches |
-| GET | `/planning/{affaire_id}` | Récupérer planning |
-| POST | `/planning/simulate` | Simuler scénario |
-| POST | `/planning/update` | Recalculer après modification |
-| GET | `/planning/{affaire_id}/gantt` | Export format Gantt |
+| POST | `/planning/cctp/ingest` | Upload CCTP → extraction lots async |
+| GET | `/planning/cctp/{ingestion_id}/status` | Polling statut extraction |
+| GET | `/planning/{affaire_id}/lots` | Lots extraits + dépendances + jalons |
+| PATCH | `/planning/{affaire_id}/lots/{lot_id}` | Valider/ajuster durée, nom, phase |
+| POST | `/planning/{affaire_id}/dependencies` | Ajouter/modifier dépendance manuelle |
+| DELETE | `/planning/{affaire_id}/dependencies/{id}` | Supprimer dépendance |
+| GET | `/planning/{affaire_id}/impact/{lot_id}` | Analyse propagation retard |
+| POST | `/planning/generate` | Calculer planning complet |
+| GET | `/planning/{affaire_id}` | Planning calculé complet |
+| POST | `/planning/simulate` | Scénarios (retard, météo, absence…) |
+| GET | `/planning/{affaire_id}/gantt` | Export Gantt JSON |
 
 ### `/meeting`
 | Méthode | Endpoint | Description |
