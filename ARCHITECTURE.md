@@ -21,8 +21,10 @@ La base normative ne se remplit pas automatiquement — elle est **gérée par l
 
 ### Pipeline d'ingestion (identique pour toutes les couches)
 
+Implémenté via **LlamaIndex** (`rag_service.py` s'appuie sur `llama-index-core` + `llama-index-vector-stores-postgres`).
+
 ```
-[Fichier PDF / DOCX]
+[Fichier PDF / DOCX / TXT / MD]
         │
         ▼
 POST /rag/import
@@ -31,16 +33,20 @@ POST /rag/import
   label: "DTU 20.1 — édition 2008" }
         │
         ▼
-1. Extraction texte brut (PyMuPDF / python-docx)
+1. Chargement  →  LlamaIndex SimpleDirectoryReader / PDFReader
+   (remplace PyMuPDF manuel — gère PDF, DOCX, TXT, MD nativement)
         │
         ▼
-2. Découpe en chunks  (500 tokens, overlap 50 tokens)
+2. Découpe sémantique  →  LlamaIndex SentenceSplitter
+   (chunk_size=512 tokens, chunk_overlap=50 — respecte les frontières de phrases)
         │
         ▼
-3. Embedding de chaque chunk  (Ollama nomic-embed-text OU OpenAI text-embedding-3-large)
+3. Embedding de chaque chunk
+   →  LlamaIndex OllamaEmbedding (nomic-embed-text)  — mode local
+   →  LlamaIndex OpenAIEmbedding (text-embedding-3-large)  — mode cloud
         │
         ▼
-4. Stockage PostgreSQL pgvector
+4. Stockage PostgreSQL pgvector  →  LlamaIndex PGVectorStore
    notion_chunks { id, affaire_id, source_type, source_ref, content, embedding VECTOR(1024) }
         │
         ▼
@@ -49,6 +55,8 @@ POST /rag/import
         ▼
 [Disponible immédiatement pour toute question RAG]
 ```
+
+**Recherche** : `VectorStoreIndex.as_retriever(similarity_top_k=5)` — cosine similarity par défaut, re-ranking optionnel via `LLMRerank`.
 
 ### Différence entre les 3 bases
 
@@ -507,3 +515,106 @@ Chaque agent appelle FastAPI. FastAPI orchestre PostgreSQL + Ollama. L'agent ne 
 | **Agent Documents** | OpenWebUI | "Génère le CCTP lot X" | `GET /rag/query` + `GET /affaires/{id}` + `POST /document/generate` | MinIO (fichier) + PostgreSQL (meta) |
 | **Event Engine** | FastAPI (background) | Changement de données (LISTEN/NOTIFY) | Interne — lit PostgreSQL | PostgreSQL events + SMTP |
 | **Memory Engine** | FastAPI (background) | Q&R répondues + CR analysés | Interne | PostgreSQL pgvector (Couche 2/3) |
+
+---
+
+## Librairies IA fondamentales
+
+Trois librairies structurent l'intelligence du système. Elles remplacent du code custom par des abstractions stables et éprouvées.
+
+### LlamaIndex — Pipeline RAG (`rag_service.py`)
+
+`llama-index-core` + `llama-index-vector-stores-postgres` + embeddings Ollama/OpenAI.
+
+| Rôle | Composant LlamaIndex | Ce qu'il remplace |
+|------|---------------------|-------------------|
+| Chargement documents | `SimpleDirectoryReader`, `PDFReader` | PyMuPDF + python-docx manuels |
+| Découpe sémantique | `SentenceSplitter` | Chunking fixe maison |
+| Stockage vecteurs | `PGVectorStore` | Insert pgvector manuel |
+| Recherche | `VectorStoreIndex.as_retriever()` | Requête cosine SQL manuelle |
+| Re-ranking | `LLMRerank` | — (non disponible avant) |
+| Construction prompt RAG | `RetrieverQueryEngine` | Concaténation manuelle sources + question |
+
+```python
+# rag_service.py — structure cible
+from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
+from llama_index.core.node_parser import SentenceSplitter
+from llama_index.vector_stores.postgres import PGVectorStore
+from llama_index.embeddings.ollama import OllamaEmbedding      # mode local
+from llama_index.embeddings.openai import OpenAIEmbedding      # mode cloud
+
+class RagService:
+    async def ingest(self, file_path, source_type, affaire_id, metadata) -> list[str]
+    async def search(self, query, affaire_id, top_k=5, source_type=None) -> list[dict]
+    async def delete_source(self, affaire_id, source_ref)
+```
+
+---
+
+### Instructor — Extraction structurée (`llm_service.py`)
+
+`instructor` (patch sur client OpenAI ou Ollama) + schemas Pydantic existants.
+
+| Rôle | Avec Instructor | Sans Instructor |
+|------|----------------|-----------------|
+| Extraction CR → `MeetingOutput` | `client.chat(..., response_model=MeetingOutput)` | `json.loads(response)` + try/except + retry manuel |
+| Extraction CCTP → `PlanningLots` | idem | Prompt + parse + valider chaque champ |
+| Garantie de format | Retry automatique jusqu'à validation Pydantic | À coder soi-même |
+| Partial extraction | `Partial[MeetingOutput]` pour streaming | Non disponible |
+
+```python
+# llm_service.py — structure cible
+import instructor
+from openai import AsyncOpenAI  # ou client Ollama compatible
+
+class LlmService:
+    async def chat(self, messages, model=None, temperature=0.7) -> str
+    async def extract(self, messages, response_model: type[BaseModel], temperature=0.1) -> BaseModel
+    # extract() remplace extract_structured() — retourne directement le schema Pydantic validé
+```
+
+Tous les modules appellent `llm_service.extract(messages, MeetingOutput)` — jamais de parsing JSON manuel.
+
+---
+
+### DSPy — Optimisation des prompts (`prompts/`)
+
+`dspy-ai` — les `agent_system.txt` et `prompts/*.txt` statiques deviennent des **programmes DSPy optimisables**.
+
+| Rôle | DSPy | Fichier texte statique |
+|------|------|----------------------|
+| Définir la tâche | `dspy.Signature` avec docstring + champs typés | Prompt rédigé à la main |
+| Optimiser le prompt | `MIPROv2.compile()` à partir d'exemples réels | Itérations manuelles |
+| Évaluer la qualité | Métriques définies (précision sources, structure JSON) | Jugement subjectif |
+| Persister le résultat | `program.save("prompts/meeting_extraction.json")` | Édition manuelle |
+
+```python
+# Exemple — module meeting
+import dspy
+
+class MeetingExtraction(dspy.Signature):
+    """Extrais les décisions, actions et blocages d'un compte-rendu de réunion BTP."""
+    cr_brut: str = dspy.InputField()
+    decisions: list[str] = dspy.OutputField()
+    actions: list[str] = dspy.OutputField()
+    blocages: list[str] = dspy.OutputField()
+
+extractor = dspy.Predict(MeetingExtraction)
+# → optimisable avec dspy.MIPROv2 à partir des CR annotés de l'agence
+```
+
+DSPy s'applique en priorité aux modules à forte variance de sortie : `meeting`, `memory`, `planning` (extraction CCTP), `documents`.
+
+---
+
+### Résumé — qui utilise quoi
+
+| Service / Module | LlamaIndex | Instructor | DSPy |
+|-----------------|-----------|------------|------|
+| `rag_service.py` | ✅ cœur du pipeline | — | — |
+| `llm_service.py` | — | ✅ `extract()` | — |
+| `meeting/engine.py` | via `rag_service` | via `llm_service.extract()` | ✅ prompt optimisé |
+| `planning/engine.py` | via `rag_service` (CCTP) | via `llm_service.extract()` | ✅ prompt optimisé |
+| `memory/engine.py` | via `rag_service` | via `llm_service.extract()` | ✅ dédup sémantique |
+| `documents/engine.py` | via `rag_service` | via `llm_service.extract()` | optionnel |
+| `communications/engine.py` | via `rag_service` | via `llm_service.extract()` | — |

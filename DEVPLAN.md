@@ -480,6 +480,9 @@ openclaw-telegram:
 | Storage fichiers | MinIO (S3-compatible self-hosted) | — |
 | IA locale | Ollama + nomic-embed-text | — |
 | IA cloud | OpenAI gpt-4o + text-embedding-3-large | Mistral, Groq, Anthropic |
+| Pipeline RAG | **LlamaIndex** (ingestion, chunking, retrieval) | LangChain |
+| Extraction structurée | **Instructor** (LLM → Pydantic garanti) | parsing JSON manuel |
+| Optimisation prompts | **DSPy** (compile + évalue les prompts) | fichiers `.txt` statiques |
 | Interface admin/power | OpenWebUI (agents + tools) | — |
 | Interface quotidienne | **OpenClaw PWA** (Svelte, mobile-first) | — |
 | Interface terrain | **OpenClaw Bot Telegram** (optionnel) | WhatsApp Business (v2) |
@@ -751,11 +754,18 @@ from core.services.llm_service import LlmService
 ```
 
 #### `rag_service.py`
+
+Implémenté sur **LlamaIndex** (`llama-index-core` + `llama-index-vector-stores-postgres`).
+Le pipeline ingestion/retrieval est entièrement géré par LlamaIndex — pas de code de chunking ou d'indexation maison.
+
 ```python
 class RagService:
-    async def embed(self, text: str) -> list[float]
-    async def chunk_and_embed(self, text: str, source_type: str, affaire_id: UUID, metadata: dict) -> list[UUID]
+    # Ingestion — LlamaIndex SimpleDirectoryReader → SentenceSplitter → PGVectorStore
+    async def ingest(self, file_path: str, source_type: str, affaire_id: UUID, metadata: dict) -> list[str]
+
+    # Recherche — VectorStoreIndex.as_retriever(similarity_top_k) + LLMRerank optionnel
     async def search(self, query: str, affaire_id: UUID, top_k: int = 5, source_type: str = None) -> list[dict]
+
     async def delete_source(self, affaire_id: UUID, source_ref: str)
 ```
 > Utilisé par : `planning` (CCTP), `meeting` (historique), `communications` (search), `memory` (dédup), `rag` (router public)
@@ -774,10 +784,18 @@ class StorageService:
 > Utilisé par : `planning` (CCTP PDF), `communications` (PJ emails), `documents` (pièces générées), `chantier` (photos)
 
 #### `llm_service.py`
+
+`extract()` est implémenté via **Instructor** — le client LLM est patché avec `instructor.from_openai()` ou `instructor.from_openai(ollama_client)`.
+Cela garantit que la sortie correspond toujours au schema Pydantic passé, avec retry automatique en cas d'échec de validation.
+
 ```python
 class LlmService:
     async def chat(self, messages: list[dict], model: str = None, temperature: float = 0.7) -> str
-    async def extract_structured(self, prompt: str, text: str, schema: dict, temperature: float = 0.1) -> dict
+
+    async def extract(self, messages: list[dict], response_model: type[BaseModel], temperature: float = 0.1) -> BaseModel
+    # Remplace extract_structured() — retourne directement le schema Pydantic validé (via Instructor)
+    # Ex : await llm.extract(messages, MeetingOutput)  → MeetingOutput garanti, pas de try/except JSON
+
     async def embed(self, text: str) -> list[float]   # délègue à RagService
 ```
 > Utilisé par : tous les modules LLM (planning, meeting, communications, documents, memory)
@@ -1822,9 +1840,9 @@ CREATE TABLE planning_cctp_ingestions (
 ```
 CCTP (PDF / DOCX / TXT)
     ↓
-1. Extraction texte brut (pypdf2 / python-docx)
+1. Chargement + extraction texte  →  LlamaIndex SimpleDirectoryReader / PDFReader
     ↓
-2. Chunking par chapitre/section (12 000 chars, overlap 500)
+2. Chunking par chapitre/section  →  LlamaIndex SentenceSplitter (12 000 chars, overlap 500)
     ↓
 3. LLM cctp_extraction.txt :
    → lots : code, nom, phase, description, ouvrages, interfaces mentionnées
@@ -2122,6 +2140,33 @@ get_gantt(affaire_id)
 
 ---
 
+### Optimisation des prompts — DSPy
+
+Les fichiers `prompts/*.txt` et `agent_system.txt` statiques sont des **points de départ**.
+Pour les modules à forte variance de sortie (`planning`, `meeting`, `memory`), les prompts sont **compilables via DSPy** (`dspy-ai`) à partir des sorties annotées de l'agence.
+
+```python
+# Exemple — module planning, extraction lots depuis CCTP
+import dspy
+
+class LotExtraction(dspy.Signature):
+    """Extrais les lots de travaux depuis un CCTP de marché BTP."""
+    cctp_chunk: str = dspy.InputField()
+    lots: list[dict] = dspy.OutputField()  # code, nom, phase, description, confidence
+
+extractor = dspy.Predict(LotExtraction)
+
+# Optimisation à partir des CCTPs déjà traités par l'agence :
+# optimizer = dspy.MIPROv2(metric=lot_quality_metric)
+# optimized = optimizer.compile(extractor, trainset=cctp_examples)
+# optimized.save("prompts/cctp_extraction_compiled.json")
+```
+
+Le fichier `.json` compilé remplace le `.txt` statique — même interface, meilleure précision mesurée.
+Les `agent_system.txt` restent en `.txt` (comportement agent, pas d'extraction structurée).
+
+---
+
 ### Agent Planning — `agent_system.txt`
 
 ```
@@ -2373,13 +2418,13 @@ Retourne un JSON structuré.
 ```
 Document (PDF/TXT/MD)
     ↓
-1. Extraction texte (pypdf2 / python-docx)
+1. Chargement  →  LlamaIndex SimpleDirectoryReader / PDFReader
     ↓
-2. Chunking (500 tokens, overlap 50)
+2. Découpe sémantique  →  LlamaIndex SentenceSplitter (512 tokens, overlap 50)
     ↓
-3. Embedding (text-embedding-3-large ou nomic-embed)
+3. Embedding  →  LlamaIndex OllamaEmbedding / OpenAIEmbedding
     ↓
-4. Stockage notion_chunks avec VECTOR(1024)
+4. Stockage  →  LlamaIndex PGVectorStore → notion_chunks VECTOR(1024)
     ↓
 5. Index ivfflat
 ```
