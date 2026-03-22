@@ -7,8 +7,18 @@
 ## 0. TL;DR
 
 Système de pilotage intelligent de chantier pour une agence d'architecture (MOE).
-Stack : **FastAPI + PostgreSQL/pgvector + OpenWebUI + Notion**.
-Objectif : un "OS chantier" capable de générer des plannings, simuler des scénarios, extraire des actions de réunion et assister la MOE en continu.
+Stack : **FastAPI + PostgreSQL/pgvector + OpenWebUI + MinIO + Notion**.
+
+**Décisions d'architecture arrêtées :**
+- Auth : **JWT HS256** — 4 rôles (admin / moe / collaborateur / lecteur) — per-affaire
+- Storage : **MinIO** (S3-compatible, self-hosted Docker) — partagé entre tous les modules
+- RAG : **service core partagé** (`core/services/rag_service.py`) — plus un module isolé
+- Bus événements : **PostgreSQL LISTEN/NOTIFY** — fonctionne multi-workers, pas de Redis en v1
+- Planning : lots extraits du **CCTP par LLM** — per-affaire, plus de LOT_DEPENDENCIES global
+- Rate limiting : **slowapi** sur les endpoints LLM (10 req/min/user)
+- Multi-tenant : **non en v1** (une agence = une instance)
+
+Objectif : un "OS chantier" capable de gérer plannings, finances, communications et documents avec assistants IA.
 
 ---
 
@@ -28,7 +38,7 @@ ARCEAG/
 ├── api/
 │   ├── Dockerfile
 │   ├── requirements.txt
-│   ├── main.py                 ← 20 lignes : crée l'app + appelle registry.load_all()
+│   ├── main.py                 ← crée l'app + appelle registry.load_all()
 │   ├── config.py               ← settings globaux (pydantic-settings)
 │   ├── database.py             ← session SQLAlchemy async (partagée)
 │   │
@@ -38,30 +48,48 @@ ARCEAG/
 │   │   ├── base_engine.py      ← classe abstraite BaseEngine
 │   │   ├── base_router.py      ← classe abstraite BaseRouter
 │   │   ├── base_tool.py        ← classe abstraite BaseTool
-│   │   └── events.py           ← bus d'événements inter-modules (publish/subscribe)
+│   │   ├── events.py           ← bus PostgreSQL LISTEN/NOTIFY inter-modules
+│   │   ├── auth.py             ← JWT decode, get_current_user, require_role()
+│   │   └── services/           ← services partagés (importables par tout module)
+│   │       ├── __init__.py
+│   │       ├── rag_service.py  ← embed, chunk, search cosine (pgvector)
+│   │       ├── llm_service.py  ← appels LLM (chat, extraction, embedding)
+│   │       └── storage_service.py ← upload/download MinIO (S3-compatible)
 │   │
 │   └── modules/                ← UN DOSSIER = UN MODULE COMPLET
 │       │
-│       ├── chantier/           ← module socle (affaires, journal)
-│       │   ├── manifest.yaml   ← déclaration du module
-│       │   ├── config.yaml     ← paramètres overridables
-│       │   ├── models.py       ← SQLAlchemy : affaires, chantier_events
-│       │   ├── schemas.py      ← Pydantic I/O
-│       │   ├── router.py       ← FastAPI router → /chantier/*
-│       │   ├── engine.py       ← logique métier
-│       │   └── tools.py        ← tools OpenWebUI
-│       │
-│       ├── planning/           ← planning + simulation scénarios
+│       ├── auth/               ← gestion utilisateurs + tokens + rôles
 │       │   ├── manifest.yaml
-│       │   ├── config.yaml     ← LOT_DEPENDENCIES, JALONS overridables
-│       │   ├── models.py       ← planning_tasks
+│       │   ├── models.py       ← users, affaire_permissions
 │       │   ├── schemas.py
-│       │   ├── router.py       ← /planning/*
-│       │   ├── engine.py       ← tri topo, calcul dates, chemin critique
-│       │   ├── scenario.py     ← simulation retards / météo / absences
+│       │   ├── router.py       ← /auth/* (login, refresh, register, users)
+│       │   └── engine.py       ← hash password, generate JWT, check permissions
+│       │
+│       ├── chantier/           ← module socle (affaires, journal)
+│       │   ├── manifest.yaml
+│       │   ├── config.yaml
+│       │   ├── models.py       ← affaires, chantier_events, intervenants
+│       │   ├── schemas.py
+│       │   ├── router.py       ← /chantier/*
+│       │   ├── engine.py
 │       │   └── tools.py
 │       │
-│       ├── budget/             ← budgets + alertes
+│       ├── planning/           ← planning CCTP-driven + scénarios + impact
+│       │   ├── manifest.yaml
+│       │   ├── config.yaml     ← overlap_pct défaut, fallback rules, jours fériés
+│       │   ├── models.py       ← planning_lots, planning_dependencies,
+│       │   │                      planning_ouvrages, planning_cctp_ingestions
+│       │   ├── schemas.py
+│       │   ├── router.py       ← /planning/*
+│       │   ├── engine.py       ← tri topo + overlap + chemin critique + BFS impact
+│       │   ├── cctp_parser.py  ← extraction lots depuis CCTP (LLM)
+│       │   ├── dependency_detector.py ← inférence dépendances (LLM) + override
+│       │   ├── tools.py
+│       │   └── prompts/
+│       │       ├── cctp_extraction.txt
+│       │       └── dependency_inference.txt
+│       │
+│       ├── budget/             ← budgets lots + alertes
 │       │   ├── manifest.yaml
 │       │   ├── models.py
 │       │   ├── schemas.py
@@ -69,13 +97,13 @@ ARCEAG/
 │       │   ├── engine.py
 │       │   └── tools.py
 │       │
-│       ├── finance/            ← situations de travaux, avenants, DGD
+│       ├── finance/            ← situations de travaux, avenants
 │       │   ├── manifest.yaml
-│       │   ├── config.yaml     ← seuils alertes (ex: pct_alerte: 0.95)
+│       │   ├── config.yaml     ← seuil_alerte_pct, retenue_garantie_pct
 │       │   ├── models.py       ← situations, avenants
 │       │   ├── schemas.py
 │       │   ├── router.py       ← /finance/*
-│       │   ├── engine.py       ← calcul tableau de bord financier
+│       │   ├── engine.py
 │       │   └── tools.py
 │       │
 │       ├── meeting/            ← analyse CR, extraction actions
@@ -84,49 +112,49 @@ ARCEAG/
 │       │   ├── models.py
 │       │   ├── schemas.py
 │       │   ├── router.py       ← /meeting/*
-│       │   ├── engine.py       ← pipeline LLM extraction
+│       │   ├── engine.py
 │       │   └── tools.py
 │       │
 │       ├── communications/     ← registre emails reçus/transmis
 │       │   ├── manifest.yaml
-│       │   ├── config.yaml     ← CATEGORIES, PRIORITES overridables
+│       │   ├── config.yaml     ← CATEGORIES, PRIORITES, reference_format
 │       │   ├── models.py       ← communications + vector(1024)
 │       │   ├── schemas.py
 │       │   ├── router.py       ← /communications/*
-│       │   ├── engine.py       ← classification, résumé, référence auto
+│       │   ├── engine.py
 │       │   └── tools.py
 │       │
 │       ├── documents/          ← génération pièces (CR, PV, FNC, OS…)
 │       │   ├── manifest.yaml
-│       │   ├── config.yaml     ← types de docs activés, templates utilisés
+│       │   ├── config.yaml
 │       │   ├── models.py
 │       │   ├── schemas.py
 │       │   ├── router.py       ← /documents/*
-│       │   ├── engine.py       ← Jinja2 + LLM
+│       │   ├── engine.py       ← Jinja2 + LLM + upload MinIO
 │       │   ├── tools.py
-│       │   └── templates/      ← templates Jinja2 (.md.j2) propres au module
+│       │   └── templates/
 │       │       ├── cr_reunion.md.j2
 │       │       ├── pv_reception.md.j2
 │       │       ├── fiche_nc.md.j2
 │       │       ├── ordre_service.md.j2
 │       │       └── rapport_avancement.md.j2
 │       │
-│       ├── rag/                ← embedding, ingestion, recherche sémantique
+│       ├── rag/                ← ingestion documents utilisateur (CCTP, normes)
 │       │   ├── manifest.yaml
 │       │   ├── config.yaml     ← chunk_size, overlap, top_k, model
-│       │   ├── models.py       ← notion_chunks
+│       │   ├── models.py       ← notion_chunks (vecteurs + metadata)
 │       │   ├── schemas.py
-│       │   ├── router.py       ← /rag/*
-│       │   ├── engine.py
-│       │   └── tools.py
+│       │   ├── router.py       ← /rag/* (ingest, query, sources)
+│       │   └── engine.py       ← délègue à core/services/rag_service.py
+│       │                          (pas de tools : consommé par les autres modules)
 │       │
 │       ├── memory/             ← mémoire projet validée + candidates
 │       │   ├── manifest.yaml
-│       │   ├── config.yaml     ← seuils similarité, comportement auto-save
+│       │   ├── config.yaml     ← seuils similarité, auto-save
 │       │   ├── models.py       ← project_memory, memory_candidates, user_preferences
 │       │   ├── schemas.py
 │       │   ├── router.py       ← /memory/*
-│       │   ├── engine.py       ← dédup cosine, classification, validation
+│       │   ├── engine.py
 │       │   └── tools.py
 │       │
 │       └── events_engine/      ← moteur d'alertes (règles métier)
@@ -135,15 +163,15 @@ ARCEAG/
 │           ├── models.py       ← alerts
 │           ├── schemas.py
 │           ├── router.py       ← /events/*
-│           └── engine.py       ← évaluation règles, génération alertes
+│           └── engine.py
 │
 ├── db/
 │   ├── alembic.ini
-│   └── migrations/versions/    ← migrations générées par module (préfixe: nom_module_)
+│   └── migrations/versions/    ← préfixe: {module}_{NNN}_{description}.py
 │
 ├── openwebui/
-│   ├── agents/                 ← un agent par module (généré depuis manifest)
-│   └── knowledge/
+│   ├── agents/                 ← un agent par module (depuis manifest.yaml)
+│   └── knowledge/              ← CCTP exemples, normes NF, DTU…
 │
 └── docs/
 ```
@@ -200,6 +228,84 @@ modules:
 
   - name: events_engine
     enabled: true
+```
+
+---
+
+### Services partagés (`api/core/services/`) — importables par tous les modules
+
+Contrairement aux modules, les services core **n'ont pas de router ni de manifest**. Ils sont des bibliothèques internes importées directement.
+
+```python
+# Dans n'importe quel engine.py de module :
+from core.services.rag_service import RagService
+from core.services.storage_service import StorageService
+from core.services.llm_service import LlmService
+```
+
+#### `rag_service.py`
+```python
+class RagService:
+    async def embed(self, text: str) -> list[float]
+    async def chunk_and_embed(self, text: str, source_type: str, affaire_id: UUID, metadata: dict) -> list[UUID]
+    async def search(self, query: str, affaire_id: UUID, top_k: int = 5, source_type: str = None) -> list[dict]
+    async def delete_source(self, affaire_id: UUID, source_ref: str)
+```
+> Utilisé par : `planning` (CCTP), `meeting` (historique), `communications` (search), `memory` (dédup), `rag` (router public)
+
+#### `storage_service.py`
+```python
+class StorageService:
+    # Bucket S3 : arceag-files
+    # Clé : {affaire_id}/{module}/{filename}
+    async def upload(self, affaire_id: UUID, module: str, filename: str, content: bytes, content_type: str) -> str  # → URL
+    async def download(self, key: str) -> bytes
+    async def presigned_url(self, key: str, expires_seconds: int = 3600) -> str
+    async def delete(self, key: str)
+    async def list_files(self, affaire_id: UUID, module: str = None) -> list[dict]
+```
+> Utilisé par : `planning` (CCTP PDF), `communications` (PJ emails), `documents` (pièces générées), `chantier` (photos)
+
+#### `llm_service.py`
+```python
+class LlmService:
+    async def chat(self, messages: list[dict], model: str = None, temperature: float = 0.7) -> str
+    async def extract_structured(self, prompt: str, text: str, schema: dict, temperature: float = 0.1) -> dict
+    async def embed(self, text: str) -> list[float]   # délègue à RagService
+```
+> Utilisé par : tous les modules LLM (planning, meeting, communications, documents, memory)
+
+#### `events.py` — PostgreSQL LISTEN/NOTIFY
+
+```python
+# Bus inter-modules via PostgreSQL → fonctionne avec plusieurs workers uvicorn
+
+import asyncpg, json
+from typing import Callable
+
+_handlers: dict[str, list[Callable]] = {}
+
+async def subscribe(channel: str, handler: Callable, pool: asyncpg.Pool):
+    """Écoute un channel PostgreSQL et appelle handler(payload: dict) à chaque NOTIFY."""
+    _handlers.setdefault(channel, []).append(handler)
+    async with pool.acquire() as conn:
+        await conn.add_listener(channel, _dispatch)
+
+async def publish(channel: str, payload: dict, pool: asyncpg.Pool):
+    """Envoie un NOTIFY sur un channel PostgreSQL."""
+    async with pool.acquire() as conn:
+        await conn.execute(f"NOTIFY {channel}, $1", json.dumps(payload))
+
+async def _dispatch(conn, pid, channel, payload_str):
+    payload = json.loads(payload_str)
+    for handler in _handlers.get(channel, []):
+        await handler(payload)
+
+# Channels standard :
+# "planning_channel"      → lots validés, jalons dépassés, chemin critique changé
+# "budget_channel"        → seuil atteint, situation déposée
+# "chantier_channel"      → blocage ouvert, avancement mis à jour
+# "communication_channel" → email urgent reçu
 ```
 
 ---
@@ -510,6 +616,289 @@ Redémarrage API → le module est monté automatiquement.
 
 ---
 
+## 1c. AUTH — Utilisateurs, Rôles & Permissions
+
+### Les 4 rôles
+
+| Rôle | Qui | Ce qu'il peut faire |
+|------|-----|---------------------|
+| `admin` | Dirigeant / IT | Tout : users, config, modules, affaires, données |
+| `moe` | Architecte chef de projet | Créer des affaires, tout gérer sur SES affaires + équipe |
+| `collaborateur` | Chargé de mission, assistant | Lecture + écriture sur affaires auxquelles il est assigné |
+| `lecteur` | Client, entreprise invitée, bureau de contrôle | Lecture seule sur affaires auxquelles il est assigné |
+
+### Tables
+
+```sql
+CREATE TABLE users (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email           VARCHAR(255) UNIQUE NOT NULL,
+    nom             VARCHAR(100),
+    prenom          VARCHAR(100),
+    hashed_password VARCHAR(255) NOT NULL,
+    role            VARCHAR(30) NOT NULL DEFAULT 'collaborateur',
+                    -- admin | moe | collaborateur | lecteur
+    actif           BOOLEAN DEFAULT TRUE,
+    openwebui_user_id VARCHAR(100),   -- lien avec l'identité OpenWebUI
+    metadata        JSONB DEFAULT '{}',
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE affaire_permissions (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id         UUID REFERENCES users(id) ON DELETE CASCADE,
+    affaire_id      UUID REFERENCES affaires(id) ON DELETE CASCADE,
+    role_override   VARCHAR(30),      -- surcharge le rôle global sur cette affaire
+                    -- NULL = utiliser le rôle global de l'utilisateur
+    granted_by      UUID REFERENCES users(id),
+    created_at      TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, affaire_id)
+);
+```
+
+### JWT — Structure du token
+
+```json
+{
+  "sub": "user-uuid",
+  "email": "jean@arceag.fr",
+  "role": "moe",
+  "exp": 1735689600,
+  "iat": 1735603200
+}
+```
+
+> Les permissions par affaire ne sont **pas** dans le JWT (liste peut être longue) — elles sont vérifiées en DB à chaque requête sensible via `affaire_permissions`.
+
+### Middleware FastAPI (`core/auth.py`)
+
+```python
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer
+
+bearer = HTTPBearer()
+
+async def get_current_user(token = Depends(bearer), db = Depends(get_db)) -> User:
+    """Décode le JWT et retourne l'utilisateur en DB. 401 si invalide."""
+    ...
+
+def require_role(*roles: str):
+    """Dépendance FastAPI : vérifie que l'utilisateur a l'un des rôles spécifiés."""
+    async def checker(user = Depends(get_current_user)):
+        if user.role not in roles:
+            raise HTTPException(status_code=403, detail="Rôle insuffisant")
+        return user
+    return checker
+
+async def require_affaire_access(affaire_id: UUID, min_role: str = "lecteur", user = Depends(get_current_user), db = Depends(get_db)) -> User:
+    """Vérifie que l'utilisateur a accès à cette affaire (rôle global ou override)."""
+    if user.role == "admin":
+        return user
+    perm = await db.get(AffairePermission, (user.id, affaire_id))
+    effective_role = perm.role_override if perm and perm.role_override else user.role
+    if not _has_access(effective_role, min_role):
+        raise HTTPException(status_code=403, detail="Accès refusé à cette affaire")
+    return user
+```
+
+### Utilisation dans les routers
+
+```python
+# Lecture publique (pour les lecteurs) :
+@router.get("/{affaire_id}")
+async def get_affaire(affaire_id: UUID, user = Depends(require_affaire_access(min_role="lecteur"))):
+    ...
+
+# Écriture (moe ou collaborateur) :
+@router.post("/{affaire_id}/events")
+async def create_event(affaire_id: UUID, user = Depends(require_affaire_access(min_role="collaborateur"))):
+    ...
+
+# Admin seulement :
+@router.get("/admin/users")
+async def list_users(user = Depends(require_role("admin"))):
+    ...
+```
+
+### Endpoints `/auth/*`
+
+| Méthode | Endpoint | Rôle requis | Description |
+|---------|----------|-------------|-------------|
+| POST | `/auth/login` | — | Login email/password → JWT |
+| POST | `/auth/refresh` | — | Rafraîchir le token |
+| GET | `/auth/me` | tout rôle | Profil utilisateur courant |
+| GET | `/auth/users` | admin | Lister tous les utilisateurs |
+| POST | `/auth/users` | admin | Créer un utilisateur |
+| PATCH | `/auth/users/{id}` | admin | Modifier rôle, actif… |
+| DELETE | `/auth/users/{id}` | admin | Désactiver un utilisateur |
+| GET | `/auth/affaires/{id}/permissions` | admin + moe | Voir qui a accès à cette affaire |
+| POST | `/auth/affaires/{id}/permissions` | admin + moe | Donner accès à un utilisateur |
+| DELETE | `/auth/affaires/{id}/permissions/{user_id}` | admin + moe | Révoquer accès |
+
+### Intégration OpenWebUI
+
+Chaque utilisateur OpenWebUI possède son propre token JWT dans la configuration de ses tools. Le token est transmis en header `Authorization: Bearer {token}` à chaque appel d'outil vers l'API.
+
+```python
+# Dans chaque tools.py (OpenWebUI) :
+class Tools:
+    class Valves(BaseModel):
+        api_base: str = "http://api:8000"
+        api_token: str = ""   # JWT de l'utilisateur (configuré dans OpenWebUI)
+
+    def __init__(self):
+        self.valves = self.Valves()
+
+    def _headers(self):
+        return {"Authorization": f"Bearer {self.valves.api_token}"}
+```
+
+---
+
+## 1d. INTERFACE ADMIN — Pilotage de l'infrastructure
+
+> Interface web dédiée aux administrateurs pour piloter l'OS Chantier sans toucher aux fichiers de config.
+> Implémentée comme un **module `admin/`** avec son propre router FastAPI + une UI légère (React ou HTMX).
+
+### Ce que l'admin peut faire
+
+| Catégorie | Actions |
+|-----------|---------|
+| **Modules** | Activer/désactiver un module, voir son statut, lire son manifest + config |
+| **Utilisateurs** | CRUD users, assignation rôles, permissions par affaire |
+| **Connexions API** | Configurer clés (OpenAI, Notion…), tester la connexion, voir la latence |
+| **Synchronisations** | Sens (push/pull/bidirectionnel), fréquence, dernier run, erreurs |
+| **Mapping tables** | Éditer les tables de mapping (codes lots, catégories, types documents) |
+| **Base de données** | Voir l'état des migrations, lancer une migration, stats tables (nb lignes) |
+| **Storage** | Voir les buckets MinIO, espace utilisé, lister/supprimer fichiers par affaire |
+| **Bus événements** | Voir les channels actifs, log des derniers événements publiés |
+| **Rate limiting** | Voir les compteurs par user, ajuster les seuils |
+| **Logs** | Consulter les logs API en temps réel (tail) |
+
+### Structure du module
+
+```
+api/modules/admin/
+├── manifest.yaml       ← prefix: /admin, depends_on: tous les modules
+├── models.py           ← admin_logs, api_connections, sync_configs, mapping_tables
+├── schemas.py
+├── router.py           ← /admin/* (protégé : require_role("admin"))
+├── engine.py           ← lecture config live, test connexions, stats DB
+└── ui/                 ← interface web légère (HTMX ou React)
+    ├── index.html
+    ├── modules.html
+    ├── users.html
+    ├── connections.html
+    ├── storage.html
+    └── logs.html
+```
+
+### Tables
+
+```sql
+-- Connexions API externes configurées
+CREATE TABLE api_connections (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nom         VARCHAR(100) NOT NULL,    -- "OpenAI", "Notion", "SMTP"
+    type        VARCHAR(50) NOT NULL,     -- llm|embedding|storage|crm|email
+    base_url    TEXT,
+    api_key     TEXT,                     -- chiffré en DB (AES-256)
+    config      JSONB DEFAULT '{}',       -- params spécifiques
+    actif       BOOLEAN DEFAULT TRUE,
+    last_test   TIMESTAMPTZ,
+    last_status VARCHAR(20),              -- ok|error|timeout
+    created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Configurations de synchronisation
+CREATE TABLE sync_configs (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nom             VARCHAR(100),
+    source_module   VARCHAR(50),          -- "notion" | "planning" | "chantier"
+    cible_module    VARCHAR(50),
+    sens            VARCHAR(20),          -- push | pull | bidirectionnel
+    frequence_sec   INTEGER DEFAULT 300,
+    actif           BOOLEAN DEFAULT TRUE,
+    last_run        TIMESTAMPTZ,
+    last_status     VARCHAR(20),
+    last_error      TEXT,
+    config          JSONB DEFAULT '{}'
+);
+
+-- Tables de mapping éditables par l'admin
+CREATE TABLE mapping_tables (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    nom         VARCHAR(100) NOT NULL,    -- "categories_communications", "types_documents"
+    module      VARCHAR(50),
+    contenu     JSONB NOT NULL,           -- la table de mapping elle-même
+    updated_by  UUID REFERENCES users(id),
+    updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+### Endpoints `/admin/*`
+
+```
+GET  /admin/                         → dashboard (statut global)
+GET  /admin/modules                  → liste modules + statut actif/inactif
+POST /admin/modules/{name}/toggle    → activer/désactiver (modifie modules.yaml)
+GET  /admin/modules/{name}/config    → lire config.yaml en live
+PUT  /admin/modules/{name}/config    → modifier config.yaml sans redémarrage (hot-reload)
+
+GET  /admin/users                    → liste utilisateurs
+POST /admin/users                    → créer utilisateur
+PATCH /admin/users/{id}              → modifier rôle/actif
+GET  /admin/affaires/{id}/permissions → permissions d'une affaire
+PUT  /admin/affaires/{id}/permissions → définir les accès
+
+GET  /admin/connections              → liste connexions API
+POST /admin/connections              → créer connexion
+PUT  /admin/connections/{id}         → modifier
+POST /admin/connections/{id}/test    → tester (ping + auth)
+
+GET  /admin/syncs                    → liste synchronisations
+POST /admin/syncs                    → créer config sync
+PUT  /admin/syncs/{id}               → modifier sens/fréquence
+POST /admin/syncs/{id}/run           → déclencher manuellement
+
+GET  /admin/mappings                 → lister tables de mapping
+GET  /admin/mappings/{nom}           → lire une table
+PUT  /admin/mappings/{nom}           → modifier une table (JSONB éditeur)
+
+GET  /admin/storage                  → stats buckets MinIO
+GET  /admin/storage/{affaire_id}     → fichiers d'une affaire
+DELETE /admin/storage/{key}          → supprimer un fichier
+
+GET  /admin/db/migrations            → statut migrations Alembic
+POST /admin/db/migrate               → lancer alembic upgrade head
+GET  /admin/db/stats                 → nb lignes par table
+
+GET  /admin/events/log               → derniers événements bus PostgreSQL
+GET  /admin/rate-limits              → compteurs par utilisateur
+PUT  /admin/rate-limits/{user_id}    → ajuster seuil individuel
+
+GET  /admin/logs                     → tail logs API (SSE stream)
+```
+
+### Rate limiting (`slowapi`)
+
+```python
+# api/core/rate_limit.py
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=lambda req: req.state.user.id if hasattr(req.state, "user") else get_remote_address(req))
+
+# Décorateurs par type d'endpoint :
+# @limiter.limit("10/minute")   → endpoints LLM (ingest CCTP, génération doc, analyse CR)
+# @limiter.limit("100/minute")  → endpoints standard
+# @limiter.limit("1000/minute") → endpoints lecture (GET)
+# Override admin via /admin/rate-limits/{user_id}
+```
+
+---
+
 ## 2. MODÈLE DE DONNÉES
 
 ### 2.1 Tables principales
@@ -530,23 +919,35 @@ CREATE TABLE affaires (
 );
 ```
 
-#### `planning_tasks` — tâches planning
+#### `intervenants` — entreprises et contacts du projet
+
 ```sql
-CREATE TABLE planning_tasks (
+CREATE TABLE intervenants (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     affaire_id      UUID REFERENCES affaires(id) ON DELETE CASCADE,
-    lot             VARCHAR(100) NOT NULL,      -- "Maçonnerie", "Charpente"...
-    phase           VARCHAR(100),               -- "Gros oeuvre", "Second oeuvre"...
-    task            VARCHAR(255) NOT NULL,
-    duration_days   INTEGER NOT NULL,
-    depends_on      UUID[] DEFAULT '{}',        -- IDs des tâches précédentes
-    start_date      DATE,
-    end_date        DATE,
-    statut          VARCHAR(50) DEFAULT 'planned', -- planned, in_progress, done, blocked
-    entreprise_id   UUID,
+    nom             VARCHAR(255) NOT NULL,
+    type            VARCHAR(50) NOT NULL,
+                    -- entreprise|moa|moe|bureau_etudes|controle|coordinateur|autre
+    lots            TEXT[] DEFAULT '{}',        -- lots dont cet intervenant est responsable
+    contact_nom     VARCHAR(100),
+    contact_email   VARCHAR(255),
+    contact_tel     VARCHAR(30),
+    siret           VARCHAR(20),
     metadata        JSONB DEFAULT '{}',
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
+```
+
+> **Remplace** les champs `entreprise VARCHAR(255)` dispersés dans `budgets`, `situations`, `planning_lots`, `chantier_events`. On référence `intervenant_id UUID` à la place.
+
+#### `planning_lots` — lots du projet (remplace `planning_tasks`)
+
+> `planning_tasks` est **supprimé**. `planning_lots` est l'unité de planning.
+> Les dépendances, overlap et jalons sont dans les tables du module `planning/`.
+
+```sql
+-- Voir section 3 PLANNING ENGINE pour le DDL complet de planning_lots,
+-- planning_dependencies, planning_ouvrages, planning_cctp_ingestions
 ```
 
 #### `chantier_events` — journal chantier
@@ -1911,7 +2312,25 @@ services:
     depends_on:
       - api
 
-  # optionnel : adminer pour inspecter la DB
+  # MinIO — stockage fichiers S3-compatible
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9000:9000"   # API S3
+      - "9001:9001"   # Console Web
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Interface admin DB (optionnel)
   adminer:
     image: adminer
     ports:
@@ -1922,96 +2341,123 @@ services:
 volumes:
   postgres_data:
   openwebui_data:
+  minio_data:
 ```
 
 ---
 
 ## 15. ORDRE DE DÉVELOPPEMENT
 
-### Phase 1 — Kernel + Module Chantier (fondation)
-- [ ] Structure repo + docker-compose + `modules.yaml`
-- [ ] `api/core/` : `registry.py`, `base_engine.py`, `base_router.py`, `base_tool.py`, `events.py`
-- [ ] `api/database.py` + connexion async partagée
-- [ ] `api/main.py` (20 lignes)
-- [ ] Module `chantier/` : manifest, models, schemas, router, engine, tools
-- [ ] Alembic auto-migration depuis les models du module
-- [ ] Tests kernel : chargement registry, montage router
+### Phase 0 — Infrastructure & Kernel (prérequis absolu)
+- [ ] `docker-compose.yml` : db (pgvector), api, openwebui, minio, adminer
+- [ ] `modules.yaml` à la racine
+- [ ] `api/core/` : `registry.py`, `base_engine.py`, `base_router.py`, `base_tool.py`
+- [ ] `api/core/events.py` : PostgreSQL LISTEN/NOTIFY (publish/subscribe)
+- [ ] `api/core/auth.py` : JWT decode, `get_current_user`, `require_role`, `require_affaire_access`
+- [ ] `api/core/services/llm_service.py` : chat, extract_structured, embed
+- [ ] `api/core/services/rag_service.py` : chunk, embed, search cosine
+- [ ] `api/core/services/storage_service.py` : upload/download MinIO + init bucket
+- [ ] `api/core/rate_limit.py` : slowapi limiter
+- [ ] `api/database.py` + `api/main.py`
+- [ ] Tests kernel : registry, auth, services
 
-### Phase 2 — Module Planning
-- [ ] Module `planning/` complet (manifest + config.yaml avec LOT_DEPENDENCIES)
-- [ ] `engine.py` : tri topologique, calcul dates, chemin critique
-- [ ] `scenario.py` : retard_lot, météo, absence, blocage livraison
-- [ ] Tests unitaires engine (tri topo, calcul dates)
+### Phase 1 — Modules Auth + Chantier (socle métier)
+- [ ] Module `auth/` : users, affaire_permissions, JWT login/refresh, CRUD users
+- [ ] Module `chantier/` : affaires, intervenants, chantier_events, router, engine, tools
+- [ ] Migration Alembic : `auth_001_users`, `chantier_001_affaires`, `chantier_002_intervenants`
+- [ ] Tests auth : rôles, permissions affaire, token expiré
 
-### Phase 3 — Module Budget + Events Engine
-- [ ] Module `budget/` complet
-- [ ] Module `events_engine/` : rules dans config.yaml, background task
-- [ ] Bus d'événements `core/events.py` : subscribe/publish
-- [ ] Tests règles métier (deadline, dépassement, blocage)
+### Phase 2 — Module Admin (interface de pilotage)
+- [ ] Module `admin/` : manifest, models (api_connections, sync_configs, mapping_tables), router, engine
+- [ ] Endpoints : modules toggle, users CRUD, connections, syncs, storage, DB stats, logs SSE
+- [ ] UI HTMX (ou React minimal) : tableau de bord admin
+- [ ] Tests : accès refusé si pas admin, toggle module, test connexion API
 
-### Phase 4 — Modules RAG + Meeting + Memory
-- [ ] Module `rag/` : embedding pgvector, config chunk_size/overlap/top_k
-- [ ] Module `meeting/` : pipeline LLM, prompt dans config.yaml
-- [ ] Module `memory/` : dédup cosine, config seuils similarité
-- [ ] Tests déduplication mémoire
+### Phase 3 — Module Planning (CCTP-driven)
+- [ ] Module `planning/` complet
+- [ ] `core/services/rag_service.py` utilisé pour embedding CCTP
+- [ ] `cctp_parser.py` + `dependency_detector.py` + prompts
+- [ ] `engine.py` : tri topo + overlap + chemin critique + BFS impact
+- [ ] Migration : `planning_001_lots`, `planning_002_dependencies`
+- [ ] Tests : parsing CCTP, scheduling avec overlap, propagation retard
 
-### Phase 5 — Module Finance
-- [ ] Module `finance/` complet
-- [ ] `config.yaml` : seuil_alerte_pct, delai_paiement_warning_jours
-- [ ] `engine.py` : tableau de bord financier, alertes
-- [ ] Tools + Agent OpenWebUI
-- [ ] Tests calcul tableau de bord
+### Phase 4 — Modules Budget + Events Engine
+- [ ] Module `budget/` : budgets lots + alertes dépassement
+- [ ] Module `events_engine/` : rules YAML, background task, alertes
+- [ ] Bus PostgreSQL : subscribe budget_channel + chantier_channel
+- [ ] Tests règles métier
 
-### Phase 6 — Module Communications
-- [ ] Module `communications/` complet
-- [ ] `config.yaml` : CATEGORIES, PRIORITES, reference_format (tous overridables)
-- [ ] `engine.py` : classification LLM, résumé, référence auto, brouillon réponse
-- [ ] Tests classification catégories
+### Phase 5 — Modules RAG + Meeting + Memory
+- [ ] Module `rag/` : router `/rag/*` (délègue à `core/services/rag_service`)
+- [ ] Module `meeting/` : pipeline LLM extraction CR, prompt configurable
+- [ ] Module `memory/` : dédup cosine, classification, validation
+- [ ] Tests déduplication, extraction CR
+
+### Phase 6 — Modules Finance + Communications
+- [ ] Module `finance/` : situations, avenants, tableau de bord financier
+- [ ] Module `communications/` : classification LLM, référence auto, brouillon réponse, storage PJ MinIO
+- [ ] Tests calcul financier, classification email
 
 ### Phase 7 — Module Documents
-- [ ] Module `documents/` complet
-- [ ] `templates/` Jinja2 (8 types) dans le dossier du module
-- [ ] `config.yaml` : types de docs activés, mapping template
-- [ ] `engine.py` : rendu Jinja2 + complétion LLM
+- [ ] Module `documents/` : templates Jinja2, génération LLM, upload MinIO
 - [ ] Pipeline `cr_from_meeting`
 - [ ] Tests génération CR
 
-### Phase 8 — OpenWebUI (tous agents depuis manifests)
-- [ ] Génération automatique agents YAML depuis `manifest.yaml` de chaque module
-- [ ] Tools Python (wrappers API) pour chaque module
-- [ ] Ingestion knowledge (CCTP, normes)
+### Phase 8 — OpenWebUI (agents + tools)
+- [ ] Tools Python (wrappers API + JWT) pour chaque module
+- [ ] Agents YAML depuis `manifest.yaml`
+- [ ] Ingestion knowledge (CCTP exemples, normes, DTU)
 - [ ] Tests agents conversationnels
 
 ### Phase 9 — Intégrations
-- [ ] `services/notion_sync.py`
-- [ ] Webhooks Notion → API (publish sur bus d'événements)
-- [ ] Export Gantt
+- [ ] Module `admin/syncs` : Notion polling → publish sur bus événements
+- [ ] Export Gantt XLSX
+- [ ] Notifications email (endpoint `/admin/connections` type=smtp)
 
 ---
 
 ## 16. VARIABLES D'ENVIRONNEMENT
 
 ```env
-# DB
+# ── Base de données ──────────────────────────────────────────────
 DB_PASSWORD=changeme
 DATABASE_URL=postgresql+asyncpg://arceag:changeme@db:5432/arceag
 
-# LLM
+# ── Auth JWT ─────────────────────────────────────────────────────
+JWT_SECRET_KEY=changeme-secret-min-32-chars
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_MINUTES=1440          # 24h
+ADMIN_EMAIL=admin@arceag.fr
+ADMIN_PASSWORD=changeme          # modifié au 1er démarrage
+
+# ── LLM ──────────────────────────────────────────────────────────
 OPENAI_API_KEY=sk-...
 OPENAI_API_BASE_URL=https://api.openai.com/v1
 EMBEDDING_MODEL=text-embedding-3-large
 EMBEDDING_DIM=1024
 LLM_MODEL=gpt-4o
 
-# Notion
+# ── Storage MinIO ─────────────────────────────────────────────────
+MINIO_ENDPOINT=minio:9000
+MINIO_ROOT_USER=arceag
+MINIO_ROOT_PASSWORD=changeme-minio
+MINIO_BUCKET=arceag-files
+MINIO_SECURE=false               # true si HTTPS activé
+
+# ── Notion ───────────────────────────────────────────────────────
 NOTION_TOKEN=secret_...
 NOTION_DATABASE_AFFAIRES=...
 NOTION_DATABASE_ACTIONS=...
 
-# API
-SECRET_KEY=changeme-secret
+# ── API ──────────────────────────────────────────────────────────
 API_PORT=8000
+API_WORKERS=1                    # IMPORTANT: 1 seul worker (bus événements in-process)
 DEBUG=true
+
+# ── Rate limiting ────────────────────────────────────────────────
+RATE_LIMIT_LLM=10/minute         # endpoints LLM (ingest, génération, analyse)
+RATE_LIMIT_STANDARD=100/minute   # endpoints CRUD
+RATE_LIMIT_READ=1000/minute      # GET endpoints
 ```
 
 ---
@@ -2020,49 +2466,75 @@ DEBUG=true
 
 ### Architecture modulaire
 1. **Un module = un dossier** `api/modules/{nom}/` avec ses 7 fichiers standard
-2. **Pas d'import croisé entre modules** — utiliser le bus `core/events.py` (publish/subscribe)
-3. **Tout comportement configurable** dans `config.yaml` du module — jamais hardcodé dans le code
-4. **`main.py` ne connaît aucun module** — tout passe par `registry.load_all()`
-5. **`manifest.yaml` est la source de vérité** pour prefix, dépendances, tools, agent
+2. **Pas d'import croisé entre modules** — utiliser le bus PostgreSQL LISTEN/NOTIFY (`core/events.py`)
+3. **Import `core/services/`** autorisé depuis tout module (rag_service, storage_service, llm_service)
+4. **Tout comportement configurable** dans `config.yaml` du module — jamais hardcodé dans le code
+5. **`main.py` ne connaît aucun module** — tout passe par `registry.load_all()`
+6. **`manifest.yaml` est la source de vérité** pour prefix, dépendances, tools, agent
+
+### Auth
+7. **Tout endpoint** (sauf `/auth/login`, `/health`) exige `get_current_user` en dépendance
+8. **Tout endpoint avec `affaire_id`** exige `require_affaire_access(min_role=...)` en dépendance
+9. **Seuls les admins** peuvent accéder à `/admin/*` et aux endpoints de configuration
+10. **Les clés API externes** sont stockées chiffrées en DB (table `api_connections`), jamais en clair dans les logs
 
 ### Code
-6. **Toute logique métier dans `engine.py`** du module — jamais dans le router
-7. **`router.py` = validation Pydantic + appel engine + retour HTTP** uniquement
-8. **`def get_router(config: dict) → APIRouter`** : signature obligatoire du router
-9. **SQLAlchemy async** partout (asyncpg driver)
-10. **Pydantic v2** pour tous les schemas
+11. **Toute logique métier dans `engine.py`** du module — jamais dans le router
+12. **`router.py` = validation Pydantic + auth + appel engine + retour HTTP** uniquement
+13. **`def get_router(config: dict) → APIRouter`** : signature obligatoire du router
+14. **SQLAlchemy async** partout (asyncpg driver)
+15. **Pydantic v2** pour tous les schemas
+16. **Rate limiting** : décorer avec `@limiter.limit("10/minute")` tous les endpoints qui appellent un LLM
 
 ### Données
-11. **pgvector** pour tout ce qui est sémantique (embedding) — pas d'index texte brut
-12. **UUID** comme clé primaire partout
-13. **JSONB** pour les données flexibles (metadata)
-14. Migrations Alembic préfixées par le nom du module : `finance_001_situations.py`
+17. **pgvector** pour tout ce qui est sémantique — pas d'index texte brut
+18. **UUID** comme clé primaire partout
+19. **JSONB** pour les données flexibles (metadata, config)
+20. **`intervenant_id`** à la place de `entreprise VARCHAR` dans toutes les tables
+21. **Tables jamais auto-droppées** si module désactivé — opérateur doit lancer down-migration manuellement
+22. Migrations préfixées : `{module}_{NNN}_{description}.py`
+
+### Storage
+23. **Tout fichier binaire** (PDF, photo, document) passe par `storage_service.upload()` → MinIO
+24. **Les tables DB ne stockent jamais de binaire** — seulement la clé MinIO (`storage_key VARCHAR`)
+25. **Bucket unique** `arceag-files`, structure clé : `{affaire_id}/{module}/{filename}`
+
+### Workers
+26. **`API_WORKERS=1`** en v1 — le bus événements PostgreSQL est compatible multi-workers mais les handlers in-process ne le sont pas encore
+27. Si besoin de scaling horizontal → migrer vers handlers enregistrés en DB
 
 ### OpenWebUI
-15. **Les tools ne contiennent aucune logique** — ils appellent l'API REST
-16. **Chaque module expose ses tools via `tools.py`** → générés depuis `manifest.yaml`
-17. **Les system prompts des agents** sont dans `agent_system.txt` du module (overridable)
+28. **Les tools ne contiennent aucune logique** — ils appellent l'API REST avec le JWT de l'utilisateur
+29. **Chaque tool** inclut `Authorization: Bearer {jwt}` dans ses headers
 
 ### Tests
-18. Tests dans `api/modules/{nom}/tests/` pour les engines critiques
-19. Test de chargement du registry dans `api/tests/test_registry.py`
+30. Tests dans `api/modules/{nom}/tests/` pour les engines critiques
+31. Test de chargement du registry dans `api/tests/test_registry.py`
+32. Test d'auth : accès refusé (403) pour les mauvais rôles, token expiré (401)
 
 ---
 
-## 18. QUESTIONS OUVERTES / DÉCISIONS À PRENDRE
+## 18. DÉCISIONS ARCHITECTURALES — TOUTES CLOSES
 
-| # | Question | Décision par défaut |
-|---|----------|---------------------|
-| 1 | Modèle embedding : OpenAI vs local (nomic) ? | OpenAI text-embedding-3-large (config.yaml rag) |
-| 2 | Auth API : JWT vs API key simple ? | API key simple en v1 |
-| 3 | Sync Notion : webhook ou polling ? | Polling 5min en v1 |
-| 4 | Jours ouvrés : calendrier FR ou configurable ? | Configurable par affaire (planning/config.yaml) |
-| 5 | Multi-tenant (plusieurs agences) ? | Non en v1, prévu en v2 |
-| 6 | Export Gantt : format MS Project ou CSV ? | CSV + JSON en v1 |
-| 7 | Hot-reload modules en prod ? | Non — reload uniquement en dev (watchfiles) |
-| 8 | Background tasks : APScheduler ou Celery ? | APScheduler en v1 (dans chaque module) |
-| 9 | Bus d'événements : sync ou async (Redis) ? | Async in-process en v1, Redis en v2 |
-| 10 | Templates documents : Jinja2 ou format Word ? | Jinja2 → Markdown en v1, export PDF via pandoc en v2 |
+| # | Question | ✅ Décision finale |
+|---|----------|--------------------|
+| 1 | Modèle embedding | OpenAI `text-embedding-3-large` — configurable dans `rag/config.yaml` |
+| 2 | Auth API | **JWT HS256** — 4 rôles (admin/moe/collaborateur/lecteur) — per-affaire via `affaire_permissions` |
+| 3 | Sync Notion | Polling 5min en v1 (configurable via `/admin/syncs`), webhook en v2 |
+| 4 | Jours ouvrés | Configurable par affaire dans `planning/config.yaml` — calendrier FR par défaut |
+| 5 | Multi-tenant | Non en v1 (une agence = une instance Docker) |
+| 6 | Export Gantt | CSV + JSON v1, export XLSX en v2 |
+| 7 | Hot-reload modules prod | Non — uniquement en dev (`watchfiles`) |
+| 8 | Background tasks | APScheduler en v1 (dans chaque module via manifest) |
+| 9 | Bus d'événements | **PostgreSQL LISTEN/NOTIFY** — compatible multi-workers, pas de Redis en v1 |
+| 10 | Templates documents | Jinja2 → Markdown v1, export PDF via `pandoc` en v2 |
+| 11 | Storage fichiers | **MinIO** (S3-compatible self-hosted Docker) — bucket `arceag-files` |
+| 12 | RAG | **Service core partagé** (`core/services/rag_service.py`) + module `rag/` pour le router utilisateur |
+| 13 | planning_tasks | **Supprimé** — remplacé par `planning_lots` (granularité MOE) |
+| 14 | Intervenants | **Table dédiée** `intervenants` — remplace `entreprise VARCHAR` éparpillé |
+| 15 | Rate limiting | **slowapi** — 10/min LLM, 100/min standard, 1000/min lecture |
+| 16 | Interface admin | **Module `admin/`** avec router + UI HTMX — modules, users, connexions API, syncs, storage, logs |
+| 17 | API_WORKERS | **1 en v1** — documenter dans .env |
 
 ---
 
