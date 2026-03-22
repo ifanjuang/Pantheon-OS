@@ -2,6 +2,217 @@
 
 ---
 
+## Inputs de la BASE GÉNÉRALE (Couche 1)
+
+La base normative ne se remplit pas automatiquement — elle est **gérée par l'admin**, manuellement, comme un référentiel maîtrisé.
+
+### Qui importe, comment, depuis où
+
+| Source | Format d'entrée | Qui importe | Via |
+|--------|----------------|-------------|-----|
+| DTU (ex: DTU 20.1, DTU 43.1) | PDF | Admin | Interface admin → `POST /rag/import` |
+| Eurocodes (EC2, EC5, EC8…) | PDF | Admin | Interface admin |
+| RE2020 / RT2012 — textes réglementaires | PDF | Admin | Interface admin |
+| Avis techniques CSTB | PDF (bulletin officiel) | Admin | Interface admin |
+| Fiches techniques fournisseurs (Knauf, Rockwool, Isover…) | PDF | Admin ou MOE | Interface admin |
+| CCTP types (CSPS, CSTB référentiels) | PDF / DOCX | Admin | Interface admin |
+| NF (normes AFNOR) | PDF | Admin | Interface admin |
+| PLU — base commune (générique, non-projet) | PDF | Admin | Interface admin |
+
+### Pipeline d'ingestion (identique pour toutes les couches)
+
+```
+[Fichier PDF / DOCX]
+        │
+        ▼
+POST /rag/import
+{ source_type: "general" | "projet" | "agence",
+  affaire_id: null (général) | uuid (projet),
+  label: "DTU 20.1 — édition 2008" }
+        │
+        ▼
+1. Extraction texte brut (PyMuPDF / python-docx)
+        │
+        ▼
+2. Découpe en chunks  (500 tokens, overlap 50 tokens)
+        │
+        ▼
+3. Embedding de chaque chunk  (Ollama nomic-embed-text OU OpenAI text-embedding-3-large)
+        │
+        ▼
+4. Stockage PostgreSQL pgvector
+   notion_chunks { id, affaire_id, source_type, source_ref, content, embedding VECTOR(1024) }
+        │
+        ▼
+5. Index ivfflat (recherche rapide cosine similarity)
+        │
+        ▼
+[Disponible immédiatement pour toute question RAG]
+```
+
+### Différence entre les 3 bases
+
+| Base | `affaire_id` | `source_type` | Mis à jour par | Fréquence |
+|------|-------------|---------------|----------------|-----------|
+| GÉNÉRALE (Couche 1) | `null` | `"general"` | Admin uniquement | Rare — à chaque nouvelle norme ou révision |
+| PROJET (Couche 3) | uuid affaire | `"projet"` | MOE, BE, auto (Meeting, Memory) | Continu tout au long de l'affaire |
+| AGENCE (Couche 2) | `null` | `"agence"` | Auto (Memory Engine) + MOE | Continu — chaque Q&R, chaque projet terminé |
+
+---
+
+## Formats d'échange inter-modules
+
+Les modules ne s'appellent jamais directement. Ils communiquent via **deux canaux** :
+
+### Canal 1 — Services partagés (`core/`)
+
+Tous les modules importent les mêmes interfaces. Contrat stable = pas de rupture si un module change.
+
+```
+Module X                      core/services/               Infra
+───────────────────           ──────────────────           ──────────
+engine.py
+  │
+  ├── RagService ──────────── chunk_and_embed(text, ...) → pgvector
+  │                           search(query, affaire_id)  ← résultats
+  │
+  ├── LlmService ──────────── chat(messages)             → Ollama / OpenAI
+  │                           extract_structured(...)    ← dict Pydantic
+  │
+  └── StorageService ──────── upload(file, key)          → MinIO
+                              presigned_url(key)         ← URL signée
+```
+
+**Format de retour RAG** (même structure pour tous les modules) :
+```json
+[
+  {
+    "chunk_id": "uuid",
+    "source_ref": "DTU 20.1 — §4.3.2",
+    "source_type": "general",
+    "content": "La résistance caractéristique à la compression...",
+    "score": 0.94,
+    "affaire_id": null
+  }
+]
+```
+
+### Canal 2 — Bus d'événements (PostgreSQL LISTEN/NOTIFY)
+
+Les modules s'abonnent à des **channels** et publient des **payloads JSON**. Jamais d'import croisé entre modules.
+
+```
+Module émetteur                    Channel PostgreSQL         Module(s) écouteur(s)
+──────────────────                 ──────────────────         ─────────────────────
+planning → lot validé         →    planning_channel      →    events_engine (alerte cascade)
+meeting  → action créée       →    meeting_channel       →    planning (mise à jour lot)
+finance  → budget dépassé     →    finance_channel       →    events_engine (alerte email)
+chantier → observation posée  →    chantier_channel      →    memory (capitalisation)
+rag      → document importé   →    rag_channel           →    memory (indexation agence)
+```
+
+**Format payload standard** (tous les channels) :
+```json
+{
+  "event_type": "lot_validated | action_created | budget_alert | ...",
+  "affaire_id": "uuid",
+  "module": "planning",
+  "timestamp": "2025-06-01T10:30:00Z",
+  "data": { ... }
+}
+```
+
+### Schemas Pydantic — contrat entre modules et API
+
+Chaque module expose 3 schemas (`schemas.py`) : Create / Read / Update.
+Le format `Read` est ce que l'API retourne — c'est le **format de sortie officiel** de chaque module.
+
+| Module | Exemples de champs `Read` |
+|--------|--------------------------|
+| **planning** | `lot_id`, `nom`, `statut`, `date_debut`, `date_fin`, `retard_jours`, `dependances[]` |
+| **meeting** | `seance_id`, `date`, `decisions[]`, `actions[]`, `blocages[]`, `lots_concernes[]` |
+| **finance** | `lot`, `montant_marche`, `cumul_facture`, `reste_a_facturer`, `taux_avancement_pct`, `alerte` |
+| **communications** | `ref`, `expediteur`, `destinataire`, `objet`, `categorie`, `statut`, `pieces_jointes[]` |
+| **chantier** | `observation_id`, `lot`, `type`, `description`, `photos[]`, `localisation`, `auteur` |
+| **rag** | `question`, `reponse`, `sources[]` ← avec `source_ref` + `score` + `couche` |
+
+---
+
+## Modularité & modulabilité
+
+### Structure d'un module (toujours 7 fichiers)
+
+```
+api/modules/{nom}/
+├── manifest.yaml       ← identité, prefix API, dépendances, tools OpenWebUI
+├── config.yaml         ← seuils, règles, prompts — modifiables sans toucher au code
+├── agent_system.txt    ← system prompt de l'agent OpenWebUI associé
+├── models.py           ← tables SQLAlchemy (migration Alembic auto)
+├── schemas.py          ← Pydantic Create / Read / Update
+├── router.py           ← endpoints FastAPI (monté automatiquement)
+└── engine.py           ← logique métier — hérite de BaseEngine
+    tools.py            ← tools OpenWebUI — hérite de BaseTool
+```
+
+### Ajouter un module
+
+```bash
+mkdir api/modules/expertise_technique
+# créer les 7 fichiers, remplir manifest.yaml
+echo "  - name: expertise_technique\n    enabled: true" >> modules.yaml
+alembic revision --autogenerate -m "expertise_technique_initial"
+# redémarrer → monté automatiquement
+```
+
+### Désactiver un module
+
+```yaml
+# modules.yaml
+- name: finance
+  enabled: false   # ← pas de redémarrage requis en dev
+```
+
+### Changer un comportement sans toucher au code
+
+| Ce que je veux | Fichier à éditer | Clé |
+|----------------|-----------------|-----|
+| Seuil alerte budget | `finance/config.yaml` | `seuil_alerte_pct` |
+| Dépendance entre lots | `planning/config.yaml` | `lot_dependencies` |
+| Prompt agent Meeting | `meeting/config.yaml` | `prompt_file` |
+| Nouveau type de document | `documents/config.yaml` | `types` + template `.md.j2` |
+| Nouvelle règle d'alerte | `events_engine/config.yaml` | `rules` |
+| Modèle LLM | `.env` | `LLM_MODEL=gpt-4o-mini` |
+| Fournisseur IA | `.env` | `LLM_PROVIDER=ollama` ou `openai` |
+
+### Règle d'or
+
+```
+Un module ne peut importer que :
+  ✓ core/services/  (rag_service, llm_service, storage_service)
+  ✓ ses propres fichiers internes
+  ✗ jamais un autre module directement
+
+Pour communiquer avec un autre module → bus d'événements (publish/subscribe)
+```
+
+### État des modules par version
+
+| Module | v0 | v1 | v2 | v3 |
+|--------|----|----|----|----|
+| `auth` | ✓ | ✓ | ✓ | ✓ |
+| `rag` | ✓ | ✓ | ✓ | ✓ |
+| `chantier` | ✓ | ✓ | ✓ | ✓ |
+| `planning` | ✓ | ✓ | ✓ | ✓ |
+| `meeting` | — | ✓ | ✓ | ✓ |
+| `memory` | — | ✓ | ✓ | ✓ |
+| `communications` | — | ✓ | ✓ | ✓ |
+| `finance` | — | — | ✓ | ✓ |
+| `documents` | — | — | ✓ | ✓ |
+| `events_engine` | — | ✓ | ✓ | ✓ |
+| `agents (proactifs)` | — | — | — | ✓ |
+
+---
+
 ## Vue d'ensemble
 
 ```
