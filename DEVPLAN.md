@@ -1,4 +1,4 @@
-# OS CHANTIER — Plan de développement technique
+# OS PROJET — Plan de développement technique
 
 > Document de référence pour Claude. À relire au début de chaque session.
 
@@ -6,45 +6,139 @@
 
 ## PRÉSENTATION
 
-**OS Chantier** est un système de pilotage intelligent de chantier conçu pour une agence d'architecture exerçant la maîtrise d'œuvre (MOE). Il centralise et automatise l'ensemble du suivi d'opération, de la phase études jusqu'à la réception.
+### Ce qu'est OS Projet
 
-### Problème résolu
+**OS Projet** est la mémoire vivante et l'intelligence opérationnelle d'une agence d'architecture.
 
-Une MOE jongle en permanence entre plusieurs affaires, des dizaines d'intervenants, des documents contractuels volumineux, des réunions de chantier hebdomadaires et un suivi financier exigeant. Aujourd'hui ces informations sont éparpillées entre emails, tableurs, PDF et notes manuscrites. Aucun outil du marché n'est calibré pour la taille et les pratiques d'une petite agence MOE.
+Il accompagne chaque opération du premier trait de crayon à la levée des réserves — et au-delà. À chaque étape, chaque acteur dépose naturellement ce qu'il sait : une question posée, un calcul réalisé, un diagnostic établi, une décision prise, un email reçu, une réunion tenue. Le système l'intègre, le comprend, le relie à ce qui existe déjà, et le rend accessible à tous, pour toujours.
 
-### Ce que fait OS Chantier
+Avec le temps, ces dépôts s'accumulent en deux niveaux d'intelligence :
 
-| Module | Fonction |
-|--------|----------|
-| **Planning** | Lit un CCTP (PDF/Word), extrait automatiquement les lots du projet via LLM, infère les dépendances entre ouvrages, génère une timeline avec chevauchements configurables, détecte les impacts en cascade d'un retard |
-| **Finance** | Suit les situations de travaux et avenants par lot, calcule en temps réel le marché actualisé / cumul facturé / reste à facturer, alerte sur les dépassements et retards de paiement |
-| **Communications** | Registre chronologique de tous les emails et courriers reçus/transmis, classés automatiquement par catégorie et lot, avec suivi des réponses et génération de brouillons via LLM |
-| **Documents** | Génère les pièces chantier (CR de réunion, PV de réception, fiches de non-conformité, ordres de service, rapports d'avancement) à partir de templates Jinja2 et des données du projet |
-| **Meeting** | Analyse un compte-rendu brut, en extrait automatiquement décisions, actions (avec responsable et échéance) et blocages, classe par lot et priorité |
-| **Mémoire projet** | Capitalise les décisions, risques et informations clés de l'opération, déduplique par similarité sémantique, permet une recherche contextuelle |
-| **Journal chantier** | Enregistre observations, avancements, blocages et jalons en temps réel, avec pièces jointes stockées dans MinIO |
-| **Budget** | Suit les marchés initiaux et les alertes de dépassement par lot |
-| **Alertes** | Moteur de règles métier : deadline dépassée, dépendance non respectée, budget critique, blocage prolongé |
-| **Admin** | Interface de pilotage de l'infrastructure : modules, utilisateurs/rôles, connexions API, synchronisations, storage, logs |
+- **L'intelligence du projet** — la mémoire complète d'une opération : ses choix structurels, ses contraintes réglementaires, ses calculs, ses aléas, ses arbitrages. Consultable à tout moment par n'importe quel acteur autorisé, sous forme de question naturelle.
+
+- **L'intelligence de l'agence** — ce que tous les projets ont appris. Les solutions qui ont fonctionné, les erreurs à ne pas reproduire, les réponses aux questions récurrentes, les détails constructifs éprouvés. Un savoir-faire institutionnel qui ne disparaît pas quand un collaborateur part.
+
+---
+
+### Le problème résolu
+
+Une agence d'architecture produit une quantité massive d'information tout au long de ses opérations : notes de calculs, diagnostics, correspondances, comptes-rendus, pièces graphiques, plannings, situations financières. Cette information est aujourd'hui fragmentée — dans les boîtes mail de chacun, dans des dossiers mal partagés, dans des tableurs sans logique commune, dans la tête des collaborateurs.
+
+Le résultat : on refait ce qui a déjà été fait, on perd du temps à chercher ce qu'on sait pourtant, on ne capitalise pas sur l'expérience accumulée. Et quand un collaborateur clé quitte l'agence, une partie du savoir-faire part avec lui.
+
+**OS Projet répond à cela en rendant la capitalisation naturelle.** Chaque acte de travail normal — rédiger une note, envoyer un email, tenir une réunion, produire un calcul — alimente automatiquement la mémoire du projet et de l'agence. Sans double saisie, sans formulaire à remplir.
+
+---
+
+### Les phases couvertes
+
+OS Projet accompagne l'intégralité du cycle de vie d'une opération :
+
+```
+Faisabilité → ESQ → APS → APD → PRO → DCE → ACT → EXE → OPR/AOR → GPA
+     ↑           ↑          ↑          ↑         ↑         ↑
+ Diagnostics  Questions  Notes de   CCTP &   Planning   Réception
+  existant   théoriques  calculs    pièces   chantier   & mémoire
+```
+
+À chaque phase, les outils adaptés sont disponibles. Un architecte en phase APS peut interroger le système sur une question réglementaire et la réponse sera enregistrée dans la mémoire du projet. Un ingénieur en phase PRO peut déposer sa note de calcul thermique et la relier automatiquement aux décisions d'enveloppe prises en APS. Un conducteur de travaux en phase EXE peut signaler un blocage et l'impact sur le planning est calculé immédiatement.
+
+---
+
+### Ce que fait OS Projet
+
+**Pendant la conception**
+
+| Outil | Usage |
+|-------|-------|
+| **Questions théoriques** | Poser une question (réglementaire, technique, constructive) → le système cherche dans la base de connaissance de l'agence, répond et enregistre la Q&R dans la mémoire du projet |
+| **Notes de calculs** | Déposer, versionner et relier les notes de calculs (structure, thermique, acoustique, incendie) aux phases et décisions qui les ont motivées |
+| **Diagnostics** | Enregistrer les diagnostics de l'existant (relevés, DPE, structure, assainissement), les relier aux contraintes qui en découlent |
+| **Mémoire de conception** | Capitaliser automatiquement les partis pris architecturaux, les choix constructifs et leurs justifications |
+
+**Pendant les études et le DCE**
+
+| Outil | Usage |
+|-------|-------|
+| **Documents** | Générer les pièces (CCTP, CCAP, notices, rapports) à partir des données du projet et de templates |
+| **Communications** | Registre de toutes les correspondances avec MOA, bureaux d'études, administrations — classées, suivies, répondues |
+| **Planning études** | Timeline des livrables par phase avec dépendances entre intervenants |
+
+**Pendant le chantier**
+
+| Outil | Usage |
+|-------|-------|
+| **Planning travaux** | Extrait les lots du CCTP, génère la timeline avec chevauchements, détecte les impacts de retard en cascade |
+| **Finance** | Situations de travaux, avenants, tableau de bord marché actualisé / reste à facturer |
+| **Meeting** | Analyse un CR brut → extrait décisions, actions, blocages → alimente automatiquement le planning et la mémoire |
+| **Journal** | Observations, photos, avancements, jalons en temps réel |
+| **Alertes** | Deadlines, dépendances non respectées, dépassements, blocages prolongés |
+
+**En continu — Intelligence de l'agence**
+
+| Outil | Usage |
+|-------|-------|
+| **Mémoire projet** | Décisions validées, risques identifiés, solutions retenues — déduplication sémantique, accès par question naturelle |
+| **Base de connaissance agence** | Accumuler les réponses aux questions récurrentes, les détails constructifs éprouvés, les leçons tirées de chaque opération |
+| **Recherche transversale** | "Comment avons-nous traité ce problème sur d'autres projets ?" — recherche sémantique inter-projets |
+
+---
+
+### Le rôle de l'IA
+
+L'IA n'est pas un chatbot généraliste. Elle est **ancrée dans les données réelles** de chaque projet et de l'agence. Elle ne répond jamais de mémoire — elle interroge systématiquement la base avant de répondre.
+
+Elle sert à :
+- **Comprendre** les documents déposés (CCTP, notes de calculs, emails) et en extraire l'essentiel automatiquement
+- **Relier** les informations entre elles (cette note de calcul répond à cette question posée en phase APS)
+- **Alerter** quand quelque chose mérite attention (retard, dépassement, incohérence)
+- **Générer** des pièces (CR, documents, brouillons de réponse) à partir des données existantes
+- **Répondre** aux questions de l'équipe en s'appuyant sur la mémoire du projet et de l'agence
+
+---
+
+### Les acteurs et leurs rôles
+
+Chaque acteur du projet interagit avec l'outil selon ses besoins, et contribue naturellement à la mémoire collective :
+
+| Acteur | Ce qu'il utilise | Ce qu'il contribue |
+|--------|------------------|--------------------|
+| **Architecte / MOE** | Questions théoriques, mémoire projet, documents, planning études | Partis pris, choix constructifs, décisions |
+| **Ingénieur BE** | Notes de calculs, questions techniques, diagnostics | Calculs, contraintes, solutions techniques |
+| **Chargé de mission** | Planning travaux, meeting, journal, communications | Avancements, actions, observations terrain |
+| **Comptable / gestionnaire** | Finance, situations, avenants | Données financières, paiements |
+| **MOA / Client** (lecteur) | Tableau de bord, avancement, documents diffusés | — |
+| **Entreprises** (lecteur) | Planning, CR diffusés, ordres de service | — |
+
+---
 
 ### Architecture
 
 ```
-OpenWebUI (agents IA + tools)
+OpenWebUI (agents IA + tools — un agent par domaine métier)
         ↓  JWT
-FastAPI API modulaire (plugin system)
-   ├── core/ : registry, auth JWT, RAG service, storage service, LLM service, event bus
-   └── modules/ : chantier | planning | finance | communications | documents
-                  meeting | memory | budget | rag | events_engine | admin
+FastAPI API modulaire (plugin system — chaque module = plugin autonome)
+   ├── core/ : registry, auth JWT, bus événements PostgreSQL
+   │           RAG service, storage service, LLM service
+   └── modules/
+       ├── conception : phases | notes_calculs | diagnostics
+       ├── transversal : memory (projet + agence) | rag | communications | documents | meeting
+       ├── chantier   : planning | finance | budget | journal | events_engine
+       └── système    : auth | admin | intervenants
         ↓                    ↓                   ↓
 PostgreSQL + pgvector    MinIO (fichiers)    Notion (sync optionnel)
+(données + vecteurs)     (PDF, photos, docs)
 ```
 
-**Principes clés :**
-- **Modulaire** : chaque fonctionnalité est un plugin autonome — on ajoute, désactive ou modifie un module sans toucher au reste
-- **Configurable** : tout comportement métier (seuils, catégories, prompts LLM, dépendances lots) est dans un `config.yaml` éditable sans redéploiement
-- **Multi-utilisateurs** : 4 rôles (admin / moe / collaborateur / lecteur) avec permissions per-affaire
-- **IA augmentée** : les agents OpenWebUI utilisent les outils de l'API pour ne jamais répondre de mémoire — toujours basé sur les données réelles du projet
+**Principes :**
+- **Modulaire** — plugin system, chaque fonctionnalité est indépendante
+- **Configurable** — comportement métier dans `config.yaml`, modifiable sans redéploiement
+- **Multi-utilisateurs** — 4 rôles (admin / moe / collaborateur / lecteur) avec permissions per-affaire
+- **Cycle de vie complet** — de la faisabilité à la GPA
+- **Capitalisation naturelle** — chaque acte de travail alimente la mémoire sans effort supplémentaire
+- **Intelligence à deux niveaux** — mémoire projet + intelligence agence
+
+---
 
 ### Stack technique
 
