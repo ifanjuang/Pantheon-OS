@@ -6,27 +6,50 @@
 
 ## PRÉSENTATION
 
-### Ce qu'est OS Projet
-
-**OS Projet** est la mémoire vivante et l'intelligence opérationnelle d'une agence d'architecture.
-
-Il accompagne chaque opération du premier trait de crayon à la levée des réserves — et au-delà. À chaque étape, chaque acteur dépose naturellement ce qu'il sait : une question posée, un calcul réalisé, un diagnostic établi, une décision prise, un email reçu, une réunion tenue. Le système l'intègre, le comprend, le relie à ce qui existe déjà, et le rend accessible à tous, pour toujours.
-
-Avec le temps, ces dépôts s'accumulent en deux niveaux d'intelligence :
-
-- **L'intelligence du projet** — la mémoire complète d'une opération : ses choix structurels, ses contraintes réglementaires, ses calculs, ses aléas, ses arbitrages. Consultable à tout moment par n'importe quel acteur autorisé, sous forme de question naturelle.
-
-- **L'intelligence de l'agence** — ce que tous les projets ont appris. Les solutions qui ont fonctionné, les erreurs à ne pas reproduire, les réponses aux questions récurrentes, les détails constructifs éprouvés. Un savoir-faire institutionnel qui ne disparaît pas quand un collaborateur part.
+> **OS Projet** — L'intelligence opérationnelle d'une agence d'architecture, du premier crayon à la levée des réserves.
 
 ---
 
-### Le problème résolu
+### Le constat
 
-Une agence d'architecture produit une quantité massive d'information tout au long de ses opérations : notes de calculs, diagnostics, correspondances, comptes-rendus, pièces graphiques, plannings, situations financières. Cette information est aujourd'hui fragmentée — dans les boîtes mail de chacun, dans des dossiers mal partagés, dans des tableurs sans logique commune, dans la tête des collaborateurs.
+Une agence d'architecture produit en continu une masse critique d'information : diagnostics, notes de calculs, CCTP, courriers, comptes-rendus, situations financières, décisions de chantier. Cette information est répartie dans les boîtes mails de chacun, dans des dossiers partagés mal nommés, dans des tableurs sans cohérence, et dans la tête des collaborateurs.
 
-Le résultat : on refait ce qui a déjà été fait, on perd du temps à chercher ce qu'on sait pourtant, on ne capitalise pas sur l'expérience accumulée. Et quand un collaborateur clé quitte l'agence, une partie du savoir-faire part avec lui.
+**On refait ce qui a déjà été fait. On cherche ce qu'on a pourtant déjà résolu. Et quand un collaborateur clé part, le savoir-faire part avec lui.**
 
-**OS Projet répond à cela en rendant la capitalisation naturelle.** Chaque acte de travail normal — rédiger une note, envoyer un email, tenir une réunion, produire un calcul — alimente automatiquement la mémoire du projet et de l'agence. Sans double saisie, sans formulaire à remplir.
+---
+
+### La réponse
+
+**OS Projet est un système de mémoire et d'intelligence pour agence MOE.**
+
+Il ne remplace pas les outils existants — il enregistre ce que vous faites déjà, le comprend, le relie, et le rend accessible à tout moment par une simple question en langage naturel.
+
+Chaque acte de travail courant — poser une question technique, envoyer un email, tenir une réunion, déposer un calcul, noter une observation de chantier — alimente automatiquement deux niveaux d'intelligence :
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  INTELLIGENCE PROJET                                            │
+│  La mémoire complète d'une opération — ses décisions,           │
+│  ses calculs, ses contraintes, ses aléas, ses arbitrages.       │
+│  "Sur ce projet, comment a-t-on traité l'isolation en ITEe ?"  │
+├─────────────────────────────────────────────────────────────────┤
+│  INTELLIGENCE AGENCE                                            │
+│  Ce que tous les projets ont appris, capitalisé au fil du temps.│
+│  "Avons-nous déjà eu ce type de litige avec ce type de MOA ?"   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Ce que ça change concrètement
+
+| Avant | Avec OS Projet |
+|-------|----------------|
+| On cherche pendant 20 min un email envoyé il y a 6 mois | "Retrouve la réponse de l'entreprise Bâti+ sur le recalage de planning" → réponse en 3 secondes |
+| Le CR de réunion ne sort jamais ou sort en retard | L'agent analyse l'audio ou le brut, extrait les décisions et met à jour le planning automatiquement |
+| Le planning est un fichier Excel que personne n'actualise | Dès qu'un lot est bloqué, l'impact en cascade est calculé et les acteurs concernés sont alertés |
+| Les notes de calculs thermiques sont introuvables en GPA | Toutes les notes sont indexées, reliées à leur phase et retrouvables par question naturelle |
+| Le savoir-faire part avec les collaborateurs | Il est capitalisé dans la base de connaissance agence, persistante et interrogeable |
 
 ---
 
@@ -277,6 +300,149 @@ Toutes les intégrations sont des **modules autonomes** activables/désactivable
 
 ---
 
+### OpenClaw — L'interface quotidienne de toute l'agence (V3)
+
+**OpenWebUI** est le cockpit des administrateurs et chefs de projet : configuration des agents, gestion de la base de connaissance, audit, exploration avancée. Il demande une prise en main.
+
+**OpenClaw** est le terminal conversationnel accessible à **tout le monde** — architectes, chargés de mission, ingénieurs, gestionnaires, et même intervenants extérieurs en lecture. Une seule interface, une conversation naturelle, toutes les capacités du système.
+
+#### Pour qui, pour quoi
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  OpenWebUI — Admin & Chefs de projet                            │
+│  Configuration agents · Knowledge base · Audit · Exploration    │
+├─────────────────────────────────────────────────────────────────┤
+│  OpenClaw — Toute l'agence + intervenants autorisés             │
+│                                                                 │
+│  "Résume-moi l'avancement du chantier Dupont"                   │
+│  "Le béton n'est pas arrivé, bloque la charpente depuis 2j"     │
+│  "Génère un ordre de service pour Bâti+ sur ce retard"          │
+│  "Y a-t-il des alertes financières sur mes affaires ?"          │
+│  "Quelle norme s'applique pour l'isolation en ITEe ?"           │
+│  "Enregistre ma visite de chantier" + photo                     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Interfaces
+
+**Interface principale — PWA mobile-first**
+Application web installable sur téléphone et bureau (sans store). Une URL, un login, et c'est disponible partout. Fonctionne sur chantier avec connexion faible. Notifications push.
+
+**Interface secondaire — Bot Telegram (optionnel)**
+Pour les intervenants terrain qui préfèrent rester dans leur messagerie. Même backend, même JWT, même réponses. Activé via profil Docker (`--profile telegram`).
+
+#### L'agent ReAct — Reason → Act → Observe → Respond
+
+OpenClaw n'est pas un chatbot qui cherche dans une FAQ. C'est un **agent qui réfléchit, choisit ses outils, agit sur le système réel, observe le résultat et répond**.
+
+```
+Utilisateur : "Le béton n'est pas arrivé, ça bloque la charpente depuis 2 jours"
+      ↓
+REASON  : Blocage livraison matériau détecté. Lot concerné : Maçonnerie/Béton.
+          Lot bloqué : Charpente. Durée : 2 jours.
+          Actions possibles : créer événement blocage + calculer impact planning.
+      ↓
+ACT 1   : create_event(affaire_id, type="blocage", lot="Maçonnerie",
+            description="Béton non livré — Charpente bloquée", priorite="high")
+ACT 2   : get_impact(affaire_id, lot_id=charpente, retard_jours=2)
+      ↓
+OBSERVE : Événement créé ✓. Impact : Charpente décalée 2j.
+          Jalon "Hors d'eau" prévu 15 mai → passe au 17 mai.
+          Alerte générée pour le chef de projet.
+      ↓
+RESPOND : "Blocage enregistré. La charpente est décalée de 2 jours.
+           Le jalon 'Hors d'eau' passe du 15 au 17 mai.
+           Le chef de projet a été alerté. Souhaitez-vous que je génère
+           un ordre de service à l'entreprise ?"
+```
+
+L'utilisateur voit en temps réel ce que l'agent est en train de faire (streaming). Il peut intervenir, corriger, demander autre chose.
+
+#### Contexte automatique à l'ouverture
+
+À chaque connexion, OpenClaw affiche **le brief du jour** sans que l'utilisateur ait rien à demander :
+
+```
+Bonjour Jean-Marc. Voici ce qui mérite votre attention aujourd'hui :
+
+⚠  3 alertes actives sur vos affaires
+   → Résidence Les Pins : situation n°3 en attente de visa depuis 8 jours
+   → Villa Martin : blocage ouvert depuis 5 jours sans résolution
+   → Immeuble Carnot : deadline lot Plâtrerie dépassée de 2 jours
+
+📋 5 actions vous sont assignées cette semaine
+📅 Réunion de chantier Dupont jeudi — CR de la dernière disponible
+
+Sur quelle affaire voulez-vous commencer ?
+```
+
+#### Capacités par rôle
+
+| Rôle | Ce qu'OpenClaw peut faire pour lui |
+|------|------------------------------------|
+| **Admin / MOE** | Tout — pilotage complet, génération documents, finance, planning |
+| **Collaborateur** | Questions, enregistrement observations/photos, actions, CR, communications |
+| **Lecteur (MOA, entreprise)** | Avancement projet, documents diffusés, planning (lecture) |
+
+Les couches de connaissance sont respectées : un lecteur ne peut pas interroger les données financières ou l'intelligence interne de l'agence.
+
+#### Architecture technique
+
+```
+openclaw/                    ← repo dédié (ou sous-dossier)
+├── pwa/                     ← Svelte PWA mobile-first
+│   ├── src/
+│   │   ├── Chat.svelte      ← interface conversation + streaming
+│   │   ├── Brief.svelte     ← dashboard contextuel ouverture
+│   │   ├── Upload.svelte    ← photo + document depuis mobile
+│   │   └── Notify.svelte    ← service worker push notifications
+│   ├── vite.config.js
+│   └── Dockerfile           ← nginx servant la PWA buildée
+│
+└── telegram/                ← Bot Telegram (optionnel)
+    ├── bot.py               ← python-telegram-bot, même JWT
+    └── Dockerfile
+```
+
+```
+api/modules/openclaw/        ← module FastAPI
+├── manifest.yaml
+├── router.py                ← /chat/* + /brief/* + /notify/*
+├── engine.py                ← orchestrateur ReAct
+│                               reason() → select_tools() → act() → observe() → respond()
+└── tools.py                 ← catalogue des actions disponibles
+                                (délègue aux modules existants via leurs engines)
+```
+
+**Endpoints :**
+```
+POST /chat/message           → envoie message, réponse streamée (SSE)
+GET  /chat/history           → historique conversations (filtré par rôle)
+GET  /chat/brief             → contexte du jour (alertes, actions, affaires actives)
+POST /chat/upload            → photo ou document depuis mobile → MinIO + event
+POST /notify/subscribe       → abonner device aux push notifications
+POST /notify/send            → envoyer notification à un utilisateur (admin/events_engine)
+```
+
+**Docker Compose :**
+```yaml
+openclaw-pwa:
+  build: ./openclaw/pwa
+  ports:
+    - "3001:80"           # interface principale
+
+openclaw-telegram:
+  build: ./openclaw/telegram
+  environment:
+    TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+    API_BASE_URL: http://api:8000
+  profiles:
+    - telegram            # optionnel : docker compose --profile telegram up
+```
+
+---
+
 ### Stack technique
 
 | Composant | Technologie | Alternative |
@@ -286,8 +452,12 @@ Toutes les intégrations sont des **modules autonomes** activables/désactivable
 | Storage fichiers | MinIO (S3-compatible self-hosted) | — |
 | IA locale | Ollama + nomic-embed-text | — |
 | IA cloud | OpenAI gpt-4o + text-embedding-3-large | Mistral, Groq, Anthropic |
-| Interface IA | OpenWebUI (agents + tools) | — |
+| Interface admin/power | OpenWebUI (agents + tools) | — |
+| Interface quotidienne | **OpenClaw PWA** (Svelte, mobile-first) | — |
+| Interface terrain | **OpenClaw Bot Telegram** (optionnel) | WhatsApp Business (v2) |
 | Auth | JWT HS256 — 4 rôles | — |
+| Streaming réponses | SSE (Server-Sent Events) | WebSocket |
+| Notifications push | Service Worker (PWA) | — |
 | Bus événements | PostgreSQL LISTEN/NOTIFY | Redis Pub/Sub (v2) |
 | Conteneurs | Docker Compose | Kubernetes (v3+) |
 
