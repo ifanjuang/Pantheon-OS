@@ -16,13 +16,35 @@ Une agence d'architecture produit en continu une masse critique d'information : 
 
 **On refait ce qui a déjà été fait. On cherche ce qu'on a pourtant déjà résolu. Et quand un collaborateur clé part, le savoir-faire part avec lui.**
 
+L'autre réflexe, c'est Google. On cherche l'article du DTU, la fiche technique d'un isolant, les exigences de la RT 2020, un avis technique CSTB, les servitudes d'un PLU — et on tombe sur des forums généralistes, des résultats commerciaux, des versions périmées. On perd du temps, on doute de ce qu'on trouve, et on n'a aucune garantie que l'information s'applique exactement au contexte du projet.
+
+Quant aux IA génératives — ChatGPT, Gemini, Claude — elles impressionnent, mais elles hallucinent. Sur une question réglementaire précise ou un détail constructif, une IA sans sources vérifiées peut donner une réponse convaincante et fausse. Pour une agence MOE, c'est inacceptable : on a besoin de réponses chirurgicales, nettes, sourcées — pas de réponses probables.
+
 ---
 
 ### La réponse
 
-**OS Projet est un système de mémoire et d'intelligence pour agence MOE.**
+**OS Projet est un système de mémoire et d'intelligence pour agence MOE — avec des sources verrouillées.**
 
 Il ne remplace pas les outils existants — il enregistre ce que vous faites déjà, le comprend, le relie, et le rend accessible à tout moment par une simple question en langage naturel.
+
+Il constitue deux types de bases de connaissance, validées et maîtrisées par l'agence :
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  BASE GÉNÉRALE — Connaissance normative & réglementaire         │
+│  DTU, Eurocodes, RT/RE2020, NF, avis techniques CSTB,          │
+│  fiches fournisseurs, PLU importés — vérifiés, versionnés       │
+├─────────────────────────────────────────────────────────────────┤
+│  BASE LOCALE — Mémoire de l'agence et de ses projets            │
+│  Notes de calculs, diagnostics, solutions retenues,             │
+│  produits qualifiés, détails constructifs éprouvés              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+Quand une question est posée, le système cherche en priorité dans ces bases. L'IA — locale ou externe — reçoit uniquement ces sources vérifiées comme contexte. Elle ne peut pas inventer ce qui ne s'y trouve pas. Si ChatGPT, Gemini ou Claude sont utilisés en relais, ils travaillent sur des données cadrées : leur puissance de raisonnement, d'induction et de déduction est exploitée — sans le risque d'hallucination sur des données qu'ils n'ont pas.
+
+**Le résultat : une réponse chirurgicale, sourcée, applicable au contexte réel du projet — pas une probabilité statistique.**
 
 Chaque acte de travail courant — poser une question technique, envoyer un email, tenir une réunion, déposer un calcul, noter une observation de chantier — alimente automatiquement deux niveaux d'intelligence :
 
@@ -45,11 +67,13 @@ Chaque acte de travail courant — poser une question technique, envoyer un emai
 
 | Avant | Avec OS Projet |
 |-------|----------------|
-| On cherche pendant 20 min un email envoyé il y a 6 mois | "Retrouve la réponse de l'entreprise Bâti+ sur le recalage de planning" → réponse en 3 secondes |
-| Le CR de réunion ne sort jamais ou sort en retard | L'agent analyse l'audio ou le brut, extrait les décisions et met à jour le planning automatiquement |
-| Le planning est un fichier Excel que personne n'actualise | Dès qu'un lot est bloqué, l'impact en cascade est calculé et les acteurs concernés sont alertés |
-| Les notes de calculs thermiques sont introuvables en GPA | Toutes les notes sont indexées, reliées à leur phase et retrouvables par question naturelle |
-| Le savoir-faire part avec les collaborateurs | Il est capitalisé dans la base de connaissance agence, persistante et interrogeable |
+| On cherche 20 min un email envoyé il y a 6 mois | "Retrouve la réponse de Bâti+ sur le recalage de planning" → réponse en 3 secondes |
+| Google renvoie des forums et des fiches commerciales pour une question DTU | La réponse vient de la base normative importée et vérifiée — avec la référence exacte |
+| ChatGPT donne une réponse convaincante sur la RE2020… potentiellement fausse | L'IA répond en s'appuyant uniquement sur les sources que l'agence a validées — traçable |
+| Le CR de réunion ne sort jamais ou sort en retard | L'agent analyse le brut, extrait les décisions et met à jour le planning automatiquement |
+| Le planning est un fichier Excel que personne n'actualise | Dès qu'un lot est bloqué, l'impact en cascade est calculé et les acteurs alertés |
+| Les notes de calculs thermiques sont introuvables en GPA | Toutes les notes sont indexées, reliées à leur phase, retrouvables par question naturelle |
+| Le savoir-faire part avec les collaborateurs | Il est capitalisé dans la base agence, persistante et interrogeable |
 
 ---
 
