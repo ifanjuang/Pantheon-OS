@@ -4,6 +4,63 @@
 
 ---
 
+## PRÉSENTATION
+
+**OS Chantier** est un système de pilotage intelligent de chantier conçu pour une agence d'architecture exerçant la maîtrise d'œuvre (MOE). Il centralise et automatise l'ensemble du suivi d'opération, de la phase études jusqu'à la réception.
+
+### Problème résolu
+
+Une MOE jongle en permanence entre plusieurs affaires, des dizaines d'intervenants, des documents contractuels volumineux, des réunions de chantier hebdomadaires et un suivi financier exigeant. Aujourd'hui ces informations sont éparpillées entre emails, tableurs, PDF et notes manuscrites. Aucun outil du marché n'est calibré pour la taille et les pratiques d'une petite agence MOE.
+
+### Ce que fait OS Chantier
+
+| Module | Fonction |
+|--------|----------|
+| **Planning** | Lit un CCTP (PDF/Word), extrait automatiquement les lots du projet via LLM, infère les dépendances entre ouvrages, génère une timeline avec chevauchements configurables, détecte les impacts en cascade d'un retard |
+| **Finance** | Suit les situations de travaux et avenants par lot, calcule en temps réel le marché actualisé / cumul facturé / reste à facturer, alerte sur les dépassements et retards de paiement |
+| **Communications** | Registre chronologique de tous les emails et courriers reçus/transmis, classés automatiquement par catégorie et lot, avec suivi des réponses et génération de brouillons via LLM |
+| **Documents** | Génère les pièces chantier (CR de réunion, PV de réception, fiches de non-conformité, ordres de service, rapports d'avancement) à partir de templates Jinja2 et des données du projet |
+| **Meeting** | Analyse un compte-rendu brut, en extrait automatiquement décisions, actions (avec responsable et échéance) et blocages, classe par lot et priorité |
+| **Mémoire projet** | Capitalise les décisions, risques et informations clés de l'opération, déduplique par similarité sémantique, permet une recherche contextuelle |
+| **Journal chantier** | Enregistre observations, avancements, blocages et jalons en temps réel, avec pièces jointes stockées dans MinIO |
+| **Budget** | Suit les marchés initiaux et les alertes de dépassement par lot |
+| **Alertes** | Moteur de règles métier : deadline dépassée, dépendance non respectée, budget critique, blocage prolongé |
+| **Admin** | Interface de pilotage de l'infrastructure : modules, utilisateurs/rôles, connexions API, synchronisations, storage, logs |
+
+### Architecture
+
+```
+OpenWebUI (agents IA + tools)
+        ↓  JWT
+FastAPI API modulaire (plugin system)
+   ├── core/ : registry, auth JWT, RAG service, storage service, LLM service, event bus
+   └── modules/ : chantier | planning | finance | communications | documents
+                  meeting | memory | budget | rag | events_engine | admin
+        ↓                    ↓                   ↓
+PostgreSQL + pgvector    MinIO (fichiers)    Notion (sync optionnel)
+```
+
+**Principes clés :**
+- **Modulaire** : chaque fonctionnalité est un plugin autonome — on ajoute, désactive ou modifie un module sans toucher au reste
+- **Configurable** : tout comportement métier (seuils, catégories, prompts LLM, dépendances lots) est dans un `config.yaml` éditable sans redéploiement
+- **Multi-utilisateurs** : 4 rôles (admin / moe / collaborateur / lecteur) avec permissions per-affaire
+- **IA augmentée** : les agents OpenWebUI utilisent les outils de l'API pour ne jamais répondre de mémoire — toujours basé sur les données réelles du projet
+
+### Stack technique
+
+| Composant | Technologie |
+|-----------|-------------|
+| Backend | FastAPI + SQLAlchemy async (asyncpg) |
+| Base de données | PostgreSQL 16 + pgvector |
+| Storage fichiers | MinIO (S3-compatible self-hosted) |
+| IA / LLM | OpenAI gpt-4o + text-embedding-3-large |
+| Interface IA | OpenWebUI (agents + tools) |
+| Auth | JWT HS256 — 4 rôles |
+| Bus événements | PostgreSQL LISTEN/NOTIFY |
+| Conteneurs | Docker Compose |
+
+---
+
 ## 0. TL;DR
 
 Système de pilotage intelligent de chantier pour une agence d'architecture (MOE).
