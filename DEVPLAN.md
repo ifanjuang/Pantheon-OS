@@ -3037,6 +3037,30 @@ DEBUG=true
 RATE_LIMIT_LLM=10/minute         # endpoints LLM (ingest, génération, analyse)
 RATE_LIMIT_STANDARD=100/minute   # endpoints CRUD
 RATE_LIMIT_READ=1000/minute      # GET endpoints
+
+# ── Notifications — Telegram ──────────────────────────────────────
+TELEGRAM_TOKEN=                  # Token bot Telegram (via @BotFather) — laisser vide si non utilisé
+TELEGRAM_DEFAULT_CHAT_ID=        # chat_id fallback agence (optionnel)
+
+# ── Notifications — WhatsApp ──────────────────────────────────────
+WHATSAPP_ENABLED=false
+WHATSAPP_MODE=meta               # "meta" | "evolution"
+
+# Mode Meta WhatsApp Business Cloud API (recommandé)
+WA_PHONE_ID=                     # Phone Number ID depuis Meta Business Manager
+WA_TOKEN=                        # Access Token permanent Meta
+WA_TEMPLATE_NAME=os_projet_alerte
+
+# Mode Evolution API (self-hosted, sans compte Meta)
+EVOLUTION_API_KEY=changeme-evolution
+# EVOLUTION_URL et EVOLUTION_INSTANCE sont dans config.yaml du module
+
+# ── SMTP (notifications email) ────────────────────────────────────
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=notifications@agence.fr
+SMTP_PASSWORD=mot_de_passe_application
+SMTP_FROM=OS Projet <notifications@agence.fr>
 ```
 
 ---
@@ -3118,8 +3142,10 @@ RATE_LIMIT_READ=1000/minute      # GET endpoints
 | 18 | Déploiement | Local (Docker Desktop) ou serveur privé OVH/Hetzner — même compose, différente infra hôte |
 | 19 | Couches connaissance | 4 niveaux (publique / agence / projet / sensible) — accès filtré par rôle à chaque appel LLM |
 | 20 | Prompt steering | Prompts admin injectés dans chaque appel LLM — ton, juridique, créativité, confidentialité, périmètre |
-| 21 | Intégrations v1 | Notion (sync) + SMTP (notifications) |
-| 22 | Intégrations v2 | Slack, Trello, Teams, WhatsApp Business — modules autonomes |
+| 21 | Intégrations v1 | Notion (sync) + SMTP + Telegram + WhatsApp (module `notifications/`) |
+| 22 | Intégrations v2 | Slack, Teams — ajout via provider pattern sans modifier l'existant |
+| 23 | WhatsApp bidirectionnel | v2 — webhook Meta pour répondre aux alertes depuis WhatsApp |
+| 24 | Telegram bot commands | v2 — `/statut`, `/alertes`, `/planning` depuis Telegram |
 
 ---
 
@@ -3476,5 +3502,616 @@ if alert.severite == 'critical':
 
 ---
 
-*Dernière mise à jour : 2026-03-21*
+---
+
+## 20. NOTIFICATIONS ENGINE — Telegram, WhatsApp & Multicanal
+
+### 20.1 Principe architectural — Provider pattern
+
+Le moteur de notifications utilise un **pattern provider** : chaque canal est un plugin indépendant. Ajouter un canal = ajouter un fichier dans `providers/` sans toucher au reste du code. Principe **Open/Closed** : ouvert à l'extension, fermé à la modification.
+
+```
+modules/notifications/
+├── manifest.yaml
+├── config.yaml
+├── models.py              # NotificationLog, UserNotificationPreference
+├── schemas.py
+├── router.py              # /notifications/*
+├── engine.py              # dispatch, retry, rate limiting
+└── providers/
+    ├── __init__.py
+    ├── base.py            # Abstract NotificationProvider
+    ├── smtp.py            # Email SMTP (toujours actif si configuré)
+    ├── telegram.py        # Telegram Bot API (python-telegram-bot)
+    └── whatsapp.py        # Meta WhatsApp Business Cloud API ou Evolution API
+```
+
+---
+
+### 20.2 Base abstraite (`providers/base.py`)
+
+```python
+from abc import ABC, abstractmethod
+from typing import Optional
+from dataclasses import dataclass
+
+@dataclass
+class NotificationPayload:
+    recipient: str          # email | telegram_chat_id | numéro whatsapp (ex: "33612345678")
+    subject: str            # objet (email) ou titre (autres canaux)
+    body: str               # corps du message (Markdown supporté)
+    affaire_id: Optional[str] = None
+    event_type: Optional[str] = None
+    priority: str = "info"  # info | warning | critical
+
+class NotificationProvider(ABC):
+    channel_name: str       # "smtp" | "telegram" | "whatsapp"
+
+    @abstractmethod
+    async def send(self, payload: NotificationPayload) -> bool:
+        """Envoie une notification. Retourne True si succès."""
+        ...
+
+    @abstractmethod
+    async def health_check(self) -> bool:
+        """Vérifie que le provider est opérationnel (utilisé par /notifications/providers/health)."""
+        ...
+```
+
+---
+
+### 20.3 Provider Telegram (`providers/telegram.py`)
+
+```python
+# Dépendance : pip install python-telegram-bot
+import telegram
+from .base import NotificationProvider, NotificationPayload
+
+ICONS = {"critical": "🔴", "warning": "🟡", "info": "🔵"}
+
+class TelegramProvider(NotificationProvider):
+    channel_name = "telegram"
+
+    def __init__(self, token: str):
+        self.bot = telegram.Bot(token=token)
+
+    async def send(self, payload: NotificationPayload) -> bool:
+        icon = ICONS.get(payload.priority, "⚪")
+        text = f"{icon} *{payload.subject}*\n\n{payload.body}"
+        if payload.affaire_id:
+            text += f"\n\n_Affaire : `{payload.affaire_id}`_"
+        await self.bot.send_message(
+            chat_id=payload.recipient,
+            text=text,
+            parse_mode="Markdown"
+        )
+        return True
+
+    async def health_check(self) -> bool:
+        me = await self.bot.get_me()
+        return me is not None
+```
+
+> **Setup Telegram** : créer un bot via @BotFather → récupérer `TELEGRAM_TOKEN`. Chaque utilisateur doit envoyer `/start` au bot pour que son `chat_id` soit enregistrable. Le chat_id est stocké dans `notification_preferences.recipient`.
+
+---
+
+### 20.4 Provider WhatsApp (`providers/whatsapp.py`)
+
+Deux modes supportés, sélectionnables via `WHATSAPP_MODE` dans `.env` :
+
+#### Mode A — Meta WhatsApp Business Cloud API *(recommandé, officiel)*
+
+```python
+import httpx
+from .base import NotificationProvider, NotificationPayload
+
+class WhatsAppMetaProvider(NotificationProvider):
+    channel_name = "whatsapp"
+    BASE_URL = "https://graph.facebook.com/v18.0"
+
+    def __init__(self, phone_id: str, token: str, template_name: str = "os_projet_alerte"):
+        self.phone_id = phone_id
+        self.token = token
+        self.template_name = template_name
+
+    async def send(self, payload: NotificationPayload) -> bool:
+        # Envoi via template WhatsApp approuvé par Meta
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{self.BASE_URL}/{self.phone_id}/messages",
+                headers={"Authorization": f"Bearer {self.token}"},
+                json={
+                    "messaging_product": "whatsapp",
+                    "to": payload.recipient,          # format international sans + : "33612345678"
+                    "type": "template",
+                    "template": {
+                        "name": self.template_name,
+                        "language": {"code": "fr"},
+                        "components": [{
+                            "type": "body",
+                            "parameters": [
+                                {"type": "text", "text": payload.subject},
+                                {"type": "text", "text": payload.body[:1000]},
+                            ]
+                        }]
+                    }
+                }
+            )
+        return resp.status_code == 200
+
+    async def health_check(self) -> bool:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{self.BASE_URL}/{self.phone_id}",
+                headers={"Authorization": f"Bearer {self.token}"}
+            )
+        return resp.status_code == 200
+```
+
+> **Setup Meta** : créer un compte Meta Business → activer WhatsApp Business API → obtenir `WA_PHONE_ID` + `WA_TOKEN`. Créer un template de message approuvé (ex: `os_projet_alerte`) dans le Meta Business Manager. Délai d'approbation : 24-48h.
+
+#### Mode B — Evolution API *(self-hosted, sans compte Meta)*
+
+```python
+import httpx
+from .base import NotificationProvider, NotificationPayload
+
+ICONS = {"critical": "🔴", "warning": "🟡", "info": "🔵"}
+
+class WhatsAppEvolutionProvider(NotificationProvider):
+    channel_name = "whatsapp"
+
+    def __init__(self, base_url: str, api_key: str, instance: str):
+        self.base_url = base_url      # http://evolution-api:8080
+        self.api_key = api_key
+        self.instance = instance      # nom de l'instance (ex: "arceag")
+
+    async def send(self, payload: NotificationPayload) -> bool:
+        icon = ICONS.get(payload.priority, "⚪")
+        text = f"{icon} *{payload.subject}*\n\n{payload.body}"
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{self.base_url}/message/sendText/{self.instance}",
+                headers={"apikey": self.api_key},
+                json={"number": payload.recipient, "text": text}
+            )
+        return resp.status_code in (200, 201)
+
+    async def health_check(self) -> bool:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{self.base_url}/instance/fetchInstances",
+                headers={"apikey": self.api_key}
+            )
+        return resp.status_code == 200
+```
+
+> **Setup Evolution API** : scanner le QR code via l'interface web de l'Evolution API pour lier un compte WhatsApp. Nécessite un téléphone WhatsApp dédié ou un compte WhatsApp Business. Container Docker inclus (voir section 14).
+
+---
+
+### 20.5 Engine — Dispatch avec retry (`engine.py`)
+
+```python
+import asyncio
+from typing import Optional
+from core.events import subscribe
+from .models import NotificationLog, UserNotificationPreference
+from .providers.base import NotificationProvider, NotificationPayload
+
+class NotificationEngine:
+    def __init__(self, providers: dict[str, NotificationProvider]):
+        self.providers = providers  # {"smtp": ..., "telegram": ..., "whatsapp": ...}
+
+    async def on_event(self, payload: dict) -> None:
+        """Handler abonné au bus PostgreSQL (notifications_channel, planning_channel, etc.)"""
+        await self.dispatch(
+            event_type=payload["event_type"],
+            subject=payload["subject"],
+            body=payload["body"],
+            affaire_id=payload.get("affaire_id"),
+            priority=payload.get("priority", "info"),
+        )
+
+    async def dispatch(
+        self,
+        event_type: str,
+        subject: str,
+        body: str,
+        affaire_id: Optional[str] = None,
+        priority: str = "info",
+        user_ids: Optional[list[str]] = None,
+    ) -> None:
+        prefs = await UserNotificationPreference.get_for_affaire(affaire_id, user_ids)
+        for pref in prefs:
+            if not pref.should_notify(event_type, priority):
+                continue
+            for channel in pref.active_channels:
+                notif = NotificationPayload(
+                    recipient=pref.channel_recipient(channel),
+                    subject=subject,
+                    body=body,
+                    affaire_id=affaire_id,
+                    event_type=event_type,
+                    priority=priority,
+                )
+                asyncio.create_task(self._send_with_retry(channel, notif))
+
+    async def _send_with_retry(
+        self, channel: str, payload: NotificationPayload, max_attempts: int = 3
+    ) -> None:
+        """Retry exponentiel : 1s → 2s → 4s. Log chaque tentative."""
+        provider = self.providers.get(channel)
+        if not provider:
+            return
+        last_error = None
+        for attempt in range(max_attempts):
+            try:
+                success = await provider.send(payload)
+                status = "sent" if success else "failed"
+                await NotificationLog.create(channel=channel, payload=payload, status=status)
+                if success:
+                    return
+            except Exception as e:
+                last_error = e
+                await asyncio.sleep(2 ** attempt)
+        await NotificationLog.create(channel=channel, payload=payload, status="failed", error=str(last_error))
+
+    async def check_all_providers(self) -> dict[str, bool]:
+        """Health check de tous les providers (tâche planifiée toutes les 15 min)."""
+        return {name: await p.health_check() for name, p in self.providers.items()}
+```
+
+---
+
+### 20.6 Tables DB (`models.py`)
+
+```sql
+-- Préférences de notification par utilisateur et par canal
+CREATE TABLE notification_preferences (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    channel     VARCHAR(20)  NOT NULL,         -- smtp | telegram | whatsapp
+    recipient   VARCHAR(255) NOT NULL,         -- email | chat_id Telegram | numéro WhatsApp
+    min_priority VARCHAR(10) DEFAULT 'warning', -- info | warning | critical
+    event_types TEXT[],                        -- NULL = tous les événements
+    active      BOOLEAN DEFAULT true,
+    created_at  TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(user_id, channel)
+);
+
+-- Journal de tous les envois (audit + debug)
+CREATE TABLE notification_logs (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id     UUID REFERENCES users(id),
+    channel     VARCHAR(20)  NOT NULL,
+    recipient   VARCHAR(255) NOT NULL,
+    event_type  VARCHAR(100),
+    affaire_id  UUID REFERENCES affaires(id),
+    subject     TEXT,
+    status      VARCHAR(20)  NOT NULL,         -- sent | failed | skipped
+    error       TEXT,
+    sent_at     TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX idx_notif_logs_affaire ON notification_logs(affaire_id);
+CREATE INDEX idx_notif_logs_user    ON notification_logs(user_id);
+CREATE INDEX idx_notif_logs_status  ON notification_logs(status, sent_at DESC);
+```
+
+---
+
+### 20.7 `manifest.yaml`
+
+```yaml
+name: notifications
+version: "1.0.0"
+prefix: /notifications
+enabled: true
+depends_on:
+  - auth
+  - events_engine
+description: "Moteur de notifications multicanal — SMTP, Telegram, WhatsApp"
+scheduled_tasks:
+  - name: health_check_providers
+    cron: "*/15 * * * *"
+    handler: engine.check_all_providers
+event_subscriptions:
+  - channel: notifications_channel
+    handler: engine.on_event
+  - channel: planning_channel
+    handler: engine.on_event
+  - channel: finance_channel
+    handler: engine.on_event
+```
+
+---
+
+### 20.8 `config.yaml`
+
+```yaml
+providers:
+  smtp:
+    enabled: true                    # toujours actif si SMTP_HOST défini
+  telegram:
+    enabled: false                   # activer avec TELEGRAM_TOKEN dans .env
+    default_chat_id: ""              # chat_id global agence (fallback si pas de préf user)
+  whatsapp:
+    enabled: false                   # activer avec WA_PHONE_ID + WA_TOKEN dans .env
+    mode: "meta"                     # "meta" | "evolution"
+    template_name: "os_projet_alerte"
+    evolution_url: "http://evolution-api:8080"
+    evolution_instance: "arceag"
+
+routing:
+  # Canaux par défaut selon la priorité (si l'utilisateur n'a pas de préférences)
+  critical: [smtp, telegram, whatsapp]
+  warning:  [smtp, telegram]
+  info:     [smtp]
+
+digest:
+  enabled: false                     # true = regrouper les notifications "info" en un digest quotidien
+  schedule: "08:00"
+  channels: [smtp]                   # le digest ne part que par email
+```
+
+---
+
+### 20.9 Endpoints (`router.py`)
+
+| Méthode | Endpoint | Description |
+|---------|----------|-------------|
+| POST | `/notifications/test` | Envoyer une notification de test sur un canal |
+| GET | `/notifications/preferences` | Lire ses préférences (user courant) |
+| PUT | `/notifications/preferences` | Mettre à jour ses préférences (canaux, seuils, types) |
+| GET | `/notifications/logs` | Historique des envois (admin uniquement) |
+| GET | `/notifications/logs/{affaire_id}` | Historique par affaire |
+| GET | `/notifications/providers/health` | Statut de chaque provider (admin) |
+
+---
+
+### 20.10 Intégration dans le bus d'événements
+
+Les modules émetteurs publient sur `notifications_channel` via le bus PostgreSQL. Le module notifications est le seul abonné à ce canal.
+
+**Events engine** — sur alerte créée :
+```python
+await publish("notifications_channel", {
+    "event_type": alert.type,
+    "subject": f"[{alert.severite.upper()}] {alert.message[:80]}",
+    "body": alert.message,
+    "affaire_id": str(alert.affaire_id),
+    "priority": alert.severite,
+})
+```
+
+**Planning engine** — sur retard détecté :
+```python
+await publish("notifications_channel", {
+    "event_type": "retard_planning",
+    "subject": f"Retard — {lot.nom}",
+    "body": f"Le lot {lot.nom} accuse un retard de {delta}j. Impact cascade calculé.",
+    "affaire_id": str(lot.affaire_id),
+    "priority": "critical" if delta > 7 else "warning",
+})
+```
+
+**Finance engine** — sur dépassement budget :
+```python
+await publish("notifications_channel", {
+    "event_type": "budget_critique",
+    "subject": f"Budget critique — {lot.nom}",
+    "body": f"Lot {lot.nom} : {pct}% du marché engagé.",
+    "affaire_id": str(lot.affaire_id),
+    "priority": "critical",
+})
+```
+
+---
+
+### 20.11 Docker Compose — services optionnels notifications
+
+```yaml
+  # Bot Telegram — aucun container supplémentaire nécessaire
+  # Le polling fonctionne in-process via python-telegram-bot (Webhook optionnel en v2)
+
+  # Evolution API — pont WhatsApp self-hosted (mode B uniquement)
+  # Activer avec : docker compose --profile whatsapp-evolution up -d
+  evolution-api:
+    image: atendai/evolution-api:latest
+    profiles: [whatsapp-evolution]
+    environment:
+      SERVER_URL: http://evolution-api:8080
+      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://arceag:${DB_PASSWORD}@db:5432/arceag
+      QRCODE_LIMIT: 30
+    volumes:
+      - evolution_data:/evolution/instances
+    ports:
+      - "8082:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+```
+
+Ajouter dans la section `volumes:` :
+```yaml
+  evolution_data:
+```
+
+---
+
+## 21. OPTIMISATIONS — UX, Maintenabilité & Pérennité
+
+### 21.1 UX — Expérience utilisateur
+
+| Problème actuel | Solution recommandée |
+|-----------------|----------------------|
+| Pas de contrôle sur les notifications reçues | Table `notification_preferences` : chaque user choisit ses canaux, son seuil de priorité, et les types d'événements |
+| Flood de notifications sur des projets actifs | Mode **digest** : les notifications `info` sont regroupées en un seul email quotidien (configurable dans `config.yaml`) |
+| Messages non adaptés au canal | **Templates Jinja2 par canal** : `templates/notifications/{channel}/{event_type}.j2` — Telegram supporte le Markdown bold/italic, WhatsApp est plus limité, email peut être HTML |
+| Aucun retour si une notification échoue | `notification_logs` + endpoint `/notifications/logs` + alerte admin si provider en échec répété |
+| Impossible de tester sans déclencher un vrai événement | Endpoint `POST /notifications/test` avec payload libre — envoie sur le canal de son choix |
+
+**Templates de messages par canal** (recommandé v2) :
+```
+api/templates/notifications/
+├── telegram/
+│   ├── retard_planning.j2
+│   ├── budget_critique.j2
+│   └── blocage_prolonge.j2
+├── whatsapp/
+│   └── (templates courts, sans Markdown avancé)
+└── smtp/
+    ├── base.html.j2
+    └── retard_planning.html.j2
+```
+
+---
+
+### 21.2 Maintenabilité
+
+**Règles à respecter pour le module notifications :**
+
+1. **Jamais de logique métier dans un provider** — un provider fait uniquement l'appel réseau. La décision de notifier appartient à `engine.py`.
+2. **Un provider = un fichier** — pas de fichier `providers.py` monolithique.
+3. **Chaque provider est testable indépendamment** — mocker `httpx` pour WhatsApp, mocker `telegram.Bot` pour Telegram.
+4. **Config sans redéploiement** — activer/désactiver un canal via `config.yaml` (ou toggle admin), sans toucher au code.
+5. **Health check obligatoire** — chaque provider implémente `health_check()`. La tâche planifiée détecte les pannes et loggue une alerte admin.
+6. **Retry transparent** — l'engine gère le retry, pas le provider. Un provider qui lève une exception est considéré en échec.
+
+**Tests à écrire (par provider) :**
+```python
+# test_telegram_provider.py
+async def test_send_success(mock_bot):
+    provider = TelegramProvider(token="fake")
+    provider.bot = mock_bot
+    result = await provider.send(NotificationPayload(recipient="123", subject="Test", body="Corps"))
+    assert result is True
+    mock_bot.send_message.assert_called_once()
+
+# test_notification_engine.py
+async def test_dispatch_respects_min_priority():
+    # Un user avec min_priority="critical" ne reçoit pas un event "info"
+    ...
+
+async def test_retry_on_provider_failure():
+    # Vérifier que 3 tentatives sont faites avant d'abandonner
+    ...
+```
+
+---
+
+### 21.3 Pérennité — Future-proofing
+
+**Ajouter un nouveau canal (ex: Slack, Teams, Signal) :**
+1. Créer `providers/slack.py` héritant de `NotificationProvider`
+2. Implémenter `send()` et `health_check()`
+3. Ajouter `slack: {enabled: false, webhook_url: ""}` dans `config.yaml`
+4. Ajouter `SLACK_WEBHOOK_URL=` dans `.env`
+5. **Aucune autre modification requise** — l'engine et le router détectent le provider automatiquement
+
+**Évolutions planifiées :**
+
+| Version | Évolution |
+|---------|-----------|
+| v1 | SMTP + Telegram + WhatsApp (one-way, alertes sortantes uniquement) |
+| v2 | **WhatsApp bidirectionnel** — répondre à une alerte depuis WhatsApp déclenche une action (acquitter, commenter) via webhook Meta |
+| v2 | **Telegram bot commands** — `/statut {affaire_id}`, `/alertes`, `/planning` depuis Telegram |
+| v2 | **Templates HTML** pour emails (actuellement texte Markdown) |
+| v2 | Mode digest configurable par user (pas seulement global) |
+| v3 | Slack et Teams comme canaux additionnels |
+| v3 | **Notification push mobile** via PWA (OpenClaw) — Service Worker + Web Push API |
+
+**Décisions d'architecture notifications (closes) :**
+
+| # | Question | Décision |
+|---|----------|----------|
+| N1 | Polling vs Webhook pour Telegram | **Polling** en v1 (plus simple, pas d'exposition publique requise) — Webhook en v2 si serveur accessible |
+| N2 | Meta API vs Evolution API pour WhatsApp | **Meta Cloud API** recommandé (officiel, fiable) — Evolution API en alternative si pas de compte Meta |
+| N3 | Template engine | **Jinja2** (déjà utilisé dans `documents/`) — consistance avec le reste du projet |
+| N4 | Retry strategy | **Exponentiel backoff** 3 tentatives : 1s → 2s → 4s — après échec, log + alerte admin |
+| N5 | Stockage recipient | **Table `notification_preferences`** par user — jamais hardcodé dans `.env` sauf `TELEGRAM_DEFAULT_CHAT_ID` |
+
+---
+
+### 21.4 Refactoring recommandé — Autres modules
+
+Ces améliorations sont indépendantes du module notifications :
+
+#### Events Engine — règles externalisées
+Actuellement les règles sont codées en Python (`engine.py`). Recommandation : les migrer vers un fichier `rules.yaml` chargé au démarrage, permettant à l'admin de modifier les seuils sans redéploiement.
+
+```yaml
+# modules/events_engine/rules.yaml
+rules:
+  - id: deadline_depassee
+    condition: "planning_lot.end_date < today AND statut != 'done'"
+    severity: critical
+    threshold_days: 0
+    notification: true
+  - id: budget_critique
+    condition: "depenses > marche * threshold"
+    severity: critical
+    threshold: 0.95          # modifiable sans toucher au code
+    notification: true
+```
+
+#### Config centralisée — dashboard admin
+L'admin peut modifier les `config.yaml` de chaque module via l'interface admin (`/admin/modules/{name}/config`) sans accès SSH. Les changements sont persistés en DB dans `module_configs` (JSONB) et mergés avec le fichier YAML au démarrage.
+
+#### RAG — chunking adaptatif
+Actuellement le `chunk_size` est fixe. Recommandation : adapter selon le type de document :
+```yaml
+# modules/rag/config.yaml
+chunking:
+  cctp:     {size: 512,  overlap: 64}
+  dtu:      {size: 256,  overlap: 32}
+  email:    {size: 128,  overlap: 16}
+  cr:       {size: 256,  overlap: 32}
+```
+
+#### Memory Engine — archivage automatique
+Ajouter une tâche planifiée hebdomadaire pour archiver les `memory_candidates` en statut `pending` depuis > 7 jours (déjà mentionné en règle 19.9.5 mais pas implémenté dans le planning de développement).
+
+---
+
+## 22. ORDRE DE DÉVELOPPEMENT RÉVISÉ
+
+Suite aux ajouts (module notifications), voici la mise à jour de la Phase 9 :
+
+### Phase 9 — Intégrations & Notifications *(anciennement Phase 9)*
+
+```
+Phase 9a — Notifications engine (SMTP + Telegram)
+  - [ ] Module notifications/ : manifest, config, models, schemas, engine, router
+  - [ ] providers/base.py + providers/smtp.py (migrer la logique SMTP depuis events_engine)
+  - [ ] providers/telegram.py + test
+  - [ ] Tables : notification_preferences, notification_logs
+  - [ ] Migration : notifications_001_preferences, notifications_002_logs
+  - [ ] Endpoint /notifications/test + /preferences + /providers/health
+  - [ ] Abonnement bus : notifications_channel, planning_channel, finance_channel
+  - [ ] Tests : dispatch priorité, retry on failure, health check
+
+Phase 9b — WhatsApp
+  - [ ] providers/whatsapp.py — Mode Meta Cloud API (défaut)
+  - [ ] providers/whatsapp_evolution.py — Mode Evolution API (optionnel)
+  - [ ] Docker Compose : service evolution-api (profile whatsapp-evolution)
+  - [ ] Template WhatsApp approuvé dans Meta Business Manager
+  - [ ] Tests : send avec mock httpx, health check
+
+Phase 9c — Intégrations existantes
+  - [ ] Module admin/syncs : Notion polling → publish sur bus événements
+  - [ ] Export Gantt XLSX
+```
+
+---
+
+*Dernière mise à jour : 2026-03-23*
 *Auteur : Claude (session OS Chantier)*
