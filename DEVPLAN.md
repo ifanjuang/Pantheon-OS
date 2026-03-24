@@ -2927,6 +2927,9 @@ volumes:
 - [ ] `api/core/services/rag_service.py` : chunk, embed, search cosine
 - [ ] `api/core/services/storage_service.py` : upload/download MinIO + init bucket
 - [ ] `api/core/rate_limit.py` : slowapi limiter
+- [ ] `api/core/logging.py` : structlog JSON (§23.1)
+- [ ] `api/core/health.py` : `/health` unifié db+minio+llm (§23.3)
+- [ ] `api/main.py` : vérification migrations au démarrage (§23.4)
 - [ ] `api/database.py` + `api/main.py`
 - [ ] Tests kernel : registry, auth, services
 
@@ -2934,12 +2937,19 @@ volumes:
 - [ ] Module `auth/` : users, affaire_permissions, JWT login/refresh, CRUD users
 - [ ] Module `chantier/` : affaires, intervenants, chantier_events, router, engine, tools
 - [ ] Migration Alembic : `auth_001_users`, `chantier_001_affaires`, `chantier_002_intervenants`
+- [ ] Migration `core_001_soft_delete` : colonne `deleted_at` sur tables critiques (§23.2)
+- [ ] Pagination cursor-based sur `chantier_events` + `affaires` (§23.8) — `core/pagination.py`
+- [ ] `db/seed_dev.py` : affaire fictive complète pour développement (§23.5)
 - [ ] Tests auth : rôles, permissions affaire, token expiré
 
 ### Phase 2 — Module Admin (interface de pilotage)
 - [ ] Module `admin/` : manifest, models (api_connections, sync_configs, mapping_tables), router, engine
 - [ ] Endpoints : modules toggle, users CRUD, connections, syncs, storage, DB stats, logs SSE
 - [ ] UI HTMX (ou React minimal) : tableau de bord admin
+- [ ] Migration `admin_002_prompt_versions` : table versioning prompts LLM (§23.7)
+- [ ] Endpoints `/admin/prompts` : CRUD versions + activation (§23.7)
+- [ ] Migration `admin_003_affaire_features` : feature flags par affaire (§23.9)
+- [ ] Endpoints `/admin/affaires/{id}/features` (§23.9)
 - [ ] Tests : accès refusé si pas admin, toggle module, test connexion API
 
 ### Phase 3 — Module Planning (CCTP-driven)
@@ -4113,5 +4123,464 @@ Phase 9c — Intégrations existantes
 
 ---
 
-*Dernière mise à jour : 2026-03-23*
+---
+
+## 23. OPTIMISATIONS TRANSVERSALES
+
+Ces améliorations s'appliquent à l'ensemble des modules. Elles sont indépendantes les unes des autres et peuvent être intégrées phase par phase.
+
+---
+
+### 23.1 Logs structurés JSON — `core/logging.py`
+
+Remplacer les `print()` et `logging` standard par `structlog` avec sortie JSON. Chaque log porte son contexte métier : affaire, module, durée.
+
+```python
+# api/core/logging.py
+import structlog
+
+log = structlog.get_logger()
+
+# Usage dans n'importe quel module
+log.info("rag.search",     affaire_id=affaire_id, query=query[:60], hits=len(results), duration_ms=elapsed)
+log.warning("llm.timeout", module="planning",     attempt=2,        model=model)
+log.error("storage.upload_failed", key=key,       error=str(e))
+```
+
+Configuration dans `main.py` au démarrage :
+```python
+structlog.configure(
+    processors=[
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.add_log_level,
+        structlog.processors.JSONRenderer(),
+    ]
+)
+```
+
+> **Règle** : tout appel LLM, toute recherche RAG, tout envoi de notification doit produire un log avec `duration_ms`. Filtrable dans Adminer, exportable vers Grafana Loki sans infrastructure supplémentaire.
+
+**À ajouter en Phase 0.** Dépendance : `pip install structlog`.
+
+---
+
+### 23.2 Soft delete sur les tables critiques
+
+Ajouter `deleted_at TIMESTAMPTZ DEFAULT NULL` sur les tables où une suppression accidentelle est irréversible.
+
+**Tables concernées :** `affaires`, `planning_lots`, `project_memory`, `communications`, `documents`, `memory_candidates`
+
+```sql
+ALTER TABLE affaires       ADD COLUMN deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE planning_lots  ADD COLUMN deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE project_memory ADD COLUMN deleted_at TIMESTAMPTZ DEFAULT NULL;
+-- (etc.)
+```
+
+**Règle dans tous les routers :**
+```python
+# DELETE → PATCH soft delete
+@router.delete("/{id}")
+async def soft_delete(id: UUID, db: AsyncSession = Depends(get_db)):
+    await db.execute(
+        update(Model).where(Model.id == id).values(deleted_at=datetime.utcnow())
+    )
+
+# Tous les SELECT filtrent automatiquement
+stmt = select(Model).where(Model.deleted_at.is_(None))
+```
+
+**Restauration (admin uniquement) :**
+```
+PATCH /admin/restore/{table}/{id}  →  SET deleted_at = NULL
+```
+
+> **Règle de dev (ajout à la section 17) :** Tout `DELETE` HTTP sur une ressource métier est un soft delete. Seul l'admin peut purger définitivement via `/admin/purge`.
+
+**À ajouter en Phase 1** (migration `core_001_soft_delete`).
+
+---
+
+### 23.3 `/health` — Endpoint de santé unifié
+
+```python
+# api/core/health.py
+@router.get("/health")
+async def health(db: AsyncSession = Depends(get_db)) -> dict:
+    checks = {}
+
+    # Base de données
+    try:
+        await db.execute(text("SELECT 1"))
+        checks["db"] = "ok"
+    except Exception:
+        checks["db"] = "error"
+
+    # MinIO
+    checks["minio"] = await storage_service.ping()
+
+    # Ollama / LLM
+    checks["llm"] = await llm_service.ping()
+
+    # Providers de notification (si module activé)
+    if registry.is_enabled("notifications"):
+        checks["notifications"] = await notification_engine.check_all_providers()
+
+    overall = "ok" if all(v == "ok" for v in checks.values() if isinstance(v, str)) else "degraded"
+    return {"status": overall, **checks}
+```
+
+Réponse exemple :
+```json
+{
+  "status": "degraded",
+  "db": "ok",
+  "minio": "ok",
+  "llm": "ok",
+  "notifications": {"smtp": "ok", "telegram": "ok", "whatsapp": "error"}
+}
+```
+
+> Utilisé par Docker `healthcheck`, Traefik, et la page d'accueil admin. Retourne HTTP 200 même en `"degraded"` — HTTP 503 uniquement si `db` est `"error"` (service inutilisable).
+
+**À ajouter en Phase 0.** Exempté d'auth (comme `/auth/login`).
+
+---
+
+### 23.4 Vérification des migrations au démarrage
+
+Dans `api/main.py`, avant `app.include_router(...)` :
+
+```python
+from alembic.runtime.migration import MigrationContext
+from alembic.script import ScriptDirectory
+from sqlalchemy import create_engine
+
+def check_migrations() -> None:
+    engine = create_engine(settings.DATABASE_URL.replace("+asyncpg", ""))
+    with engine.connect() as conn:
+        ctx = MigrationContext.configure(conn)
+        current = ctx.get_current_revision()
+    script = ScriptDirectory.from_config(alembic_cfg)
+    head = script.get_current_head()
+    if current != head:
+        raise RuntimeError(
+            f"Base de données non à jour. Lancer : alembic upgrade head\n"
+            f"  Actuelle : {current}\n"
+            f"  Attendue : {head}"
+        )
+
+@app.on_event("startup")
+async def startup():
+    check_migrations()
+    await registry.load_all()
+```
+
+> Empêche le démarrage silencieux sur une base partiellement migrée. Crash explicite = bien meilleur que bug mystérieux en prod.
+
+**À ajouter en Phase 0.**
+
+---
+
+### 23.5 Seed data de développement — `db/seed_dev.py`
+
+Script à lancer une seule fois pour peupler la base avec une affaire fictive complète. Permet d'onboarder un nouveau développeur sans données réelles.
+
+```python
+# db/seed_dev.py
+"""
+Usage : python db/seed_dev.py
+Peuple la DB avec une affaire fictive "Réhabilitation Hôtel de Ville - Pontoise"
+"""
+SEED_AFFAIRE = {
+    "nom": "Réhabilitation Hôtel de Ville — Pontoise",
+    "reference": "2024-DEV-001",
+    "phase": "EXE",
+    "intervenants": [
+        {"nom": "Bâti+", "role": "GO", "email": "contact@batip.fr"},
+        {"nom": "ThermoPro", "role": "CVC", "email": "contact@thermopro.fr"},
+    ],
+    "lots": [
+        {"nom": "Gros Œuvre", "duree_jours": 60, "statut": "in_progress"},
+        {"nom": "Charpente", "duree_jours": 20, "statut": "pending", "depends_on": ["Gros Œuvre"]},
+        {"nom": "CVC", "duree_jours": 30, "statut": "pending"},
+    ],
+    "memory": [
+        {"content": "Isolation en ITE décidée en APS — EPS 120mm, enduit minéral.", "type_memory": "decision", "importance": "info"},
+        {"content": "Risque amiante confirmé en zone combles — expertise avant démolition obligatoire.", "type_memory": "risk", "importance": "critical"},
+    ],
+}
+```
+
+> Inclure dans le `README.md` : `python db/seed_dev.py` après `alembic upgrade head`.
+
+**À ajouter en Phase 1.** Ne jamais lancer en production (guard `if settings.DEBUG is False: raise`).
+
+---
+
+### 23.6 Cache sémantique des requêtes RAG
+
+Si la même question (ou une question très proche) est posée sur la même affaire dans les dernières 24h, retourner le résultat en cache sans appel LLM.
+
+```sql
+CREATE TABLE rag_cache (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    affaire_id      UUID NOT NULL REFERENCES affaires(id) ON DELETE CASCADE,
+    query_embedding vector(768) NOT NULL,
+    query_text      TEXT NOT NULL,
+    response        JSONB NOT NULL,           -- {answer, sources, model}
+    created_at      TIMESTAMPTZ DEFAULT now(),
+    expires_at      TIMESTAMPTZ NOT NULL       -- now() + interval '24h'
+);
+CREATE INDEX idx_rag_cache_affaire ON rag_cache(affaire_id, expires_at);
+```
+
+```python
+# Dans rag_service.py, avant l'appel LLM
+async def search_with_cache(query: str, affaire_id: str) -> dict:
+    query_emb = await embed(query)
+    # Chercher une entrée récente avec similarité > 0.90
+    cached = await db.execute(
+        text("""
+            SELECT response FROM rag_cache
+            WHERE affaire_id = :aid
+              AND expires_at > now()
+              AND 1 - (query_embedding <=> :emb) > 0.90
+            ORDER BY query_embedding <=> :emb
+            LIMIT 1
+        """),
+        {"aid": affaire_id, "emb": query_emb}
+    )
+    if cached.scalar():
+        log.info("rag.cache_hit", affaire_id=affaire_id)
+        return cached.scalar()
+    # Sinon, appel LLM normal + mise en cache
+    result = await _search_llm(query_emb, affaire_id)
+    await _store_cache(affaire_id, query_emb, query, result)
+    return result
+```
+
+> **Seuil recommandé :** 0.90 (légèrement moins strict que la dédup mémoire). TTL : 24h par défaut, configurable dans `rag/config.yaml`.
+
+**À ajouter en Phase 5** (avec le module RAG). Migration : `rag_001_cache`.
+
+---
+
+### 23.7 Versioning des prompts LLM
+
+Les prompts sont actuellement des strings dans le code. Les extraire en DB pour permettre modification et rollback sans redéploiement.
+
+```sql
+CREATE TABLE prompt_versions (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    module      VARCHAR(50) NOT NULL,     -- "planning", "meeting", "memory"…
+    name        VARCHAR(100) NOT NULL,    -- "cctp_extraction", "cr_analysis"…
+    version     INTEGER NOT NULL DEFAULT 1,
+    content     TEXT NOT NULL,
+    active      BOOLEAN DEFAULT false,    -- un seul actif par (module, name)
+    created_at  TIMESTAMPTZ DEFAULT now(),
+    created_by  UUID REFERENCES users(id),
+    UNIQUE(module, name, version)
+);
+CREATE UNIQUE INDEX idx_prompt_active ON prompt_versions(module, name) WHERE active = true;
+```
+
+```python
+# Dans core/services/llm_service.py
+async def get_prompt(module: str, name: str) -> str:
+    """Retourne le prompt actif. Fallback sur le fichier si absent en DB."""
+    row = await db.execute(
+        select(PromptVersion.content)
+        .where(PromptVersion.module == module, PromptVersion.name == name, PromptVersion.active == True)
+    )
+    return row.scalar() or _load_default_prompt(module, name)
+```
+
+Endpoints admin :
+```
+GET    /admin/prompts                     → lister tous les prompts (module, name, version, active)
+GET    /admin/prompts/{module}/{name}     → historique des versions
+POST   /admin/prompts/{module}/{name}     → créer une nouvelle version
+PATCH  /admin/prompts/{module}/{name}/activate/{version}  → activer une version
+```
+
+**À ajouter en Phase 2** (avec le module admin). Migration : `admin_002_prompt_versions`.
+
+---
+
+### 23.8 Pagination cursor-based
+
+Remplacer la pagination offset (`?page=2`) par la pagination cursor (`?after=<uuid>`) sur tous les endpoints de listing. Plus stable quand des enregistrements sont insérés entre deux requêtes.
+
+```python
+# core/pagination.py
+from typing import TypeVar, Generic, Optional
+from pydantic import BaseModel
+
+T = TypeVar("T")
+
+class CursorPage(BaseModel, Generic[T]):
+    items: list[T]
+    next_cursor: Optional[str] = None   # UUID du dernier item, None si dernière page
+    total: Optional[int] = None         # optionnel, coûteux sur grandes tables
+
+# Usage dans un router
+async def list_lots(
+    affaire_id: UUID,
+    after: Optional[UUID] = None,       # cursor
+    limit: int = Query(default=50, le=200),
+):
+    stmt = (
+        select(PlanningLot)
+        .where(PlanningLot.affaire_id == affaire_id, PlanningLot.deleted_at.is_(None))
+        .order_by(PlanningLot.created_at.asc(), PlanningLot.id.asc())
+        .limit(limit + 1)
+    )
+    if after:
+        # Récupérer le created_at du cursor pour paginer proprement
+        cursor_row = await db.get(PlanningLot, after)
+        stmt = stmt.where(
+            (PlanningLot.created_at > cursor_row.created_at) |
+            ((PlanningLot.created_at == cursor_row.created_at) & (PlanningLot.id > after))
+        )
+    rows = (await db.execute(stmt)).scalars().all()
+    has_more = len(rows) > limit
+    return CursorPage(
+        items=rows[:limit],
+        next_cursor=str(rows[limit - 1].id) if has_more else None,
+    )
+```
+
+**À appliquer sur :** `planning_lots`, `chantier_events`, `communications`, `notification_logs`, `project_memory`.
+
+**À ajouter en Phase 1.**
+
+---
+
+### 23.9 Feature flags par affaire
+
+Permet d'activer un module expérimental sur un projet test avant déploiement global.
+
+```sql
+CREATE TABLE affaire_features (
+    affaire_id  UUID NOT NULL REFERENCES affaires(id) ON DELETE CASCADE,
+    feature     VARCHAR(50) NOT NULL,   -- "memory", "notifications", "digest"
+    enabled     BOOLEAN DEFAULT true,
+    PRIMARY KEY (affaire_id, feature)
+);
+```
+
+```python
+# core/features.py
+async def is_enabled(affaire_id: str, feature: str) -> bool:
+    """
+    Priorité : affaire_features > modules.yaml global
+    Si absent de affaire_features → utilise le défaut du module (manifest.yaml)
+    """
+    row = await db.execute(
+        select(AffaireFeature.enabled)
+        .where(AffaireFeature.affaire_id == affaire_id, AffaireFeature.feature == feature)
+    )
+    result = row.scalar()
+    return result if result is not None else registry.is_enabled(feature)
+```
+
+```
+GET  /admin/affaires/{id}/features          → lister les features de l'affaire
+PUT  /admin/affaires/{id}/features/{name}   → activer/désactiver
+```
+
+**À ajouter en Phase 2** (avec le module admin). Migration : `admin_003_affaire_features`.
+
+---
+
+### 23.10 Export complet d'une affaire
+
+Génère un ZIP autonome contenant toutes les données d'une affaire. Garantit la non-dépendance à l'outil.
+
+```
+GET /admin/affaires/{id}/export
+```
+
+Contenu du ZIP `{reference}_{date}.zip` :
+```
+export/
+├── affaire.json              # métadonnées, intervenants, phases
+├── planning/
+│   ├── lots.json
+│   └── gantt.csv
+├── memory/
+│   └── project_memory.json
+├── communications/
+│   └── registre.json
+├── documents/
+│   └── cr_reunions.json
+├── files/                    # pièces binaires téléchargées depuis MinIO
+│   ├── {storage_key_1}.pdf
+│   └── {storage_key_2}.docx
+└── README.txt                # instructions pour réimporter
+```
+
+> Rassure les clients sur la portabilité. À documenter dans `INSTALL.md`.
+
+**À ajouter en Phase 9** (intégrations). Endpoint admin uniquement.
+
+---
+
+### 23.11 `CHANGELOG.md` — suivi des versions livrées
+
+Fichier à la racine, mis à jour à chaque merge sur `main` :
+
+```markdown
+# CHANGELOG
+
+## v0.1.0 — 2026-XX-XX
+### Ajouté
+- Infrastructure Docker (db, api, openwebui, minio, ollama)
+- Kernel : registry, auth JWT, services core
+- Module auth : users, rôles, permissions affaire
+
+## v0.2.0 — 2026-XX-XX
+### Ajouté
+- Module chantier : affaires, intervenants, chantier_events
+- Soft delete sur tables critiques
+- /health endpoint unifié
+```
+
+> Utilisé en début de session Claude pour reprendre le contexte exact de l'avancement sans relire 4 000 lignes de DEVPLAN.
+
+---
+
+### 23.12 Tableau récapitulatif — intégration dans le planning
+
+| # | Optimisation | Phase | Migration | Effort estimé |
+|---|---|---|---|---|
+| 23.1 | Logs structurés (`structlog`) | 0 | — | 2h |
+| 23.3 | `/health` unifié | 0 | — | 2h |
+| 23.4 | Vérification migrations au boot | 0 | — | 1h |
+| 23.5 | Seed data développement | 1 | — | 3h |
+| 23.2 | Soft delete tables critiques | 1 | `core_001_soft_delete` | 3h |
+| 23.8 | Pagination cursor-based | 1 | — | 4h |
+| 23.7 | Versioning prompts LLM | 2 | `admin_002_prompt_versions` | 1j |
+| 23.9 | Feature flags par affaire | 2 | `admin_003_affaire_features` | 1j |
+| 23.6 | Cache sémantique RAG | 5 | `rag_001_cache` | 1j |
+| 23.10 | Export ZIP affaire | 9 | — | 1j |
+| 23.11 | `CHANGELOG.md` | Maintenant | — | 30min |
+
+---
+
+### Règles de dev supplémentaires (compléments à la section 17)
+
+```
+33. Soft delete obligatoire sur toutes les tables métier (affaires, lots, mémoire, communications, documents)
+34. Tout appel LLM et toute recherche RAG produit un log structuré avec duration_ms
+35. /health est exempté d'auth — retourne 200 même en état dégradé, 503 uniquement si db=error
+36. Jamais de DELETE physique en HTTP pour une ressource métier — uniquement via /admin/purge (admin)
+37. Toute feature expérimentale passe par affaire_features avant activation globale
+38. Les prompts LLM sont versionnés en DB dès la Phase 2 — pas de string hardcodée au-delà de la Phase 1
+```
+
+---
+
+*Dernière mise à jour : 2026-03-24*
 *Auteur : Claude (session OS Chantier)*
