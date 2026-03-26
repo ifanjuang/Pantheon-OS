@@ -90,3 +90,57 @@ class AdminEngine(BaseEngine):
         yaml.safe_load(raw_yaml)  # lève yaml.YAMLError si invalide
         config_path.write_text(raw_yaml, encoding="utf-8")
         log.info("admin.module_config_saved", module=module)
+
+    # ── manifest.yaml (lecture seule) ───────────────────────────
+
+    def read_module_manifest(self, module: str) -> dict:
+        manifest_path = _safe_path(PROJECT_ROOT, MODULES_DIR / module / "manifest.yaml")
+        if not manifest_path.exists():
+            return {}
+        return yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {}
+
+    # ── Fichiers prompt (agent_system.txt, etc.) ─────────────────
+
+    def list_prompt_files(self, module: str) -> list[str]:
+        """Retourne les fichiers texte du module (prompts, templates)."""
+        mod_dir = _safe_path(PROJECT_ROOT, MODULES_DIR / module)
+        if not mod_dir.exists():
+            return []
+        extensions = {".txt", ".md", ".j2"}
+        return [
+            f.name for f in sorted(mod_dir.iterdir())
+            if f.is_file() and f.suffix in extensions
+        ]
+
+    def read_prompt_file(self, module: str, filename: str) -> str:
+        file_path = _safe_path(PROJECT_ROOT, MODULES_DIR / module / filename)
+        if not file_path.exists():
+            raise FileNotFoundError(f"Fichier introuvable : {filename}")
+        return file_path.read_text(encoding="utf-8")
+
+    def write_prompt_file(self, module: str, filename: str, content: str) -> None:
+        file_path = _safe_path(PROJECT_ROOT, MODULES_DIR / module / filename)
+        # N'autoriser que les extensions texte
+        if file_path.suffix not in {".txt", ".md", ".j2"}:
+            raise ValueError(f"Extension non autorisée : {file_path.suffix}")
+        file_path.write_text(content, encoding="utf-8")
+        log.info("admin.prompt_file_saved", module=module, filename=filename)
+
+    # ── Schéma de formulaire ─────────────────────────────────────
+
+    def get_form_schema(self, module: str) -> dict:
+        """
+        Retourne {config_parsed, manifest_parsed, prompt_files}
+        pour que l'UI puisse générer le formulaire complet.
+        """
+        config_raw = self.read_module_config(module)
+        config_parsed = yaml.safe_load(config_raw) or {} if config_raw else {}
+        manifest = self.read_module_manifest(module)
+        prompt_files = self.list_prompt_files(module)
+        return {
+            "config": config_parsed,
+            "config_raw": config_raw,
+            "manifest": manifest,
+            "prompt_files": prompt_files,
+            "available_modules": [m["name"] for m in self.list_modules()],
+        }
