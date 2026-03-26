@@ -1,0 +1,9 @@
+name: admin
+version: "1.0.0"
+description: "Interface d'administration — config YAML, modules, santé système"
+prefix: /admin
+depends_on: []
+
+tools: []
+
+agent: null

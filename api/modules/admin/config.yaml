@@ -1,0 +1,9 @@
+# Modules dont la config est éditable via l'UI (whitelist)
+# Laisser vide pour autoriser tous les modules activés
+editable_modules: []
+
+# Fichiers YAML additionnels exposés dans l'UI (relatifs à la racine du repo)
+extra_yaml_files:
+  - path: modules.yaml
+    label: "Registre des modules"
+    readonly: false
