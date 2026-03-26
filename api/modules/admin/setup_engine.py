@@ -288,6 +288,154 @@ class SetupEngine:
             pass
         return []
 
+    # ── Actions d'installation ────────────────────────────────────
+
+    def init_env(self) -> dict:
+        """Copie .env.example → .env si absent. Retourne l'état."""
+        env_example = PROJECT_ROOT / ".env.example"
+        if ENV_FILE.exists():
+            return {"ok": True, "detail": ".env déjà présent", "created": False}
+        if not env_example.exists():
+            return {"ok": False, "detail": ".env.example introuvable"}
+        ENV_FILE.write_text(env_example.read_text(encoding="utf-8"), encoding="utf-8")
+        log.info("setup.env_created_from_example")
+        return {"ok": True, "detail": ".env créé depuis .env.example", "created": True}
+
+    def missing_required_fields(self) -> list[str]:
+        """Retourne les clés required qui sont vides ou contiennent 'changeme'."""
+        current = _parse_env_file()
+        missing = []
+        for group in ENV_SCHEMA:
+            for f in group["fields"]:
+                if f.get("required"):
+                    val = current.get(f["key"], "")
+                    if not val or "changeme" in val.lower():
+                        missing.append(f["key"])
+        return missing
+
+    async def run_migrations(self) -> dict:
+        """Lance alembic upgrade head depuis l'intérieur du container."""
+        try:
+            from alembic.config import Config
+            from alembic import command as alembic_command
+            import io, contextlib
+
+            cfg = Config("alembic.ini")
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                alembic_command.upgrade(cfg, "head")
+            output = buf.getvalue().strip()
+            log.info("setup.migrations_ok")
+            return {"ok": True, "detail": output or "Migrations appliquées (base à jour)"}
+        except Exception as e:
+            log.error("setup.migrations_failed", error=str(e))
+            return {"ok": False, "detail": str(e)}
+
+    async def migration_status(self) -> dict:
+        """Retourne la révision actuelle et la révision cible."""
+        try:
+            from alembic.config import Config
+            from alembic.runtime.migration import MigrationContext
+            from alembic.script import ScriptDirectory
+            from sqlalchemy import create_engine as sync_engine
+            from core.settings import settings as s
+
+            cfg = Config("alembic.ini")
+            script = ScriptDirectory.from_config(cfg)
+            head = script.get_current_head()
+            eng = sync_engine(s.DATABASE_URL_SYNC)
+            with eng.connect() as conn:
+                ctx = MigrationContext.configure(conn)
+                current = ctx.get_current_revision()
+            eng.dispose()
+            up_to_date = current == head
+            return {
+                "ok": True, "current": current, "head": head,
+                "up_to_date": up_to_date,
+                "detail": "À jour" if up_to_date else f"Migration requise ({current} → {head})",
+            }
+        except Exception as e:
+            return {"ok": False, "current": None, "head": None, "up_to_date": False, "detail": str(e)}
+
+    async def ollama_pull_model(self, model: str) -> dict:
+        """Lance le pull d'un modèle Ollama (bloquant jusqu'à complétion)."""
+        try:
+            import httpx
+            base = settings.OLLAMA_BASE_URL.rstrip("/")
+            async with httpx.AsyncClient(timeout=600) as client:
+                r = await client.post(f"{base}/api/pull", json={"name": model, "stream": False})
+            if r.status_code == 200:
+                return {"ok": True, "detail": f"Modèle '{model}' téléchargé"}
+            return {"ok": False, "detail": f"HTTP {r.status_code} — {r.text[:120]}"}
+        except Exception as e:
+            return {"ok": False, "detail": str(e)}
+
+    def get_checklist(self) -> list[dict]:
+        """
+        Retourne la checklist d'installation avec le statut de chaque étape.
+        Utilisé par l'UI pour afficher la progression.
+        """
+        current = _parse_env_file()
+        missing = self.missing_required_fields()
+        env_ok = len(missing) == 0
+
+        def filled(key: str) -> bool:
+            v = current.get(key, "")
+            return bool(v) and "changeme" not in v.lower()
+
+        return [
+            {
+                "id": "env",
+                "label": "Fichier .env",
+                "detail": "Variables obligatoires renseignées" if env_ok
+                          else f"Champs manquants : {', '.join(missing)}",
+                "done": env_ok,
+            },
+            {
+                "id": "db",
+                "label": "Base de données",
+                "detail": "Connexion PostgreSQL + pgvector",
+                "done": filled("DB_PASSWORD"),
+                "action": "test_db",
+            },
+            {
+                "id": "storage",
+                "label": "Stockage MinIO",
+                "detail": "Bucket arceag-files",
+                "done": filled("MINIO_ROOT_PASSWORD"),
+                "action": "test_minio",
+            },
+            {
+                "id": "migrations",
+                "label": "Migrations base de données",
+                "detail": "alembic upgrade head",
+                "done": False,  # vérifié dynamiquement par migration_status
+                "action": "migrate",
+            },
+            {
+                "id": "llm",
+                "label": "Fournisseur IA",
+                "detail": f"Provider : {current.get('LLM_PROVIDER', '?')} — "
+                          f"Modèle : {current.get('OLLAMA_MODEL') or current.get('LLM_MODEL', '?')}",
+                "done": filled("LLM_PROVIDER"),
+                "action": "test_llm",
+            },
+            {
+                "id": "admin_user",
+                "label": "Compte administrateur",
+                "detail": f"Email : {current.get('ADMIN_EMAIL', '?')}",
+                "done": filled("ADMIN_EMAIL") and filled("ADMIN_PASSWORD"),
+                "action": "create_admin",
+            },
+            {
+                "id": "notifications",
+                "label": "Notifications (optionnel)",
+                "detail": "SMTP / Telegram / WhatsApp",
+                "done": filled("SMTP_HOST") or filled("TELEGRAM_TOKEN") or filled("WA_TOKEN"),
+                "optional": True,
+            },
+        ]
+
     async def full_status(self) -> dict:
         """Statut global de tous les services — utilisé pour le dashboard."""
         db, minio, llm = await asyncio.gather(
