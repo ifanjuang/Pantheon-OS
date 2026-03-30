@@ -101,6 +101,17 @@ services:
       - db
     profiles: [dev]
 
+  # ── Portainer — gestion visuelle Docker / stacks ───────────────
+  portainer:
+    image: portainer/portainer-ce:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    ports:
+      - "9090:9000"    # UI web  → http://localhost:9090
+      - "9443:9443"    # HTTPS (optionnel)
+    restart: unless-stopped
+
   # ── Evolution API — pont WhatsApp self-hosted (optionnel) ───────
   # Activer avec : docker compose --profile whatsapp-evolution up -d
   evolution-api:
@@ -131,3 +142,4 @@ volumes:
   minio_data:
   ollama_data:
   evolution_data:
+  portainer_data:
