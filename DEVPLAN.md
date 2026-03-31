@@ -4648,7 +4648,7 @@ Fichier à la racine, mis à jour à chaque merge sur `main` :
   - ✅ Le **pattern GEP** (genes/capsules/events) est excellent — structure idéale pour la mémoire d'agent dans le module `memory`
   - ❌ Dépendance externe evomap.ai obligatoire — contraire au principe self-hosted d'ARCEAG
   - ❌ Node.js — service séparé dans un stack Python
-- **À faire :** S'inspirer du protocole GEP pour structurer la table `memory_items` (Phase 5) : `type IN ('gene','capsule','event')`. Ne pas intégrer le service Evolver en production.
+- **Décision :** Implémenter le protocole GEP **en Python pur** dans le module `memory` — aucune dépendance externe (pas d'evomap.ai, pas de Node.js). Table `memory_items` avec `type IN ('gene','capsule','event')`, log append-only, stratégies configurables via `config.yaml`.
 
 ---
 
@@ -4658,6 +4658,6 @@ Fichier à la racine, mis à jour à chaque merge sur `main` :
 |-------|-------------|----------|
 | mem0 | Phase 5 (memory) | ✅ Intégrer — candidat prioritaire |
 | Hermes Agent | Phase 6+ | ✅ Intégrer — agent général + gateway messagerie |
-| GEP Protocol | Phase 5 (memory) | ✅ S'inspirer du pattern — pas du service Evolver |
+| GEP Protocol | Phase 5 (memory) | ✅ Implémenter en Python pur — zéro dépendance externe |
 | Ontology | Phase 4 (rag) | 🔲 Évaluer |
 | Byterover | Phase 4 (rag) | 🔲 Évaluer |
