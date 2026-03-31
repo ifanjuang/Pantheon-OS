@@ -4652,19 +4652,6 @@ Fichier à la racine, mis à jour à chaque merge sur `main` :
 
 ---
 
-### Tableau de décision
-
-| Outil | Phase cible | Décision |
-|-------|-------------|----------|
-| mem0 | Phase 5 (memory) | ✅ Intégrer — candidat prioritaire |
-| Hermes Agent | Phase 6+ | ✅ Intégrer — agent général + gateway messagerie |
-| GEP Protocol | Phase 5 (memory) | ✅ Implémenter en Python pur — zéro dépendance externe |
-| AgentScope | Phase 6+ | ✅ Intégrer — orchestration multi-agents complexes |
-| Ontology | Phase 4 (rag) | 🔲 Évaluer |
-| Byterover | Phase 4 (rag) | 🔲 Évaluer |
-
----
-
 ### 24.6 AgentScope — Orchestration multi-agents
 
 - **Repo :** https://github.com/agentscope-ai/agentscope
@@ -4682,3 +4669,122 @@ Fichier à la racine, mis à jour à chaque merge sur `main` :
                                   → résultat consolidé → OpenWebUI
   ```
 - **À faire :** Ajouter comme service Docker optionnel (Phase 6+). Connecter via endpoint `/agents/run` dans l'API ARCEUS.
+
+---
+
+### 24.7 Docling — Parsing PDF technique
+
+- **Repo :** https://github.com/DS4SD/docling
+- **Ce que c'est :** Parser IBM de documents techniques. Reconnaît tableaux, colonnes, titres hiérarchiques dans les PDFs complexes. Export Markdown structuré + JSON.
+- **Stack :** Python, MIT, CPU suffisant, GPU optionnel. 20k⭐ 🔥
+- **Concurrent :** Marker (20k⭐, meilleur formules math, GPL-3, GPU recommandé) — Docling prioritaire, Marker en fallback.
+- **Pertinence :** ✅ **Critique** — CCTP, DTU, DPGF mal parsés = RAG inutile. Phase 4.
+
+### 24.8 Crawl4AI — Web crawling pour LLM
+
+- **Repo :** https://github.com/unclecode/crawl4ai
+- **Ce que c'est :** Crawler async optimisé LLM. Filtre le bruit (nav, footer, pub), produit du Markdown propre. Respecte robots.txt, gère JavaScript via Playwright.
+- **Stack :** Python, Apache 2.0. 25k⭐ 🔥
+- **Concurrent :** Scrapy (52k⭐, général, moins optimisé LLM).
+- **Pertinence :** ✅ **Haute** — Ingestion automatique CSTB, Legifrance, PLU. Phase 4.
+
+### 24.9 Gotenberg — Génération PDF self-hosted
+
+- **Repo :** https://github.com/gotenberg/gotenberg
+- **Ce que c'est :** Service Docker HTML/Word/Markdown → PDF. Utilise LibreOffice + Chromium. API REST simple.
+- **Stack :** Go, MIT, service Docker. 8k⭐ 🔥
+- **Concurrent :** WeasyPrint (Python pur, 6k⭐, plus simple mais rendu moins fidèle).
+- **Pertinence :** ✅ **Haute** — Génération CR de chantier, situations financières, rapports PDF mise en page agence. Phase 7.
+
+### 24.10 n8n — Orchestration workflows & notifications
+
+- **Repo :** https://github.com/n8n-io/n8n
+- **Ce que c'est :** Workflow automation self-hosted. Connecte SMTP + Telegram + WhatsApp + Notion + Webhook + tout. Interface visuelle no-code pour créer des flux.
+- **Stack :** Node.js, fair-code (self-hosted gratuit), Docker. 55k⭐ 🔥
+- **Pertinence :** ✅ **Haute** — Peut remplacer ou compléter le module `notifications`. Phase 6.
+
+### 24.11 Infisical — Gestion secrets self-hosted
+
+- **Repo :** https://github.com/Infisical/infisical
+- **Ce que c'est :** Gestionnaire de secrets self-hosted. UI web, rotation automatique, audit log, SDK Python/Node. Remplace la gestion .env brute.
+- **Stack :** Go + TypeScript, MIT, Docker. 17k⭐ 🔥
+- **Concurrent :** HashiCorp Vault (30k⭐, très robuste, complexe à opérer).
+- **Pertinence :** ✅ **Moyenne** — Complément à l'admin UI .env pour les équipes plus grandes. Phase 2+.
+
+### 24.12 vLLM — Serving LLM haute performance
+
+- **Repo :** https://github.com/vllm-project/vllm
+- **Ce que c'est :** Serveur LLM avec PagedAttention. Throughput 10-20× supérieur à Ollama sur GPU. API compatible OpenAI.
+- **Stack :** Python, Apache 2.0. 45k⭐ 🔥
+- **Pertinence :** 🔲 **Conditionnel** — Remplacement d'Ollama quand >20 utilisateurs simultanés avec GPU dédié. Phase 7+.
+
+### 24.13 Qdrant — Vector store haute performance
+
+- **Repo :** https://github.com/qdrant/qdrant
+- **Ce que c'est :** Base vectorielle self-hosted Rust. Meilleure performance que pgvector sur grands volumes. Filtres payload avancés. API REST + gRPC.
+- **Stack :** Rust, Apache 2.0, Docker. 22k⭐ 🔥
+- **Pertinence :** 🔲 **Conditionnel** — Si pgvector insuffisant au-delà de 10M vecteurs. Phase 7+.
+
+### 24.14 PydanticAI — Framework agents Python natif
+
+- **Repo :** https://github.com/pydantic/pydantic-ai
+- **Ce que c'est :** Framework agent de l'équipe Pydantic. Typage strict end-to-end, modèles Pydantic v2 en entrée/sortie, compatible OpenAI/Anthropic/Gemini/Ollama.
+- **Stack :** Python, MIT. 8k⭐ 🔥 (très récent, croissance rapide)
+- **Cohérence ARCEUS :** Utilise déjà Pydantic v2 + Instructor — PydanticAI est la progression naturelle.
+- **Pertinence :** ✅ **Haute** — Remplace/complète Instructor pour les agents avec mémoire et outils. Phase 3+.
+
+### 24.15 Phoenix (Arize) — Évaluation qualité LLM
+
+- **Repo :** https://github.com/Arize-ai/phoenix
+- **Ce que c'est :** Observabilité LLM + évaluation qualité. Détection hallucinations, dérives de prompt, traces OpenTelemetry. Self-hosted.
+- **Stack :** Python, Elixir, Apache 2.0. 5k⭐ 🔥
+- **vs Langfuse :** Langfuse = traces + coûts. Phoenix = évaluation qualité réponses + détection hallucinations.
+- **Pertinence :** 🔲 **Phase 5+** — Après Langfuse quand l'évaluation qualité RAG devient critique.
+
+### 24.16 Unstructured — Parsing formats universels
+
+- **Repo :** https://github.com/Unstructured-IO/unstructured
+- **Ce que c'est :** Parser universel — PDF, Word, Excel, PowerPoint, emails, HTML. Extrait contenu structuré de n'importe quel format.
+- **Stack :** Python, Apache 2.0. 10k⭐ ✅
+- **vs Docling :** Docling meilleur sur PDFs techniques, Unstructured meilleur sur Word/Excel/emails.
+- **Pertinence :** ✅ **Complémentaire** — DPGF Excel, courriers Word, emails .msg. Phase 4.
+
+### 24.17 LightRAG / Cognee — RAG avec graphe de connaissances
+
+- **LightRAG :** https://github.com/HKUDS/LightRAG — RAG hybride vecteur + graphe. Relations entre entités indexées. 15k⭐ 🔥
+- **Cognee :** https://github.com/topoteretes/cognee — Graphe de connaissances auto-construit, plus simple que LightRAG. 3k⭐ ✅
+- **Pertinence :** 🔲 **Phase 4 conditionnel** — Si RAG vecteur pur donne des résultats insuffisants sur les questions multi-documents (ex: "quels DTU s'appliquent à ce projet").
+
+### 24.18 Smolagents (HuggingFace) — Code agents
+
+- **Repo :** https://github.com/huggingface/smolagents
+- **Ce que c'est :** Framework minimaliste où l'agent génère du code Python qu'il exécute (vs tool calls JSON). Très efficace pour calculs complexes.
+- **Stack :** Python, Apache 2.0. 15k⭐ 🔥
+- **Pertinence :** 🔲 **Phase 6** — Calculs financiers complexes (chemin critique, simulation dépassement).
+
+---
+
+### Tableau de décision
+
+| Outil | Phase cible | Décision |
+|-------|-------------|----------|
+| mem0 | Phase 5 (memory) | ✅ Intégrer — candidat prioritaire |
+| Hermes Agent | Phase 6+ | ✅ Intégrer — agent général + gateway messagerie |
+| GEP Protocol | Phase 5 (memory) | ✅ Implémenter en Python pur — zéro dépendance externe |
+| AgentScope | Phase 6+ | ✅ Intégrer — orchestration multi-agents complexes |
+| Docling | Phase 4 (rag) | ✅ Intégrer — parsing PDF technique prioritaire |
+| Crawl4AI | Phase 4 (rag) | ✅ Intégrer — ingestion normative web |
+| Gotenberg | Phase 7 (documents) | ✅ Intégrer — service Docker PDF generation |
+| n8n | Phase 6 (notifications) | ✅ Évaluer — peut remplacer module notifications |
+| Langfuse | Phase 1 | ✅ Intégrer dès Phase 1 — observabilité LLM |
+| PydanticAI | Phase 3+ | ✅ Intégrer — cohérent avec stack Pydantic/Instructor |
+| Infisical | Phase 2+ | ✅ Évaluer — gestion secrets équipe |
+| Unstructured | Phase 4 (rag) | ✅ Intégrer — formats Word/Excel/email |
+| MCP Server ARCEUS | Phase 2 | ✅ Intégrer — exposition universelle des tools |
+| vLLM | Phase 7+ | 🔲 Conditionnel — si >20 users simultanés GPU |
+| Qdrant | Phase 7+ | 🔲 Conditionnel — si pgvector insuffisant |
+| LightRAG / Cognee | Phase 4 | 🔲 Évaluer — si RAG vecteur insuffisant |
+| Phoenix | Phase 5+ | 🔲 Évaluer — complément Langfuse |
+| Smolagents | Phase 6 | 🔲 Évaluer — calculs financiers complexes |
+| Ontology | Phase 4 (rag) | 🔲 Évaluer |
+| Byterover | Phase 4 (rag) | 🔲 Évaluer |
