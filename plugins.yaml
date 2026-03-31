@@ -60,21 +60,17 @@ plugins:
     config_keys: []  # intégré comme lib Python, pas de service séparé
     note: "Intégré comme dépendance Python dans le module memory — pas un service Docker"
 
-  - name: evolver
-    label: "EvoMap Evolver"
-    description: "Agent méta-évolution GEP — auto-amélioration par analyse du runtime (Node.js, hub evomap.ai requis)"
-    profile: evolver
+  - name: agentscope
+    label: "AgentScope"
+    description: "Orchestration multi-agents Python — pipelines planning/budget/chantier coordonnés"
+    profile: agentscope
     enabled: false
-    url: ""
-    icon: "🧬"
-    repo: "https://github.com/EvoMap/evolver"
-    note: "S'inspirer du protocole GEP pour le module memory — ne pas activer en production (dépendance evomap.ai externe)"
+    url: "http://localhost:8084"
+    icon: "🕸"
+    repo: "https://github.com/agentscope-ai/agentscope"
+    note: "Complément à OpenWebUI pour workflows complexes multi-agents. Phase 6+."
     config_keys:
-      - A2A_NODE_ID
-      - A2A_HUB_URL
-      - EVOLVE_STRATEGY
-      - EVOLVER_ROLLBACK_MODE
-      - EVOLVER_LLM_REVIEW
+      - AGENTSCOPE_API_KEY
 
   - name: adminer
     label: "Adminer (DB UI)"
