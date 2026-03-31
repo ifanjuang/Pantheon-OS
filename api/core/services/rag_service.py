@@ -62,11 +62,11 @@ class RagService:
         if cls._vector_store is None:
             from llama_index.vector_stores.postgres import PGVectorStore
             cls._vector_store = PGVectorStore.from_params(
-                database="arceag",
+                database="arceus",
                 host=settings.DATABASE_URL_SYNC.split("@")[-1].split("/")[0].split(":")[0],
                 password=settings.DATABASE_URL_SYNC.split(":")[2].split("@")[0],
                 port=5432,
-                user="arceag",
+                user="arceus",
                 table_name="notion_chunks",
                 embed_dim=settings.EMBEDDING_DIM,
             )

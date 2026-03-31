@@ -6,9 +6,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # ── Base de données ──────────────────────────────────────────
-    DATABASE_URL: str = "postgresql+asyncpg://arceag:changeme@db:5432/arceag"
-    DATABASE_URL_SYNC: str = "postgresql://arceag:changeme@db:5432/arceag"
-    ASYNCPG_URL: str = "postgresql://arceag:changeme@db:5432/arceag"
+    DATABASE_URL: str = "postgresql+asyncpg://arceus:changeme@db:5432/arceus"
+    DATABASE_URL_SYNC: str = "postgresql://arceus:changeme@db:5432/arceus"
+    ASYNCPG_URL: str = "postgresql://arceus:changeme@db:5432/arceus"
 
     # ── Auth JWT ─────────────────────────────────────────────────
     JWT_SECRET_KEY: str = "changeme-secret-min-32-chars-please"
@@ -33,9 +33,9 @@ class Settings(BaseSettings):
 
     # ── MinIO ────────────────────────────────────────────────────
     MINIO_ENDPOINT: str = "minio:9000"
-    MINIO_ROOT_USER: str = "arceag"
+    MINIO_ROOT_USER: str = "arceus"
     MINIO_ROOT_PASSWORD: str = "changeme-minio"
-    MINIO_BUCKET: str = "arceag-files"
+    MINIO_BUCKET: str = "arceus-files"
     MINIO_SECURE: bool = False
 
     # ── Notion ───────────────────────────────────────────────────

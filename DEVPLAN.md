@@ -312,7 +312,7 @@ Toutes les intégrations sont des **modules autonomes** activables/désactivable
 ┌──────────▼──────┐  ┌────────────▼────────┐  ┌──────▼────────────┐
 │  PostgreSQL 16  │  │  MinIO (fichiers)   │  │  Ollama / OpenAI  │
 │  + pgvector     │  │  PDF, photos, docs  │  │  (configurable)   │
-│  données+vecteurs│  │  bucket arceag-files│  │  LLM + embedding  │
+│  données+vecteurs│  │  bucket arceus-files│  │  LLM + embedding  │
 └─────────────────┘  └─────────────────────┘  └───────────────────┘
 ```
 
@@ -539,7 +539,7 @@ Déploiement : **local ou serveur privé (OVH)** — données souveraines, zéro
 > Pour ajouter, désactiver ou modifier un module → toucher uniquement son dossier.
 
 ```
-ARCEAG/
+ARCEUS/
 ├── DEVPLAN.md
 ├── docker-compose.yml
 ├── .env.example
@@ -773,7 +773,7 @@ class RagService:
 #### `storage_service.py`
 ```python
 class StorageService:
-    # Bucket S3 : arceag-files
+    # Bucket S3 : arceus-files
     # Clé : {affaire_id}/{module}/{filename}
     async def upload(self, affaire_id: UUID, module: str, filename: str, content: bytes, content_type: str) -> str  # → URL
     async def download(self, key: str) -> bytes
@@ -1187,7 +1187,7 @@ CREATE TABLE affaire_permissions (
 ```json
 {
   "sub": "user-uuid",
-  "email": "jean@arceag.fr",
+  "email": "jean@arceus.fr",
   "role": "moe",
   "exp": 1735689600,
   "iat": 1735603200
@@ -2822,8 +2822,8 @@ services:
   db:
     image: pgvector/pgvector:pg16
     environment:
-      POSTGRES_DB: arceag
-      POSTGRES_USER: arceag
+      POSTGRES_DB: arceus
+      POSTGRES_USER: arceus
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -2831,7 +2831,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U arceag"]
+      test: ["CMD-SHELL", "pg_isready -U arceus"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -2839,7 +2839,7 @@ services:
   api:
     build: ./api
     environment:
-      DATABASE_URL: postgresql+asyncpg://arceag:${DB_PASSWORD}@db:5432/arceag
+      DATABASE_URL: postgresql+asyncpg://arceus:${DB_PASSWORD}@db:5432/arceus
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       NOTION_TOKEN: ${NOTION_TOKEN}
       SECRET_KEY: ${SECRET_KEY}
@@ -3000,13 +3000,13 @@ volumes:
 ```env
 # ── Base de données ──────────────────────────────────────────────
 DB_PASSWORD=changeme
-DATABASE_URL=postgresql+asyncpg://arceag:changeme@db:5432/arceag
+DATABASE_URL=postgresql+asyncpg://arceus:changeme@db:5432/arceus
 
 # ── Auth JWT ─────────────────────────────────────────────────────
 JWT_SECRET_KEY=changeme-secret-min-32-chars
 JWT_ALGORITHM=HS256
 JWT_EXPIRE_MINUTES=1440          # 24h
-ADMIN_EMAIL=admin@arceag.fr
+ADMIN_EMAIL=admin@arceus.fr
 ADMIN_PASSWORD=changeme          # modifié au 1er démarrage
 
 # ── IA — choisir un mode ─────────────────────────────────────────
@@ -3028,9 +3028,9 @@ EMBEDDING_DIM=768
 
 # ── Storage MinIO ─────────────────────────────────────────────────
 MINIO_ENDPOINT=minio:9000
-MINIO_ROOT_USER=arceag
+MINIO_ROOT_USER=arceus
 MINIO_ROOT_PASSWORD=changeme-minio
-MINIO_BUCKET=arceag-files
+MINIO_BUCKET=arceus-files
 MINIO_SECURE=false               # true si HTTPS activé
 
 # ── Notion ───────────────────────────────────────────────────────
@@ -3110,7 +3110,7 @@ SMTP_FROM=OS Projet <notifications@agence.fr>
 ### Storage
 23. **Tout fichier binaire** (PDF, photo, document) passe par `storage_service.upload()` → MinIO
 24. **Les tables DB ne stockent jamais de binaire** — seulement la clé MinIO (`storage_key VARCHAR`)
-25. **Bucket unique** `arceag-files`, structure clé : `{affaire_id}/{module}/{filename}`
+25. **Bucket unique** `arceus-files`, structure clé : `{affaire_id}/{module}/{filename}`
 
 ### Workers
 26. **`API_WORKERS=1`** en v1 — le bus événements PostgreSQL est compatible multi-workers mais les handlers in-process ne le sont pas encore
@@ -3142,7 +3142,7 @@ SMTP_FROM=OS Projet <notifications@agence.fr>
 | 8 | Background tasks | APScheduler en v1 (dans chaque module via manifest) |
 | 9 | Bus d'événements | **PostgreSQL LISTEN/NOTIFY** — compatible multi-workers, pas de Redis en v1 |
 | 10 | Templates documents | Jinja2 → Markdown v1, export PDF via `pandoc` en v2 |
-| 11 | Storage fichiers | **MinIO** (S3-compatible self-hosted Docker) — bucket `arceag-files` |
+| 11 | Storage fichiers | **MinIO** (S3-compatible self-hosted Docker) — bucket `arceus-files` |
 | 12 | RAG | **Service core partagé** (`core/services/rag_service.py`) + module `rag/` pour le router utilisateur |
 | 13 | planning_tasks | **Supprimé** — remplacé par `planning_lots` (granularité MOE) |
 | 14 | Intervenants | **Table dédiée** `intervenants` — remplace `entreprise VARCHAR` éparpillé |
@@ -3675,7 +3675,7 @@ class WhatsAppEvolutionProvider(NotificationProvider):
     def __init__(self, base_url: str, api_key: str, instance: str):
         self.base_url = base_url      # http://evolution-api:8080
         self.api_key = api_key
-        self.instance = instance      # nom de l'instance (ex: "arceag")
+        self.instance = instance      # nom de l'instance (ex: "arceus")
 
     async def send(self, payload: NotificationPayload) -> bool:
         icon = ICONS.get(payload.priority, "⚪")
@@ -3851,7 +3851,7 @@ providers:
     mode: "meta"                     # "meta" | "evolution"
     template_name: "os_projet_alerte"
     evolution_url: "http://evolution-api:8080"
-    evolution_instance: "arceag"
+    evolution_instance: "arceus"
 
 routing:
   # Canaux par défaut selon la priorité (si l'utilisateur n'a pas de préférences)
@@ -3934,7 +3934,7 @@ await publish("notifications_channel", {
       SERVER_URL: http://evolution-api:8080
       AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY}
       DATABASE_PROVIDER: postgresql
-      DATABASE_CONNECTION_URI: postgresql://arceag:${DB_PASSWORD}@db:5432/arceag
+      DATABASE_CONNECTION_URI: postgresql://arceus:${DB_PASSWORD}@db:5432/arceus
       QRCODE_LIMIT: 30
     volumes:
       - evolution_data:/evolution/instances
@@ -4609,9 +4609,9 @@ Fichier à la racine, mis à jour à chaque merge sur `main` :
 - **Ce que c'est :** Agent IA autonome avec boucle d'auto-amélioration. Crée et affine ses propres "skills" au fil des interactions. Mémoire persistante avec full-text search. Gateway multi-messagerie (Telegram, Discord, Slack, WhatsApp, Signal).
 - **Stack :** Python 92%, compatible API OpenAI → fonctionne avec Ollama. MIT.
 - **Pertinence :** ✅ **Moyenne-haute** — deux cas d'usage distincts :
-  1. **Questions générales MOE** (interpréter clause CCAP, expliquer DTU, rédiger courrier) → agent "Hermes Général" dans OpenWebUI, distinct des agents ARCEAG métier.
+  1. **Questions générales MOE** (interpréter clause CCAP, expliquer DTU, rédiger courrier) → agent "Hermes Général" dans OpenWebUI, distinct des agents ARCEUS métier.
   2. **Gateway messagerie** → complémente le module `notifications` (WhatsApp + Telegram + Signal dans un seul service).
-- **À faire :** Ajouter comme service Docker optionnel (profile `hermes`). Connecter au RAG ARCEAG via `/rag/search`. Phase 6+.
+- **À faire :** Ajouter comme service Docker optionnel (profile `hermes`). Connecter au RAG ARCEUS via `/rag/search`. Phase 6+.
 
 ---
 
@@ -4646,7 +4646,7 @@ Fichier à la racine, mis à jour à chaque merge sur `main` :
   - Stratégies : `balanced / innovate / harden / repair-only / auto`
 - **Pertinence :** ⚠️ **Mitigée**
   - ✅ Le **pattern GEP** (genes/capsules/events) est excellent — structure idéale pour la mémoire d'agent dans le module `memory`
-  - ❌ Dépendance externe evomap.ai obligatoire — contraire au principe self-hosted d'ARCEAG
+  - ❌ Dépendance externe evomap.ai obligatoire — contraire au principe self-hosted d'ARCEUS
   - ❌ Node.js — service séparé dans un stack Python
 - **Décision :** Implémenter le protocole GEP **en Python pur** dans le module `memory` — aucune dépendance externe (pas d'evomap.ai, pas de Node.js). Table `memory_items` avec `type IN ('gene','capsule','event')`, log append-only, stratégies configurables via `config.yaml`.
 
@@ -4681,4 +4681,4 @@ Fichier à la racine, mis à jour à chaque merge sur `main` :
                                       └── Agent Chantier
                                   → résultat consolidé → OpenWebUI
   ```
-- **À faire :** Ajouter comme service Docker optionnel (Phase 6+). Connecter via endpoint `/agents/run` dans l'API ARCEAG.
+- **À faire :** Ajouter comme service Docker optionnel (Phase 6+). Connecter via endpoint `/agents/run` dans l'API ARCEUS.

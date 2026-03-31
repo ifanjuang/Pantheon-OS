@@ -121,7 +121,7 @@ MINIO_HOST=minio
 MINIO_PORT=9000
 MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=changeme_minio_secret
-MINIO_BUCKET=arceag-files
+MINIO_BUCKET=arceus-files
 
 # ── Auth JWT ───────────────────────────────────────────────────────────
 JWT_SECRET=changeme_secret_tres_long_et_aleatoire_min_32_chars

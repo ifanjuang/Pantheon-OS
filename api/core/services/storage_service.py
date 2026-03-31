@@ -1,6 +1,6 @@
 """
 StorageService — wrapper MinIO S3-compatible (§1b).
-Bucket unique : arceag-files
+Bucket unique : arceus-files
 Clé : {affaire_id}/{module}/{filename}
 """
 import io

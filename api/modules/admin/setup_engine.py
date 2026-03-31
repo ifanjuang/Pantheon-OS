@@ -401,7 +401,7 @@ class SetupEngine:
             {
                 "id": "storage",
                 "label": "Stockage MinIO",
-                "detail": "Bucket arceag-files",
+                "detail": "Bucket arceus-files",
                 "done": filled("MINIO_ROOT_PASSWORD"),
                 "action": "test_minio",
             },
