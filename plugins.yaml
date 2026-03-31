@@ -60,6 +60,18 @@ plugins:
     config_keys: []  # intégré comme lib Python, pas de service séparé
     note: "Intégré comme dépendance Python dans le module memory — pas un service Docker"
 
+  - name: agentscope
+    label: "AgentScope"
+    description: "Orchestration multi-agents Python — pipelines planning/budget/chantier coordonnés"
+    profile: agentscope
+    enabled: false
+    url: "http://localhost:8084"
+    icon: "🕸"
+    repo: "https://github.com/agentscope-ai/agentscope"
+    note: "Complément à OpenWebUI pour workflows complexes multi-agents. Phase 6+."
+    config_keys:
+      - AGENTSCOPE_API_KEY
+
   - name: adminer
     label: "Adminer (DB UI)"
     description: "Interface web légère pour consulter la base PostgreSQL"

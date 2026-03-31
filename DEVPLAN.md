@@ -4659,5 +4659,26 @@ Fichier à la racine, mis à jour à chaque merge sur `main` :
 | mem0 | Phase 5 (memory) | ✅ Intégrer — candidat prioritaire |
 | Hermes Agent | Phase 6+ | ✅ Intégrer — agent général + gateway messagerie |
 | GEP Protocol | Phase 5 (memory) | ✅ Implémenter en Python pur — zéro dépendance externe |
+| AgentScope | Phase 6+ | ✅ Intégrer — orchestration multi-agents complexes |
 | Ontology | Phase 4 (rag) | 🔲 Évaluer |
 | Byterover | Phase 4 (rag) | 🔲 Évaluer |
+
+---
+
+### 24.6 AgentScope — Orchestration multi-agents
+
+- **Repo :** https://github.com/agentscope-ai/agentscope
+- **Ce que c'est :** Framework Python de production pour agents LLM. ReAct agents, MsgHub (multi-agent orchestration), mémoire court+long terme (ReMe), MCP natif, protocole A2A, OpenTelemetry. Apache 2.0.
+- **Stack :** Python 3.10+, OpenAI-compatible (Ollama), Docker/K8s, self-hosted.
+- **Pertinence :** ✅ **Haute** — complément naturel à OpenWebUI pour les workflows complexes :
+  - OpenWebUI : interface chat + switching de modèles
+  - AgentScope : orchestration quand plusieurs agents doivent collaborer (ex : agent planning + budget + chantier sur une même analyse)
+- **Architecture cible :**
+  ```
+  OpenWebUI → (tâche complexe) → AgentScope orchestrator
+                                      ├── Agent Planning
+                                      ├── Agent Budget
+                                      └── Agent Chantier
+                                  → résultat consolidé → OpenWebUI
+  ```
+- **À faire :** Ajouter comme service Docker optionnel (Phase 6+). Connecter via endpoint `/agents/run` dans l'API ARCEAG.
