@@ -9,6 +9,9 @@ modules:
   - name: admin
     enabled: true
 
+  - name: affaires
+    enabled: true
+
   - name: documents
     enabled: true
 
@@ -16,6 +19,9 @@ modules:
     enabled: true
 
   - name: openai_compat
+    enabled: true
+
+  - name: webhooks
     enabled: true
 
   - name: chantier

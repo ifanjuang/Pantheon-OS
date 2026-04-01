@@ -1,0 +1,8 @@
+name: affaires
+version: "1.0.0"
+description: "Gestion des dossiers MOE — CRUD affaires, permissions par projet"
+prefix: /affaires
+depends_on:
+  - auth
+tools: []
+agent: null

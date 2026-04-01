@@ -112,6 +112,26 @@ services:
       - "9443:9443"    # HTTPS (optionnel)
     restart: unless-stopped
 
+  # ── Paperclip — orchestrateur d'agents IA (Option A) ──────────────
+  # UI : http://localhost:4000
+  # Configure les agents ARCEUS via les webhooks /webhooks/*
+  paperclip:
+    image: paperclipai/paperclip:latest
+    profiles: [paperclip]
+    environment:
+      DATABASE_URL: postgresql://arceus:${DB_PASSWORD}@db:5432/arceus
+      ARCEUS_API_URL: http://api:8000
+      ARCEUS_WEBHOOK_SECRET: ${JWT_SECRET_KEY}
+      PORT: 4000
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started
+    restart: unless-stopped
+
   # ── Evolution API — pont WhatsApp self-hosted (optionnel) ───────
   # Activer avec : docker compose --profile whatsapp-evolution up -d
   evolution-api:
@@ -143,3 +163,4 @@ volumes:
   ollama_data:
   evolution_data:
   portainer_data:
+  paperclip_data:
