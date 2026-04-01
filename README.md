@@ -1,10 +1,10 @@
-# ARCEUS
+# TLDR.archi
 
 > L'intelligence opérationnelle d'une agence d'architecture, du premier crayon à la levée des réserves.
 
 ---
 
-**ARCEUS est le système de mémoire et d'intelligence conçu pour les agences MOE.**
+**TLDR.archi est le système de mémoire et d'intelligence conçu pour les agences MOE.**
 
 Il enregistre ce que vous faites déjà, le comprend, le relie, et le rend accessible à tout moment par une simple question en langage naturel. Chaque acte de travail — poser une question technique, tenir une réunion, déposer un calcul, noter une observation de chantier — alimente automatiquement la mémoire du projet et de l'agence.
 
