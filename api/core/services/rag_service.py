@@ -1,17 +1,27 @@
 """
-RagService — pipeline RAG via LlamaIndex (§1b).
-- ingest()        : chunking + embedding + stockage pgvector
-- search()        : recherche sémantique cosine avec cache (§23.6)
-- embed()         : embedding d'un texte
-- delete_source() : supprime les chunks d'une source
+RagService — pipeline RAG (§1b).
+
+- embed()   : génère un vecteur pour un texte
+- ingest()  : fichier → chunks → embeddings → INSERT dans la table chunks
+- search()  : embed query → SELECT cosine distance (pgvector) → résultats triés
+- delete_document() : supprime tous les chunks d'un document
+
+Stockage : table `chunks` gérée par SQLAlchemy (pas la table interne LlamaIndex).
+Recherche : requête SQL directe avec l'opérateur <=> de pgvector.
 """
+import json
+import tempfile
 import time
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlparse
 from uuid import UUID
 
-from core.settings import settings
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from core.logging import get_logger
+from core.settings import settings
 
 log = get_logger("rag_service")
 
@@ -25,16 +35,20 @@ CHUNK_CONFIG: dict[str, dict] = {
 }
 DEFAULT_CHUNK = {"chunk_size": 256, "chunk_overlap": 32}
 
-# Seuil cache sémantique (§23.6)
-CACHE_SIMILARITY_THRESHOLD = 0.90
+
+def _db_params() -> dict:
+    """Extrait host/port/user/password/dbname depuis DATABASE_URL_SYNC."""
+    parsed = urlparse(settings.DATABASE_URL_SYNC)
+    return {
+        "host": parsed.hostname or "db",
+        "port": parsed.port or 5432,
+        "user": parsed.username or "arceus",
+        "password": parsed.password or "",
+        "database": (parsed.path or "/arceus").lstrip("/"),
+    }
 
 
 class RagService:
-    """
-    Toutes les méthodes sont des classmethods — pas d'instance à instancier.
-    LlamaIndex est initialisé en lazy loading au premier appel.
-    """
-    _vector_store = None
     _embed_model = None
 
     @classmethod
@@ -43,7 +57,6 @@ class RagService:
             from llama_index.embeddings.openai import OpenAIEmbedding
 
             if settings.EMBEDDING_PROVIDER == "ollama":
-                from llama_index.embeddings.openai import OpenAIEmbedding
                 cls._embed_model = OpenAIEmbedding(
                     model=settings.OLLAMA_EMBEDDING_MODEL,
                     api_base=f"{settings.OLLAMA_BASE_URL}/v1",
@@ -58,131 +71,175 @@ class RagService:
         return cls._embed_model
 
     @classmethod
-    def _get_vector_store(cls):
-        if cls._vector_store is None:
-            from llama_index.vector_stores.postgres import PGVectorStore
-            cls._vector_store = PGVectorStore.from_params(
-                database="arceus",
-                host=settings.DATABASE_URL_SYNC.split("@")[-1].split("/")[0].split(":")[0],
-                password=settings.DATABASE_URL_SYNC.split(":")[2].split("@")[0],
-                port=5432,
-                user="arceus",
-                table_name="notion_chunks",
-                embed_dim=settings.EMBEDDING_DIM,
-            )
-        return cls._vector_store
-
-    @classmethod
-    async def embed(cls, text: str) -> list[float]:
+    async def embed(cls, text_input: str) -> list[float]:
         """Génère un vecteur d'embedding pour un texte."""
-        embed_model = cls._get_embed_model()
-        result = await embed_model.aget_text_embedding(text)
-        return result
+        return await cls._get_embed_model().aget_text_embedding(text_input)
 
     @classmethod
     async def ingest(
         cls,
-        file_path: str,
+        db: AsyncSession,
+        document_id: UUID,
+        file_bytes: bytes,
+        filename: str,
         source_type: str,
         affaire_id: UUID,
-        metadata: dict,
-    ) -> list[str]:
+        extra_meta: Optional[dict] = None,
+    ) -> int:
         """
-        Ingère un fichier : lecture → chunking → embedding → stockage pgvector.
-        Retourne les IDs des chunks créés.
+        Ingère un fichier :
+          1. Extrait le texte via LlamaIndex SimpleDirectoryReader
+          2. Découpe en chunks (SentenceSplitter, config par source_type)
+          3. Calcule l'embedding de chaque chunk
+          4. INSERT dans la table chunks
+
+        Retourne le nombre de chunks créés.
         """
-        from llama_index.core import SimpleDirectoryReader, VectorStoreIndex, StorageContext
+        from llama_index.core import SimpleDirectoryReader
         from llama_index.core.node_parser import SentenceSplitter
 
         t0 = time.monotonic()
         chunk_cfg = CHUNK_CONFIG.get(source_type, DEFAULT_CHUNK)
+        extra_meta = extra_meta or {}
 
-        reader = SimpleDirectoryReader(input_files=[file_path])
-        documents = reader.load_data()
+        # Écrire dans un fichier temporaire pour SimpleDirectoryReader
+        suffix = Path(filename).suffix or ".txt"
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(file_bytes)
+            tmp_path = tmp.name
 
-        # Enrichir les métadonnées
-        for doc in documents:
-            doc.metadata.update({
-                "affaire_id": str(affaire_id),
-                "source_type": source_type,
-                **metadata,
-            })
+        try:
+            reader = SimpleDirectoryReader(input_files=[tmp_path])
+            documents = reader.load_data()
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+
+        if not documents:
+            log.warning("rag.ingest_empty", document_id=str(document_id), filename=filename)
+            return 0
 
         splitter = SentenceSplitter(
             chunk_size=chunk_cfg["chunk_size"],
             chunk_overlap=chunk_cfg["chunk_overlap"],
         )
+        nodes = splitter.get_nodes_from_documents(documents)
 
-        storage_context = StorageContext.from_defaults(vector_store=cls._get_vector_store())
-        index = VectorStoreIndex.from_documents(
-            documents,
-            storage_context=storage_context,
-            transformations=[splitter],
-            embed_model=cls._get_embed_model(),
-            show_progress=False,
+        # Embedding en batch
+        texts = [node.get_content() for node in nodes]
+        embeddings = await cls._get_embed_model().aget_text_embedding_batch(texts)
+
+        # INSERT dans la table chunks
+        for idx, (node, embedding) in enumerate(zip(nodes, embeddings)):
+            meta = {
+                "source_type": source_type,
+                "filename": filename,
+                **extra_meta,
+                **node.metadata,
+            }
+            await db.execute(
+                text("""
+                    INSERT INTO chunks
+                        (id, document_id, affaire_id, contenu, embedding,
+                         chunk_index, meta, created_at)
+                    VALUES
+                        (uuid_generate_v4(), :doc_id, :aff_id, :contenu,
+                         :embedding::vector, :idx, :meta, now())
+                """),
+                {
+                    "doc_id": str(document_id),
+                    "aff_id": str(affaire_id),
+                    "contenu": node.get_content(),
+                    "embedding": str(embedding),
+                    "idx": idx,
+                    "meta": json.dumps(meta),
+                },
+            )
+
+        await db.commit()
+        log.info(
+            "rag.ingest",
+            document_id=str(document_id),
+            affaire_id=str(affaire_id),
+            source_type=source_type,
+            chunks=len(nodes),
+            duration_ms=int((time.monotonic() - t0) * 1000),
         )
-
-        node_ids = [node.node_id for node in splitter.get_nodes_from_documents(documents)]
-        log.info("rag.ingest", affaire_id=str(affaire_id), source_type=source_type,
-                 chunks=len(node_ids), duration_ms=int((time.monotonic() - t0) * 1000))
-        return node_ids
+        return len(nodes)
 
     @classmethod
     async def search(
         cls,
+        db: AsyncSession,
         query: str,
         affaire_id: UUID,
         top_k: int = 5,
         source_type: Optional[str] = None,
+        couche: Optional[str] = None,
     ) -> list[dict]:
         """
-        Recherche sémantique. Vérifie le cache avant d'appeler LlamaIndex.
-        Retourne [{text, score, metadata}]
+        Recherche sémantique via pgvector (<=> cosine distance).
+        Retourne [{chunk_id, document_id, contenu, score, meta}]
         """
-        from llama_index.core import VectorStoreIndex, StorageContext
-
         t0 = time.monotonic()
         query_emb = await cls.embed(query)
+        emb_str = str(query_emb)
 
-        # Vérifier le cache sémantique (§23.6) — implémenté dans le module rag
-        # (le cache nécessite une session DB, délégué au router du module rag)
-
-        storage_context = StorageContext.from_defaults(vector_store=cls._get_vector_store())
-        index = VectorStoreIndex.from_vector_store(
-            cls._get_vector_store(),
-            embed_model=cls._get_embed_model(),
-        )
-
-        filters_dict = {"affaire_id": str(affaire_id)}
+        # Filtre optionnel sur source_type (stocké dans meta JSONB)
+        extra_filter = ""
+        params: dict = {
+            "qvec": emb_str,
+            "affaire_id": str(affaire_id),
+            "top_k": top_k,
+        }
         if source_type:
-            filters_dict["source_type"] = source_type
+            extra_filter += " AND meta->>'source_type' = :source_type"
+            params["source_type"] = source_type
 
-        from llama_index.core.vector_stores import MetadataFilters, ExactMatchFilter
-        filters = MetadataFilters(filters=[
-            ExactMatchFilter(key=k, value=v) for k, v in filters_dict.items()
-        ])
-
-        retriever = index.as_retriever(similarity_top_k=top_k, filters=filters)
-        nodes = await retriever.aretrieve(query)
+        rows = await db.execute(
+            text(f"""
+                SELECT
+                    id,
+                    document_id,
+                    contenu,
+                    meta,
+                    1 - (embedding <=> :qvec::vector) AS score
+                FROM chunks
+                WHERE affaire_id = :affaire_id
+                {extra_filter}
+                ORDER BY embedding <=> :qvec::vector
+                LIMIT :top_k
+            """),
+            params,
+        )
 
         results = [
             {
-                "text": node.text,
-                "score": node.score,
-                "metadata": node.metadata,
+                "chunk_id": str(row.id),
+                "document_id": str(row.document_id),
+                "contenu": row.contenu,
+                "meta": row.meta,
+                "score": float(row.score),
             }
-            for node in nodes
+            for row in rows
         ]
 
-        log.info("rag.search", affaire_id=str(affaire_id), query=query[:60],
-                 hits=len(results), duration_ms=int((time.monotonic() - t0) * 1000))
+        log.info(
+            "rag.search",
+            affaire_id=str(affaire_id),
+            query=query[:60],
+            hits=len(results),
+            duration_ms=int((time.monotonic() - t0) * 1000),
+        )
         return results
 
     @classmethod
-    async def delete_source(cls, affaire_id: UUID, source_ref: str) -> None:
-        """Supprime tous les chunks liés à une source."""
-        # LlamaIndex PGVectorStore supporte la suppression par métadonnée
-        cls._get_vector_store().delete(
-            ref_doc_id=source_ref,
+    async def delete_document(cls, db: AsyncSession, document_id: UUID) -> int:
+        """Supprime tous les chunks liés à un document. Retourne le nombre supprimé."""
+        result = await db.execute(
+            text("DELETE FROM chunks WHERE document_id = :doc_id"),
+            {"doc_id": str(document_id)},
         )
-        log.info("rag.delete_source", affaire_id=str(affaire_id), source_ref=source_ref)
+        await db.commit()
+        deleted = result.rowcount
+        log.info("rag.delete_document", document_id=str(document_id), chunks_deleted=deleted)
+        return deleted

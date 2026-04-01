@@ -13,11 +13,10 @@ from core.settings import settings
 from database import Base
 
 # Importer tous les modèles pour que Base.metadata les connaisse
-# (décommenter au fur et à mesure de la création des modules)
-# from modules.auth.models import *
-# from modules.chantier.models import *
-# from modules.planning.models import *
-# ... etc.
+from modules.auth.models import User, AffairePermission  # noqa: F401
+from modules.affaires.models import Affaire              # noqa: F401
+from modules.documents.models import Document, Chunk     # noqa: F401
+from modules.agent.models import AgentRun                # noqa: F401
 
 config = context.config
 

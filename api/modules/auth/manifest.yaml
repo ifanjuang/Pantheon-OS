@@ -1,0 +1,7 @@
+name: auth
+version: "1.0.0"
+description: "Authentification JWT — login, register, gestion utilisateurs"
+prefix: /auth
+depends_on: []
+tools: []
+agent: null

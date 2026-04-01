@@ -1,0 +1,9 @@
+name: agent
+version: "1.0.0"
+description: "Copilote MOE — agent autonome multi-outils (RAG, documents, affaires)"
+prefix: /agent
+depends_on:
+  - auth
+  - documents
+tools: []
+agent: null

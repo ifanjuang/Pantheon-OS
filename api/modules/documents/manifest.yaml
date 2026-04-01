@@ -1,0 +1,8 @@
+name: documents
+version: "1.0.0"
+description: "Gestion documentaire — upload, RAG, recherche sémantique"
+prefix: /documents
+depends_on:
+  - auth
+tools: []
+agent: null

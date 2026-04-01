@@ -10,6 +10,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from core.logging import configure_logging, get_logger
+from database import AsyncSessionLocal
 from core.settings import settings
 from core.rate_limit import limiter
 import core.events as events
@@ -71,7 +72,12 @@ async def lifespan(app: FastAPI):
     # 3. Initialiser le bus d'événements PostgreSQL
     await events.init_pool(settings.ASYNCPG_URL)
 
-    # 4. Charger les modules
+    # 4. Seed utilisateur admin par défaut
+    from modules.auth.service import seed_admin
+    async with AsyncSessionLocal() as db:
+        await seed_admin(db)
+
+    # 5. Charger les modules
     from core.registry import ModuleRegistry
     reg = ModuleRegistry(app)
     reg.load_all("modules.yaml")

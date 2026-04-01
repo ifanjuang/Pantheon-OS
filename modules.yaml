@@ -6,11 +6,20 @@ modules:
   - name: auth
     enabled: true
 
-  - name: chantier
-    enabled: true
-
   - name: admin
     enabled: true
+
+  - name: documents
+    enabled: true
+
+  - name: agent
+    enabled: true
+
+  - name: openai_compat
+    enabled: true
+
+  - name: chantier
+    enabled: false
 
   - name: planning
     enabled: true
@@ -36,8 +45,5 @@ modules:
   - name: communications
     enabled: true
 
-  - name: documents
-    enabled: true
-
   - name: notifications
-    enabled: true
+    enabled: false
