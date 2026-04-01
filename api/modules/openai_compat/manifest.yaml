@@ -1,0 +1,9 @@
+name: openai_compat
+version: "1.0.0"
+description: "API compatible OpenAI — Open WebUI connecté au RAG ARCEUS par affaire"
+prefix: /v1
+depends_on:
+  - auth
+  - documents
+tools: []
+agent: null

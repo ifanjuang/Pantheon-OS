@@ -15,6 +15,9 @@ modules:
   - name: agent
     enabled: true
 
+  - name: openai_compat
+    enabled: true
+
   - name: chantier
     enabled: false
 
