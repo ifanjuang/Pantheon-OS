@@ -121,6 +121,9 @@ class OrchestraState(TypedDict):
     # Phase 4
     final_answer: str
 
+    # Routing interne Zeus
+    verdict: str                # "complete" | "needs_complement"
+
 
 # ── Helpers LLM ────────────────────────────────────────────────────
 
@@ -296,8 +299,7 @@ def _make_nodes(affaire_uuid: UUID, user_uuid: UUID | None):
             "assignments": complements if verdict == "needs_complement" else state["assignments"],
             "synthesis_agent": state.get("synthesis_agent", "mnemosyne"),
             "instruction": synthesis_instruction if verdict == "complete" else state["instruction"],
-            # stocker le verdict dans agent_results temporairement pour le routing
-            "_verdict": verdict,
+            "verdict": verdict,
         }
 
     async def execute_complements(state: OrchestraState) -> dict:
@@ -352,7 +354,7 @@ def _make_nodes(affaire_uuid: UUID, user_uuid: UUID | None):
 
 
 def _route_after_judge(state: OrchestraState) -> str:
-    if state.get("_verdict") == "needs_complement" and not state.get("complement_done"):
+    if state.get("verdict") == "needs_complement" and not state.get("complement_done"):
         return "execute_complements"
     return "synthesize"
 
@@ -425,6 +427,7 @@ async def run_orchestra(
             "agent_run_ids": [],
             "complement_done": False,
             "final_answer": "",
+            "verdict": "",
         }
 
         final_state = await graph.ainvoke(initial_state)
@@ -456,3 +459,158 @@ async def run_orchestra(
         duration_ms=run.duration_ms,
     )
     return run
+
+
+# ── SSE Streaming ────────────────────────────────────────────────────
+
+# Mapping nœud LangGraph → label SSE lisible
+_NODE_LABELS = {
+    "plan_agents":          ("planning",  "Collecte des plans agents..."),
+    "zeus_distribute":      ("zeus",      "Zeus analyse et distribue les rôles..."),
+    "execute_agents":       ("executing", "Agents en cours d'exécution..."),
+    "execute_complements":  ("executing", "Compléments en cours..."),
+    "zeus_judge":           ("judging",   "Zeus juge les résultats..."),
+    "synthesize":           ("synthesis", "Synthèse en cours..."),
+}
+
+
+def _sse(event: str, data: dict) -> str:
+    """Formate un événement SSE."""
+    return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+async def stream_orchestra(
+    instruction: str,
+    affaire_id: UUID,
+    user_id: UUID | None,
+    agents: list[str] | None = None,
+):
+    """
+    Générateur async SSE — yield les événements LangGraph au fil de l'exécution.
+
+    Événements émis :
+      phase_start   — début d'un nœud {phase, message}
+      plans_ready   — fin plan_agents {plans}
+      zeus_decision — fin zeus_distribute {reasoning, assignments, synthesis_agent}
+      agents_done   — fin execute_agents {results}
+      zeus_verdict  — fin zeus_judge {verdict}
+      final_answer  — fin synthesize {answer, run_id}
+      error         — exception {detail}
+    """
+    initial_agents = [a for a in (agents or DEFAULT_AGENTS) if a in VALID_AGENTS] or DEFAULT_AGENTS
+    t_start = time.monotonic()
+
+    # Créer le run DB avant de streamer
+    async with AsyncSessionLocal() as db:
+        run = OrchestraRun(
+            affaire_id=affaire_id,
+            user_id=user_id,
+            instruction=instruction,
+            initial_agents=initial_agents,
+            status="running",
+        )
+        db.add(run)
+        await db.flush()
+        run_id = run.id
+        await db.commit()
+
+    yield _sse("run_created", {"run_id": str(run_id), "agents": initial_agents})
+
+    graph = build_graph(affaire_id, user_id)
+    initial_state: OrchestraState = {
+        "instruction": instruction,
+        "affaire_id": str(affaire_id),
+        "user_id": str(user_id) if user_id else None,
+        "initial_agents": initial_agents,
+        "agent_plans": {},
+        "zeus_reasoning": "",
+        "assignments": [],
+        "synthesis_agent": "mnemosyne",
+        "agent_results": {},
+        "agent_run_ids": [],
+        "complement_done": False,
+        "final_answer": "",
+        "verdict": "",
+    }
+
+    final_state: OrchestraState = initial_state.copy()
+
+    try:
+        # stream_mode="updates" → un dict {node_name: updates} par nœud terminé
+        async for chunk in graph.astream(initial_state, stream_mode="updates"):
+            for node_name, updates in chunk.items():
+                # Annonce de début de phase (reconstituée depuis le nœud précédent)
+                label, message = _NODE_LABELS.get(node_name, (node_name, f"Phase {node_name}..."))
+                yield _sse("phase_start", {"phase": label, "node": node_name, "message": message})
+
+                # Mise à jour de l'état cumulé
+                final_state.update(updates)
+
+                # Événements sémantiques selon le nœud
+                if node_name == "plan_agents":
+                    yield _sse("plans_ready", {
+                        "plans": {
+                            agent: {
+                                "plan": p.get("plan", ""),
+                                "expected_output": p.get("expected_output", ""),
+                            }
+                            for agent, p in updates.get("agent_plans", {}).items()
+                        }
+                    })
+
+                elif node_name == "zeus_distribute":
+                    yield _sse("zeus_decision", {
+                        "reasoning": updates.get("zeus_reasoning", ""),
+                        "assignments": updates.get("assignments", []),
+                        "synthesis_agent": updates.get("synthesis_agent", "mnemosyne"),
+                    })
+
+                elif node_name in ("execute_agents", "execute_complements"):
+                    yield _sse("agents_done", {
+                        "results": {
+                            agent: result[:500]   # résumé tronqué dans le stream
+                            for agent, result in updates.get("agent_results", {}).items()
+                        }
+                    })
+
+                elif node_name == "zeus_judge":
+                    yield _sse("zeus_verdict", {
+                        "verdict": updates.get("verdict", "complete"),
+                        "complement_requested": updates.get("verdict") == "needs_complement",
+                    })
+
+                elif node_name == "synthesize":
+                    yield _sse("final_answer", {
+                        "answer": updates.get("final_answer", ""),
+                        "run_id": str(run_id),
+                    })
+
+        # Persister l'état final
+        async with AsyncSessionLocal() as db:
+            run = await db.get(OrchestraRun, run_id)
+            if run:
+                run.agent_plans = final_state.get("agent_plans", {})
+                run.zeus_reasoning = final_state.get("zeus_reasoning", "")
+                run.assignments = final_state.get("assignments", [])
+                run.agent_results = final_state.get("agent_results", {})
+                run.agent_run_ids = final_state.get("agent_run_ids", [])
+                run.final_answer = final_state.get("final_answer", "")
+                run.synthesis_agent = final_state.get("synthesis_agent", "mnemosyne")
+                run.status = "completed"
+                run.duration_ms = int((time.monotonic() - t_start) * 1000)
+                await db.commit()
+
+        yield _sse("done", {
+            "run_id": str(run_id),
+            "duration_ms": int((time.monotonic() - t_start) * 1000),
+        })
+
+    except Exception as exc:
+        log.error("orchestra.stream_failed", run_id=str(run_id), error=str(exc))
+        async with AsyncSessionLocal() as db:
+            run = await db.get(OrchestraRun, run_id)
+            if run:
+                run.status = "failed"
+                run.duration_ms = int((time.monotonic() - t_start) * 1000)
+                await db.commit()
+        yield _sse("error", {"detail": str(exc), "run_id": str(run_id)})

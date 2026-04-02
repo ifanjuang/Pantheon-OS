@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.logging import get_logger
 from core.services.llm_service import LlmService
 from core.settings import settings
+from database import AsyncSessionLocal
 from modules.agent.models import AgentRun
 from modules.agent.tools import DEFINITIONS, execute_tool
 
@@ -74,8 +75,16 @@ async def run_agent(
     max_iterations: int = 10,
 ) -> AgentRun:
     """Exécute la boucle agentique et persiste le résultat."""
+    from modules.agent.memory import extract_and_store_memories, get_agent_memories
+
     t_start = time.monotonic()
+
+    # Construire le system prompt + injecter la mémoire dynamique
     system_prompt = _build_system_prompt(agent_name)
+    memories = await get_agent_memories(db, agent_name, affaire_id)
+    if memories:
+        memories_text = "\n".join(f"- {m}" for m in memories)
+        system_prompt += f"\n\n## Mémoire dynamique — ce que tu as appris sur cette affaire\n{memories_text}"
 
     log.info("agent.start", agent=agent_name, affaire_id=str(affaire_id))
 
@@ -188,4 +197,20 @@ async def run_agent(
         steps=len(steps),
         duration_ms=run.duration_ms,
     )
+
+    # Extraire et stocker les leçons en arrière-plan (fire-and-forget)
+    if run.status == "completed" and run.result:
+        async def _store_memories():
+            async with AsyncSessionLocal() as bg_db:
+                await extract_and_store_memories(
+                    agent_name=agent_name,
+                    instruction=instruction,
+                    result=run.result,
+                    affaire_id=affaire_id,
+                    run_id=run.id,
+                    db=bg_db,
+                )
+        import asyncio
+        asyncio.create_task(_store_memories())
+
     return run

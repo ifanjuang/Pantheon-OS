@@ -15,6 +15,34 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+class AgentMemory(Base):
+    """Leçons apprises par un agent sur une affaire — mémoire dynamique persistée."""
+    __tablename__ = "agent_memory"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    agent_name: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    affaire_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("affaires.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    source_run_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("agent_runs.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    lesson: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=_now
+    )
+
+    def __repr__(self) -> str:
+        return f"<AgentMemory {self.agent_name}@{self.affaire_id}>"
+
+
 class AgentRun(Base):
     __tablename__ = "agent_runs"
 
