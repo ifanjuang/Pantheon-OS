@@ -1,0 +1,8 @@
+name: meeting
+version: "0.1.0"
+description: "Analyse de CR, extraction d'actions, génération d'ordres du jour"
+prefix: /meeting
+depends_on:
+  - affaires
+  - documents
+  - agent

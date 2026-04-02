@@ -27,6 +27,9 @@ modules:
   - name: orchestra
     enabled: true
 
+  - name: meeting
+    enabled: true
+
   - name: chantier
     enabled: false
 
