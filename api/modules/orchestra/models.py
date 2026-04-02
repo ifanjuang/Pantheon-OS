@@ -40,6 +40,14 @@ class OrchestraRun(Base):
     final_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
     synthesis_agent: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
+    # Human-in-the-loop
+    hitl_enabled: Mapped[bool] = mapped_column(nullable=False, default=False)
+    # status = "awaiting_approval" quand Zeus attend la validation humaine
+    hitl_payload: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # {reasoning, assignments, message} — propositions de Zeus à valider
+    checkpoint_thread_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # thread_id LangGraph pour reprendre le graphe suspendu
+
     # Meta
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="running")
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)

@@ -20,6 +20,7 @@ from typing import TypedDict, Optional
 from uuid import UUID
 
 from langgraph.graph import StateGraph, END
+from langgraph.types import interrupt, Command
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.logging import get_logger
@@ -123,6 +124,10 @@ class OrchestraState(TypedDict):
 
     # Routing interne Zeus
     verdict: str                # "complete" | "needs_complement"
+
+    # Human-in-the-loop
+    hitl_enabled: bool
+    hitl_approval: dict         # {approved, feedback, modified_assignments}
 
 
 # ── Helpers LLM ────────────────────────────────────────────────────
@@ -239,10 +244,27 @@ def _make_nodes(affaire_uuid: UUID, user_uuid: UUID | None):
         assignments = [a for a in assignments if a.get("agent") in VALID_AGENTS]
 
         log.info("orchestra.zeus_distributed", assignments=[a["agent"] for a in assignments])
+
+        # ── Human-in-the-loop : pause avant exécution ─────────────
+        if state.get("hitl_enabled"):
+            approval = interrupt({
+                "message": "Zeus a distribué les rôles. Validez pour lancer l'exécution.",
+                "reasoning": parsed.get("reasoning", ""),
+                "assignments": assignments,
+                "synthesis_agent": parsed.get("synthesis_agent", "mnemosyne"),
+            })
+            # L'humain peut modifier les assignments
+            if approval.get("modified_assignments"):
+                assignments = [
+                    a for a in approval["modified_assignments"]
+                    if a.get("agent") in VALID_AGENTS
+                ] or assignments
+
         return {
             "zeus_reasoning": parsed.get("reasoning", ""),
             "assignments": assignments,
             "synthesis_agent": parsed.get("synthesis_agent", "mnemosyne"),
+            "hitl_approval": approval if state.get("hitl_enabled") else {},
         }
 
     async def execute_agents(state: OrchestraState) -> dict:
@@ -428,6 +450,8 @@ async def run_orchestra(
             "complement_done": False,
             "final_answer": "",
             "verdict": "",
+            "hitl_enabled": False,
+            "hitl_approval": {},
         }
 
         final_state = await graph.ainvoke(initial_state)
@@ -458,6 +482,207 @@ async def run_orchestra(
         agents=list(run.agent_results.keys()),
         duration_ms=run.duration_ms,
     )
+    return run
+
+
+async def run_orchestra_from_run_id(
+    db: AsyncSession,
+    run_id: UUID,
+    instruction: str,
+    affaire_id: UUID,
+    user_id: UUID | None,
+    agents: list[str] | None = None,
+) -> OrchestraRun:
+    """
+    Variante utilisée par le worker ARQ : le run existe déjà en DB (status=queued).
+    Met à jour son statut et exécute le graphe.
+    """
+    run = await db.get(OrchestraRun, run_id)
+    if not run:
+        log.error("orchestra.run_not_found", run_id=str(run_id))
+        raise ValueError(f"OrchestraRun {run_id} introuvable")
+
+    initial_agents = [a for a in (agents or DEFAULT_AGENTS) if a in VALID_AGENTS] or DEFAULT_AGENTS
+    run.status = "running"
+    run.initial_agents = initial_agents
+    await db.commit()
+
+    t_start = time.monotonic()
+    try:
+        graph = build_graph(affaire_id, user_id)
+        initial_state: OrchestraState = {
+            "instruction": instruction,
+            "affaire_id": str(affaire_id),
+            "user_id": str(user_id) if user_id else None,
+            "initial_agents": initial_agents,
+            "agent_plans": {}, "zeus_reasoning": "", "assignments": [],
+            "synthesis_agent": "mnemosyne", "agent_results": {},
+            "agent_run_ids": [], "complement_done": False,
+            "final_answer": "", "verdict": "",
+        }
+        final_state = await graph.ainvoke(initial_state)
+
+        run.agent_plans = final_state.get("agent_plans", {})
+        run.zeus_reasoning = final_state.get("zeus_reasoning", "")
+        run.assignments = final_state.get("assignments", [])
+        run.agent_results = final_state.get("agent_results", {})
+        run.agent_run_ids = final_state.get("agent_run_ids", [])
+        run.final_answer = final_state.get("final_answer", "")
+        run.synthesis_agent = final_state.get("synthesis_agent", "mnemosyne")
+        run.status = "completed"
+    except Exception as exc:
+        log.error("orchestra.worker_failed", run_id=str(run_id), error=str(exc))
+        run.status = "failed"
+        run.final_answer = f"Erreur : {exc}"
+    finally:
+        run.duration_ms = int((time.monotonic() - t_start) * 1000)
+        await db.commit()
+        await db.refresh(run)
+
+    return run
+
+
+# ── Human-in-the-loop ────────────────────────────────────────────────
+
+async def run_orchestra_hitl(
+    db: AsyncSession,
+    instruction: str,
+    affaire_id: UUID,
+    user_id: UUID | None,
+    agents: list[str] | None = None,
+) -> OrchestraRun:
+    """
+    Lance une orchestration avec pause HITL après la distribution Zeus.
+    Retourne avec status="awaiting_approval" et hitl_payload={reasoning, assignments}.
+    Reprendre avec resume_orchestra().
+    """
+    from core.checkpointer import get_checkpointer
+
+    initial_agents = [a for a in (agents or DEFAULT_AGENTS) if a in VALID_AGENTS] or DEFAULT_AGENTS
+    thread_id = str(__import__("uuid").uuid4())
+
+    run = OrchestraRun(
+        affaire_id=affaire_id,
+        user_id=user_id,
+        instruction=instruction,
+        initial_agents=initial_agents,
+        status="running",
+        hitl_enabled=True,
+        checkpoint_thread_id=thread_id,
+    )
+    db.add(run)
+    await db.flush()
+
+    initial_state: OrchestraState = {
+        "instruction": instruction,
+        "affaire_id": str(affaire_id),
+        "user_id": str(user_id) if user_id else None,
+        "initial_agents": initial_agents,
+        "agent_plans": {}, "zeus_reasoning": "", "assignments": [],
+        "synthesis_agent": "mnemosyne", "agent_results": {},
+        "agent_run_ids": [], "complement_done": False,
+        "final_answer": "", "verdict": "",
+        "hitl_enabled": True,
+        "hitl_approval": {},
+    }
+    config = {"configurable": {"thread_id": thread_id}}
+
+    try:
+        async with get_checkpointer() as cp:
+            graph = build_graph(affaire_id, user_id)
+            compiled = graph.compile(checkpointer=cp)
+            # Le graphe s'arrête sur interrupt() dans zeus_distribute
+            state = await compiled.ainvoke(initial_state, config)
+
+            # Vérifier si le graphe est suspendu (interrupt)
+            graph_state = await compiled.aget_state(config)
+            if graph_state.next:
+                # Suspendu — récupérer le payload de l'interrupt
+                interrupt_data = {}
+                for task in graph_state.tasks:
+                    if hasattr(task, "interrupts") and task.interrupts:
+                        interrupt_data = task.interrupts[0].value
+                        break
+
+                run.status = "awaiting_approval"
+                run.hitl_payload = interrupt_data
+                run.zeus_reasoning = interrupt_data.get("reasoning", "")
+                run.assignments = interrupt_data.get("assignments", [])
+            else:
+                # Complété sans interruption (cas inattendu)
+                run.status = "completed"
+                run.final_answer = state.get("final_answer", "")
+                run.agent_results = state.get("agent_results", {})
+
+    except Exception as exc:
+        log.error("orchestra.hitl_failed", run_id=str(run.id), error=str(exc))
+        run.status = "failed"
+
+    await db.commit()
+    await db.refresh(run)
+    return run
+
+
+async def resume_orchestra(
+    db: AsyncSession,
+    run_id: UUID,
+    approved: bool,
+    feedback: str | None = None,
+    modified_assignments: list[dict] | None = None,
+) -> OrchestraRun:
+    """
+    Reprend un run en attente de validation humaine.
+    Si approved=False, le run est annulé.
+    """
+    from core.checkpointer import get_checkpointer
+
+    run = await db.get(OrchestraRun, run_id)
+    if not run or run.status != "awaiting_approval":
+        raise ValueError(f"Run {run_id} n'est pas en attente de validation")
+
+    if not approved:
+        run.status = "cancelled"
+        run.final_answer = f"Annulé par l'utilisateur. Feedback : {feedback or '—'}"
+        await db.commit()
+        await db.refresh(run)
+        return run
+
+    t_start = time.monotonic()
+    run.status = "running"
+    await db.commit()
+
+    config = {"configurable": {"thread_id": run.checkpoint_thread_id}}
+    approval_data = {
+        "approved": True,
+        "feedback": feedback,
+        "modified_assignments": modified_assignments,
+    }
+
+    try:
+        async with get_checkpointer() as cp:
+            graph = build_graph(run.affaire_id, run.user_id)
+            compiled = graph.compile(checkpointer=cp)
+            final_state = await compiled.ainvoke(Command(resume=approval_data), config)
+
+        run.agent_plans = final_state.get("agent_plans", {})
+        run.zeus_reasoning = final_state.get("zeus_reasoning", "")
+        run.assignments = final_state.get("assignments", [])
+        run.agent_results = final_state.get("agent_results", {})
+        run.agent_run_ids = final_state.get("agent_run_ids", [])
+        run.final_answer = final_state.get("final_answer", "")
+        run.synthesis_agent = final_state.get("synthesis_agent", "mnemosyne")
+        run.status = "completed"
+
+    except Exception as exc:
+        log.error("orchestra.resume_failed", run_id=str(run_id), error=str(exc))
+        run.status = "failed"
+        run.final_answer = f"Erreur lors de la reprise : {exc}"
+
+    finally:
+        run.duration_ms = int((time.monotonic() - t_start) * 1000)
+        await db.commit()
+        await db.refresh(run)
+
     return run
 
 

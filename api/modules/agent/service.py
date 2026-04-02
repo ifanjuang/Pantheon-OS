@@ -104,6 +104,7 @@ async def run_agent(
     ]
 
     steps: list[dict] = []
+    all_sources: list[dict] = []   # sources RAG collectées sur tous les appels d'outils
     final_answer: str | None = None
     model = settings.effective_llm_model
 
@@ -146,18 +147,26 @@ async def run_agent(
                     args=tool_args,
                 )
 
-                tool_output = await execute_tool(
+                tool_output, tool_sources = await execute_tool(
                     name=tool_name,
                     args=tool_args,
                     affaire_id=affaire_id,
                     db=db,
                 )
 
+                # Dédupliquer les sources par chunk_id
+                seen_chunks = {s["chunk_id"] for s in all_sources}
+                for src in tool_sources:
+                    if src["chunk_id"] not in seen_chunks:
+                        all_sources.append(src)
+                        seen_chunks.add(src["chunk_id"])
+
                 duration_tool = int((time.monotonic() - t_tool) * 1000)
                 steps.append({
                     "tool": tool_name,
                     "args": tool_args,
                     "output": tool_output[:1000],  # tronqué pour le stockage
+                    "sources_count": len(tool_sources),
                     "duration_ms": duration_tool,
                 })
 
@@ -185,6 +194,7 @@ async def run_agent(
 
     finally:
         run.steps = steps
+        run.sources = all_sources
         run.iterations = len([s for s in steps]) // max(len(DEFINITIONS), 1) + 1
         run.duration_ms = int((time.monotonic() - t_start) * 1000)
         await db.commit()
@@ -214,3 +224,31 @@ async def run_agent(
         asyncio.create_task(_store_memories())
 
     return run
+
+
+async def run_agent_from_run_id(
+    db: AsyncSession,
+    run_id,
+    instruction: str,
+    affaire_id: UUID,
+    user_id: UUID | None,
+    agent_name: str = "athena",
+    max_iterations: int = 10,
+) -> AgentRun:
+    """
+    Variante worker ARQ : le run AgentRun existe déjà en DB (status=queued).
+    Met à jour son statut puis exécute la boucle ReAct.
+    """
+    run = await db.get(AgentRun, run_id)
+    if not run:
+        raise ValueError(f"AgentRun {run_id} introuvable")
+    run.status = "running"
+    await db.commit()
+    return await run_agent(
+        db=db,
+        instruction=instruction,
+        affaire_id=affaire_id,
+        user_id=user_id,
+        agent_name=agent_name,
+        max_iterations=max_iterations,
+    )

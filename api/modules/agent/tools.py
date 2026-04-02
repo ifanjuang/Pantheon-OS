@@ -3,9 +3,12 @@ Outils disponibles pour l'agent copilote MOE.
 
 Chaque outil expose :
   - DEFINITION : dict OpenAI function-calling (schema JSON)
-  - execute()   : coroutine async qui reçoit les args et retourne une str
+  - execute()   : coroutine async qui reçoit les args et retourne (str, list[SourceCitation])
 
 L'agent peut combiner ces outils librement pour répondre à une instruction.
+
+SourceCitation = {chunk_id, document_name, score, excerpt}
+Les sources collectées sont agrégées dans agent_runs.sources pour traçabilité.
 """
 import json
 from uuid import UUID
@@ -77,18 +80,22 @@ async def execute_tool(
     args: dict,
     affaire_id: UUID,
     db: AsyncSession,
-) -> str:
-    """Dispatche l'appel d'outil et retourne le résultat sous forme de str."""
+) -> tuple[str, list[dict]]:
+    """
+    Dispatche l'appel d'outil.
+    Retourne (output_text, sources) où sources est la liste des citations RAG.
+    Pour les outils non-RAG, sources est toujours [].
+    """
     if name == "rag_search":
         return await _rag_search(db, affaire_id, args)
     if name == "list_documents":
-        return await _list_documents(db, affaire_id)
+        return await _list_documents(db, affaire_id), []
     if name == "get_affaire_info":
-        return await _get_affaire_info(db, affaire_id)
-    return f"[outil inconnu : {name}]"
+        return await _get_affaire_info(db, affaire_id), []
+    return f"[outil inconnu : {name}]", []
 
 
-async def _rag_search(db: AsyncSession, affaire_id: UUID, args: dict) -> str:
+async def _rag_search(db: AsyncSession, affaire_id: UUID, args: dict) -> tuple[str, list[dict]]:
     results = await RagService.search(
         db=db,
         query=args["query"],
@@ -97,13 +104,37 @@ async def _rag_search(db: AsyncSession, affaire_id: UUID, args: dict) -> str:
         source_type=args.get("source_type"),
     )
     if not results:
-        return "Aucun résultat trouvé dans les documents du projet."
+        return "Aucun résultat trouvé dans les documents du projet.", []
 
     lines = []
+    sources = []
+
     for i, r in enumerate(results, 1):
         score_pct = int(r["score"] * 100)
-        lines.append(f"[{i}] (score {score_pct}%) {r['contenu'][:400]}")
-    return "\n\n".join(lines)
+        meta = r.get("meta") or {}
+        doc_name = meta.get("filename") or f"document_{r['document_id'][:8]}"
+        excerpt = r["contenu"][:300]
+
+        # Format lisible pour le LLM — facilite les citations dans la réponse finale
+        lines.append(
+            f"[SOURCE {i}] 📄 {doc_name} (score {score_pct}%)\n"
+            f"{excerpt}"
+        )
+
+        sources.append({
+            "chunk_id": r["chunk_id"],
+            "document_id": r["document_id"],
+            "document_name": doc_name,
+            "score": r["score"],
+            "excerpt": excerpt[:150],
+        })
+
+    output = (
+        f"Résultats pour : « {args['query']} »\n\n"
+        + "\n\n".join(lines)
+        + "\n\n— Pour citer une source dans ta réponse, utilise [SOURCE N]."
+    )
+    return output, sources
 
 
 async def _list_documents(db: AsyncSession, affaire_id: UUID) -> str:

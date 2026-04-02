@@ -42,6 +42,40 @@ services:
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload --workers 1
     restart: unless-stopped
 
+  # ── Redis — broker ARQ (background jobs) ───────────────────────
+  redis:
+    image: redis:7-alpine
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── ARQ Worker — exécute les jobs orchestra/agent en arrière-plan
+  worker:
+    build: ./api
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://arceus:${DB_PASSWORD}@db:5432/arceus
+      DATABASE_URL_SYNC: postgresql://arceus:${DB_PASSWORD}@db:5432/arceus
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./api:/app
+      - ./agents:/agents:ro
+    command: python worker.py
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
   # ── OpenWebUI — interface utilisateur ──────────────────────────
   openwebui:
     image: ghcr.io/open-webui/open-webui:main
@@ -158,6 +192,7 @@ services:
       retries: 3
 
 volumes:
+  redis_data:
   postgres_data:
   openwebui_data:
   minio_data:

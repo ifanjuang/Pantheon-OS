@@ -14,10 +14,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.auth import get_current_user, require_role
 from core.logging import get_logger
+from core.queue import get_queue
 from database import get_db
 from modules.orchestra.models import OrchestraRun
-from modules.orchestra.schemas import OrchestraRequest, OrchestraResponse
-from modules.orchestra.service import run_orchestra, stream_orchestra
+from modules.orchestra.schemas import ApprovalRequest, OrchestraRequest, OrchestraResponse
+from modules.orchestra.service import (
+    resume_orchestra,
+    run_orchestra,
+    run_orchestra_hitl,
+    stream_orchestra,
+)
 
 log = get_logger("orchestra.router")
 
@@ -25,19 +31,53 @@ log = get_logger("orchestra.router")
 def get_router(config: dict) -> APIRouter:
     router = APIRouter()
 
-    @router.post("/run", response_model=OrchestraResponse)
+    @router.post("/run", response_model=OrchestraResponse, status_code=202)
     async def orchestra_run(
         payload: OrchestraRequest,
         db: AsyncSession = Depends(get_db),
         current_user=Depends(require_role("admin", "moe", "collaborateur")),
     ):
-        run = await run_orchestra(
-            db=db,
-            instruction=payload.instruction,
+        """
+        Enqueue une orchestration Zeus. Retourne immédiatement avec status=queued (HTTP 202).
+        Utiliser GET /orchestra/runs/detail/{run_id} pour suivre l'état.
+        Pour un résultat en temps réel, utiliser POST /orchestra/stream.
+        """
+        # Créer le run en DB (status=queued) avant d'enqueuer
+        from modules.orchestra.service import VALID_AGENTS, DEFAULT_AGENTS
+        initial_agents = [a for a in (payload.agents or DEFAULT_AGENTS) if a in VALID_AGENTS] or DEFAULT_AGENTS
+        run = OrchestraRun(
             affaire_id=payload.affaire_id,
             user_id=current_user.id,
-            agents=payload.agents,
+            instruction=payload.instruction,
+            initial_agents=initial_agents,
+            status="queued",
         )
+        db.add(run)
+        await db.commit()
+        await db.refresh(run)
+
+        # Enqueue le job ARQ
+        try:
+            queue = await get_queue()
+            await queue.enqueue_job(
+                "orchestra_job",
+                str(run.id),
+                payload.instruction,
+                str(payload.affaire_id),
+                str(current_user.id),
+                payload.agents,
+            )
+        except Exception:
+            # Si Redis indisponible, exécuter en synchrone (fallback)
+            log.warning("orchestra.queue_unavailable, fallback sync")
+            run = await run_orchestra(
+                db=db,
+                instruction=payload.instruction,
+                affaire_id=payload.affaire_id,
+                user_id=current_user.id,
+                agents=payload.agents,
+            )
+
         return _to_response(run)
 
     @router.post("/stream")
@@ -76,6 +116,52 @@ def get_router(config: dict) -> APIRouter:
                 "X-Accel-Buffering": "no",   # désactive le buffering nginx
             },
         )
+
+    @router.post("/run-hitl", response_model=OrchestraResponse, status_code=202)
+    async def orchestra_run_hitl(
+        payload: OrchestraRequest,
+        db: AsyncSession = Depends(get_db),
+        current_user=Depends(require_role("admin", "moe")),
+    ):
+        """
+        Lance une orchestration avec validation humaine (HITL).
+        Zeus s'arrête après avoir distribué les rôles et attend une approbation.
+        Répondre via POST /orchestra/runs/{id}/approve.
+        """
+        run = await run_orchestra_hitl(
+            db=db,
+            instruction=payload.instruction,
+            affaire_id=payload.affaire_id,
+            user_id=current_user.id,
+            agents=payload.agents,
+        )
+        return _to_response(run)
+
+    @router.post("/runs/{run_id}/approve", response_model=OrchestraResponse)
+    async def approve_run(
+        run_id: UUID,
+        payload: ApprovalRequest,
+        db: AsyncSession = Depends(get_db),
+        current_user=Depends(require_role("admin", "moe")),
+    ):
+        """
+        Valide ou rejette la proposition de Zeus.
+
+        - approved=true → les agents s'exécutent avec les rôles proposés (ou modifiés)
+        - approved=false → le run est annulé
+        - modified_assignments → remplace les assignments de Zeus si fourni
+        """
+        try:
+            run = await resume_orchestra(
+                db=db,
+                run_id=run_id,
+                approved=payload.approved,
+                feedback=payload.feedback,
+                modified_assignments=payload.modified_assignments,
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        return _to_response(run)
 
     @router.get("/runs/{affaire_id}", response_model=list[OrchestraResponse])
     async def list_runs(
@@ -116,5 +202,7 @@ def _to_response(run: OrchestraRun) -> OrchestraResponse:
         agent_results=run.agent_results or {},
         synthesis_agent=run.synthesis_agent,
         final_answer=run.final_answer,
+        hitl_enabled=run.hitl_enabled or False,
+        hitl_payload=run.hitl_payload,
         duration_ms=run.duration_ms,
     )

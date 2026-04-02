@@ -66,6 +66,8 @@ class AgentRun(Base):
     # running | completed | failed
     steps: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     # [{tool, args, output, duration_ms}]
+    sources: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    # [{chunk_id, document_name, score, excerpt}] — toutes les sources RAG citées
     iterations: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(

@@ -35,6 +35,13 @@ class OrchestraRequest(BaseModel):
     instruction: str = Field(..., min_length=5)
     affaire_id: UUID
     agents: Optional[list[str]] = None  # None = Zeus choisit parmi tous
+    hitl: bool = False                  # True = pause avant exécution pour validation humaine
+
+
+class ApprovalRequest(BaseModel):
+    approved: bool
+    feedback: Optional[str] = None          # commentaire libre
+    modified_assignments: Optional[list[dict]] = None  # si l'humain modifie les rôles
 
 
 class AgentResultSummary(BaseModel):
@@ -52,4 +59,6 @@ class OrchestraResponse(BaseModel):
     agent_results: dict
     synthesis_agent: Optional[str]
     final_answer: Optional[str]
+    hitl_enabled: bool = False
+    hitl_payload: Optional[dict] = None
     duration_ms: Optional[int]

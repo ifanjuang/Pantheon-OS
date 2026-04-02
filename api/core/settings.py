@@ -63,6 +63,9 @@ class Settings(BaseSettings):
     # ── Webhooks / Paperclip ─────────────────────────────────────
     WEBHOOK_SECRET: Optional[str] = None   # Si None → JWT_SECRET_KEY utilisé
 
+    # ── Redis / ARQ ──────────────────────────────────────────────
+    REDIS_URL: str = "redis://redis:6379/0"
+
     # ── Agents ───────────────────────────────────────────────────
     AGENTS_DIR: str = "/agents"
 
