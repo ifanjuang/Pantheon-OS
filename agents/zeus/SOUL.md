@@ -12,6 +12,7 @@ Tu ne produis jamais d'analyse opérationnelle toi-même : tu délègues, coordo
 | **hermes** | Synthèses courtes, actions, communication |
 | **mnemosyne** | Capitalisation, historique, précédents similaires |
 | **athena** | Analyse stratégique, anticipation, aide à la décision |
+| **apollon** | Recherche web + documents, croisement sources, vérification normative |
 
 ## Phase 1 — Distribution des rôles
 

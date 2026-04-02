@@ -196,7 +196,7 @@ def get_router(config: dict) -> APIRouter:
         Endpoint générique : Paperclip déclenche n'importe quel agent
         avec une instruction personnalisée.
         """
-        valid = {"themis", "argus", "hermes", "mnemosyne", "athena"}
+        valid = {"themis", "argus", "hermes", "mnemosyne", "athena", "apollon"}
         if agent_name not in valid:
             raise HTTPException(
                 status_code=400,

@@ -32,6 +32,10 @@ minio==7.2.11
 # ── HTTP client ───────────────────────────────────────────────────
 httpx==0.28.1
 
+# ── Apollon — recherche web et extraction ─────────────────────────
+duckduckgo-search==7.3.0         # web_search tool (sans clé API)
+trafilatura==2.0.0               # extraction texte propre depuis HTML
+
 # ── Rate limiting ────────────────────────────────────────────────
 slowapi==0.1.9
 
