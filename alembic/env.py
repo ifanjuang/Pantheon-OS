@@ -16,7 +16,8 @@ from database import Base
 from modules.auth.models import User, AffairePermission  # noqa: F401
 from modules.affaires.models import Affaire              # noqa: F401
 from modules.documents.models import Document, Chunk     # noqa: F401
-from modules.agent.models import AgentRun                # noqa: F401
+from modules.agent.models import AgentRun, AgentMemory   # noqa: F401
+from modules.orchestra.models import OrchestraRun        # noqa: F401
 
 config = context.config
 

@@ -58,7 +58,16 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
-    SMTP_FROM: str = "OS Projet <notifications@agence.fr>"
+    SMTP_FROM: str = "ARCEUS <notifications@agence.fr>"
+
+    # ── Webhooks / Paperclip ─────────────────────────────────────
+    WEBHOOK_SECRET: Optional[str] = None   # Si None → JWT_SECRET_KEY utilisé
+
+    # ── Redis / ARQ ──────────────────────────────────────────────
+    REDIS_URL: str = "redis://redis:6379/0"
+
+    # ── Agents ───────────────────────────────────────────────────
+    AGENTS_DIR: str = "/agents"
 
     # ── Telegram ─────────────────────────────────────────────────
     TELEGRAM_TOKEN: Optional[str] = None

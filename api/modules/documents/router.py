@@ -9,7 +9,7 @@ DELETE /documents/{document_id} → supprime document + chunks + fichier MinIO (
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -37,6 +37,7 @@ def get_router(config: dict) -> APIRouter:
 
     @router.post("/upload", response_model=IngestResponse, status_code=201)
     async def upload_document(
+        background_tasks: BackgroundTasks,
         file: Annotated[UploadFile, File()],
         affaire_id: Annotated[uuid.UUID, Form()],
         couche: Annotated[str, Form()] = "projet",
@@ -102,6 +103,22 @@ def get_router(config: dict) -> APIRouter:
             chunks=chunks_created,
             uploaded_by=str(current_user.id),
         )
+
+        # 4. Déclencher Thémis en arrière-plan (analyse du nouveau document)
+        async def _run_themis():
+            from database import AsyncSessionLocal
+            from modules.agent.service import run_agent
+            async with AsyncSessionLocal() as bg_db:
+                await run_agent(
+                    db=bg_db,
+                    instruction=f"Analyse le document '{nom}' qui vient d'être uploadé. Identifie les points clés, les exigences importantes et les risques potentiels.",
+                    affaire_id=affaire_id,
+                    user_id=current_user.id,
+                    agent_name="themis",
+                )
+
+        background_tasks.add_task(_run_themis)
+
         return IngestResponse(
             document_id=doc.id,
             nom=nom,

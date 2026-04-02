@@ -1,0 +1,9 @@
+name: webhooks
+version: "1.0.0"
+description: "Webhooks pour orchestrateurs externes (Paperclip) — heartbeat agents, événements documents"
+prefix: /webhooks
+depends_on:
+  - auth
+  - agent
+tools: []
+agent: null

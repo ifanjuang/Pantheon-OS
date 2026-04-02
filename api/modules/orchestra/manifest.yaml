@@ -1,0 +1,7 @@
+name: orchestra
+version: "0.1.0"
+description: "Orchestration multi-agents LangGraph — Zeus coordonne le panthéon"
+prefix: /orchestra
+depends_on:
+  - agent
+  - affaires

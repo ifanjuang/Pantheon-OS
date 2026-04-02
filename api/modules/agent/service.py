@@ -18,12 +18,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.logging import get_logger
 from core.services.llm_service import LlmService
 from core.settings import settings
+from database import AsyncSessionLocal
 from modules.agent.models import AgentRun
 from modules.agent.tools import DEFINITIONS, execute_tool
 
 log = get_logger("agent.service")
 
-AGENTS_DIR = Path(__file__).parent.parent.parent.parent.parent / "agents"
+AGENTS_DIR = Path(settings.AGENTS_DIR) if hasattr(settings, "AGENTS_DIR") else Path(__file__).parent.parent.parent.parent / "agents"
 VALID_AGENTS = {"themis", "argus", "hermes", "mnemosyne", "athena"}
 
 _DEFAULT_PROMPT = """Tu es un assistant copilote pour une agence d'architecture (MOE).
@@ -74,8 +75,16 @@ async def run_agent(
     max_iterations: int = 10,
 ) -> AgentRun:
     """Exécute la boucle agentique et persiste le résultat."""
+    from modules.agent.memory import extract_and_store_memories, get_agent_memories
+
     t_start = time.monotonic()
+
+    # Construire le system prompt + injecter la mémoire dynamique
     system_prompt = _build_system_prompt(agent_name)
+    memories = await get_agent_memories(db, agent_name, affaire_id)
+    if memories:
+        memories_text = "\n".join(f"- {m}" for m in memories)
+        system_prompt += f"\n\n## Mémoire dynamique — ce que tu as appris sur cette affaire\n{memories_text}"
 
     log.info("agent.start", agent=agent_name, affaire_id=str(affaire_id))
 
@@ -95,6 +104,7 @@ async def run_agent(
     ]
 
     steps: list[dict] = []
+    all_sources: list[dict] = []   # sources RAG collectées sur tous les appels d'outils
     final_answer: str | None = None
     model = settings.effective_llm_model
 
@@ -137,18 +147,26 @@ async def run_agent(
                     args=tool_args,
                 )
 
-                tool_output = await execute_tool(
+                tool_output, tool_sources = await execute_tool(
                     name=tool_name,
                     args=tool_args,
                     affaire_id=affaire_id,
                     db=db,
                 )
 
+                # Dédupliquer les sources par chunk_id
+                seen_chunks = {s["chunk_id"] for s in all_sources}
+                for src in tool_sources:
+                    if src["chunk_id"] not in seen_chunks:
+                        all_sources.append(src)
+                        seen_chunks.add(src["chunk_id"])
+
                 duration_tool = int((time.monotonic() - t_tool) * 1000)
                 steps.append({
                     "tool": tool_name,
                     "args": tool_args,
                     "output": tool_output[:1000],  # tronqué pour le stockage
+                    "sources_count": len(tool_sources),
                     "duration_ms": duration_tool,
                 })
 
@@ -176,6 +194,7 @@ async def run_agent(
 
     finally:
         run.steps = steps
+        run.sources = all_sources
         run.iterations = len([s for s in steps]) // max(len(DEFINITIONS), 1) + 1
         run.duration_ms = int((time.monotonic() - t_start) * 1000)
         await db.commit()
@@ -188,4 +207,48 @@ async def run_agent(
         steps=len(steps),
         duration_ms=run.duration_ms,
     )
+
+    # Extraire et stocker les leçons en arrière-plan (fire-and-forget)
+    if run.status == "completed" and run.result:
+        async def _store_memories():
+            async with AsyncSessionLocal() as bg_db:
+                await extract_and_store_memories(
+                    agent_name=agent_name,
+                    instruction=instruction,
+                    result=run.result,
+                    affaire_id=affaire_id,
+                    run_id=run.id,
+                    db=bg_db,
+                )
+        import asyncio
+        asyncio.create_task(_store_memories())
+
     return run
+
+
+async def run_agent_from_run_id(
+    db: AsyncSession,
+    run_id,
+    instruction: str,
+    affaire_id: UUID,
+    user_id: UUID | None,
+    agent_name: str = "athena",
+    max_iterations: int = 10,
+) -> AgentRun:
+    """
+    Variante worker ARQ : le run AgentRun existe déjà en DB (status=queued).
+    Met à jour son statut puis exécute la boucle ReAct.
+    """
+    run = await db.get(AgentRun, run_id)
+    if not run:
+        raise ValueError(f"AgentRun {run_id} introuvable")
+    run.status = "running"
+    await db.commit()
+    return await run_agent(
+        db=db,
+        instruction=instruction,
+        affaire_id=affaire_id,
+        user_id=user_id,
+        agent_name=agent_name,
+        max_iterations=max_iterations,
+    )
