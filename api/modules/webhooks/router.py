@@ -31,6 +31,7 @@ from core.settings import settings
 from database import get_db
 from modules.affaires.models import Affaire
 from modules.agent.service import run_agent
+from modules.orchestra.service import run_orchestra
 
 log = get_logger("webhooks.router")
 
@@ -160,6 +161,29 @@ def get_router(config: dict) -> APIRouter:
             run_id=str(run.id),
         )
         return {"run_id": str(run.id), "status": run.status}
+
+    @router.post("/orchestra")
+    async def trigger_orchestra(
+        payload: AgentWebhookPayload,
+        db: AsyncSession = Depends(get_db),
+        _auth=Depends(_check_webhook_secret),
+    ):
+        """
+        Déclenche une orchestration Zeus complète depuis Paperclip.
+        Zeus coordonne automatiquement les agents nécessaires.
+        """
+        run = await run_orchestra(
+            db=db,
+            instruction=payload.instruction,
+            affaire_id=payload.affaire_id,
+            user_id=None,
+        )
+        log.info("webhooks.orchestra", run_id=str(run.id), status=run.status)
+        return {
+            "run_id": str(run.id),
+            "status": run.status,
+            "agents": list(run.agent_results.keys()),
+        }
 
     @router.post("/agent/{agent_name}", response_model=AgentWebhookResponse)
     async def trigger_agent(

@@ -24,6 +24,9 @@ modules:
   - name: webhooks
     enabled: true
 
+  - name: orchestra
+    enabled: true
+
   - name: chantier
     enabled: false
 
