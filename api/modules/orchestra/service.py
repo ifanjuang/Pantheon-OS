@@ -34,7 +34,7 @@ log = get_logger("orchestra.service")
 
 AGENTS_DIR = Path(settings.AGENTS_DIR) if hasattr(settings, "AGENTS_DIR") else Path(__file__).parent.parent.parent.parent / "agents"
 DEFAULT_AGENTS = ["themis", "argus", "athena"]
-VALID_AGENTS = {"themis", "argus", "hermes", "mnemosyne", "athena", "apollon", "dionysos", "nemesis", "hephaistos"}
+VALID_AGENTS = {"themis", "argus", "hermes", "mnemosyne", "athena", "apollon", "dionysos", "nemesis", "hephaistos", "dedale", "iris", "aphrodite"}
 
 # ── Prompts Zeus ────────────────────────────────────────────────────
 

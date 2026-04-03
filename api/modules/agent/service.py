@@ -25,7 +25,7 @@ from modules.agent.tools import DEFINITIONS, execute_tool
 log = get_logger("agent.service")
 
 AGENTS_DIR = Path(settings.AGENTS_DIR) if hasattr(settings, "AGENTS_DIR") else Path(__file__).parent.parent.parent.parent / "agents"
-VALID_AGENTS = {"themis", "argus", "hermes", "mnemosyne", "athena", "apollon", "dionysos", "nemesis", "hephaistos"}
+VALID_AGENTS = {"themis", "argus", "hermes", "mnemosyne", "athena", "apollon", "dionysos", "nemesis", "hephaistos", "dedale", "iris", "aphrodite"}
 
 _DEFAULT_PROMPT = """Tu es un assistant copilote pour une agence d'architecture (MOE).
 Tu aides les chargés de projet à trouver des informations, analyser des documents
