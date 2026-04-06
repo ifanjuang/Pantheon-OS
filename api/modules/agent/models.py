@@ -35,6 +35,8 @@ class AgentMemory(Base):
         nullable=True,
     )
     lesson: Mapped[str] = mapped_column(Text, nullable=False)
+    scope: Mapped[str] = mapped_column(String(20), nullable=False, default="agence", index=True)
+    # scope: 'agence' (apprentissage global) | 'projet' (continuité affaire)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=_now
     )

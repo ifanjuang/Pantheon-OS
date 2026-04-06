@@ -2,10 +2,10 @@
 Modèles affaires — Affaire (dossier/projet MOE)
 """
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Numeric, String, Text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
@@ -28,6 +28,24 @@ class Affaire(Base):
     nom: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     statut: Mapped[str] = mapped_column(String(32), nullable=False, default="actif")
+
+    # Contexte projet — injecté automatiquement dans les prompts agents
+    typology: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # Logement collectif / Maison individuelle / ERP / Industrie / Équipement public / Réhabilitation / Autre
+    region: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    budget_moa: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    # Budget MOA total (€ HT)
+    honoraires: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    # Honoraires MOE contractuels (€ HT)
+    date_debut: Mapped[date | None] = mapped_column(Date, nullable=True)
+    date_fin_prevue: Mapped[date | None] = mapped_column(Date, nullable=True)
+    phase_courante: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # ESQ | APS | APD | PRO | ACT | VISA | DET | AOR
+    abf: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # Secteur Architecte des Bâtiments de France
+    zone_risque: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # {inondation: bool, sismique: str, archeo: bool, bruit: str, retrait_gonflement: str}
+
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )

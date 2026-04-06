@@ -25,7 +25,20 @@ from modules.agent.tools import DEFINITIONS, execute_tool
 log = get_logger("agent.service")
 
 AGENTS_DIR = Path(settings.AGENTS_DIR) if hasattr(settings, "AGENTS_DIR") else Path(__file__).parent.parent.parent.parent / "agents"
-VALID_AGENTS = {"themis", "argus", "hermes", "mnemosyne", "athena", "apollon"}
+VALID_AGENTS = {
+    # Perception
+    "hermes", "argos",
+    # Analyse
+    "athena", "hephaistos", "promethee", "apollon", "dionysos",
+    # Cadrage
+    "themis", "chronos", "ares",
+    # Continuité
+    "hestia", "mnemosyne",
+    # Communication
+    "iris", "aphrodite",
+    # Production
+    "dedale",
+}
 
 _DEFAULT_PROMPT = """Tu es un assistant copilote pour une agence d'architecture (MOE).
 Tu aides les chargés de projet à trouver des informations, analyser des documents
@@ -66,6 +79,39 @@ def _build_system_prompt(agent_name: str) -> str:
     return f"{soul}{memory_section}{common_section}"
 
 
+async def _build_affaire_context(db: AsyncSession, affaire_id: UUID) -> str:
+    """Charge les métadonnées de l'affaire et les formate pour injection dans le prompt."""
+    try:
+        from modules.affaires.models import Affaire
+        from sqlalchemy import select
+        result = await db.execute(select(Affaire).where(Affaire.id == affaire_id))
+        affaire = result.scalar_one_or_none()
+        if not affaire:
+            return ""
+        parts = [f"Affaire : {affaire.code} — {affaire.nom}"]
+        if affaire.typology:
+            parts.append(f"Typologie : {affaire.typology}")
+        if affaire.region:
+            parts.append(f"Région : {affaire.region}")
+        if affaire.budget_moa:
+            parts.append(f"Budget MOA : {affaire.budget_moa:,.0f} € HT")
+        if affaire.honoraires:
+            parts.append(f"Honoraires MOE : {affaire.honoraires:,.0f} € HT")
+        if affaire.phase_courante:
+            parts.append(f"Phase courante : {affaire.phase_courante}")
+        if affaire.date_fin_prevue:
+            parts.append(f"Fin prévisionnelle : {affaire.date_fin_prevue.isoformat()}")
+        if affaire.abf:
+            parts.append("Secteur ABF : OUI — prescriptions architecturales obligatoires")
+        if affaire.zone_risque:
+            risques = [k for k, v in affaire.zone_risque.items() if v]
+            if risques:
+                parts.append(f"Zones à risque : {', '.join(risques)}")
+        return "\n".join(parts)
+    except Exception:
+        return ""
+
+
 async def run_agent(
     db: AsyncSession,
     instruction: str,
@@ -79,8 +125,15 @@ async def run_agent(
 
     t_start = time.monotonic()
 
-    # Construire le system prompt + injecter la mémoire dynamique
+    # Construire le system prompt
     system_prompt = _build_system_prompt(agent_name)
+
+    # Injecter le contexte projet (typology, region, budget, phase, ABF, zones)
+    affaire_context = await _build_affaire_context(db, affaire_id)
+    if affaire_context:
+        system_prompt += f"\n\n## Contexte projet\n{affaire_context}"
+
+    # Injecter la mémoire dynamique (leçons apprises sur cette affaire)
     memories = await get_agent_memories(db, agent_name, affaire_id)
     if memories:
         memories_text = "\n".join(f"- {m}" for m in memories)

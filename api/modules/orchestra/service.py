@@ -33,8 +33,30 @@ from modules.orchestra.models import OrchestraRun
 log = get_logger("orchestra.service")
 
 AGENTS_DIR = Path(settings.AGENTS_DIR) if hasattr(settings, "AGENTS_DIR") else Path(__file__).parent.parent.parent.parent / "agents"
-DEFAULT_AGENTS = ["themis", "argus", "athena"]
-VALID_AGENTS = {"themis", "argus", "hermes", "mnemosyne", "athena", "apollon"}
+DEFAULT_AGENTS = ["themis", "athena", "chronos"]
+
+# Routing automatique selon criticité
+CRITICITE_ROUTING = {
+    "C1": {"hitl": False, "zeus": False, "veto_check": False},
+    "C2": {"hitl": False, "zeus": False, "veto_check": False},
+    "C3": {"hitl": False, "zeus": True,  "veto_check": False},
+    "C4": {"hitl": True,  "zeus": True,  "veto_check": False},
+    "C5": {"hitl": True,  "zeus": True,  "veto_check": True},
+}
+VALID_AGENTS = {
+    # Perception
+    "hermes", "argos",
+    # Analyse
+    "athena", "hephaistos", "promethee", "apollon", "dionysos",
+    # Cadrage
+    "themis", "chronos", "ares",
+    # Continuité
+    "hestia", "mnemosyne",
+    # Communication
+    "iris", "aphrodite",
+    # Production
+    "dedale",
+}
 
 # ── Prompts Zeus ────────────────────────────────────────────────────
 
@@ -123,7 +145,14 @@ class OrchestraState(TypedDict):
     final_answer: str
 
     # Routing interne Zeus
-    verdict: str                # "complete" | "needs_complement"
+    verdict: str                # "complete" | "needs_complement" | "veto"
+
+    # Criticité C1-C5
+    criticite: str              # "C1" | "C2" | "C3" | "C4" | "C5"
+
+    # Veto (Thémis / Héphaïstos)
+    veto_agent: str             # nom de l'agent ayant émis le veto
+    veto_motif: str             # raison du veto
 
     # Human-in-the-loop
     hitl_enabled: bool
@@ -372,7 +401,45 @@ def _make_nodes(affaire_uuid: UUID, user_uuid: UUID | None):
         agent_run_ids = list(state["agent_run_ids"]) + [run_id]
         return {"final_answer": final_answer, "agent_run_ids": agent_run_ids}
 
-    return plan_agents, zeus_distribute, execute_agents, zeus_judge, execute_complements, synthesize
+    async def veto_check(state: OrchestraState) -> dict:
+        """
+        Nœud veto — après execute_agents, vérifie si Thémis ou Héphaïstos
+        ont émis un veto dans leurs résultats.
+        Si veto détecté ET criticité C5 → interruption HITL obligatoire.
+        """
+        _VETO_KEYWORDS = ("veto", "🚫", "infaisable", "bloque", "hors responsabilité", "risque majeur")
+        results = state.get("agent_results", {})
+        criticite = state.get("criticite", "C2")
+
+        veto_agent = ""
+        veto_motif = ""
+
+        for agent_name in ("themis", "hephaistos"):
+            result_text = results.get(agent_name, "").lower()
+            if any(kw in result_text for kw in _VETO_KEYWORDS):
+                veto_agent = agent_name
+                # Extraire un extrait du motif (100 premiers chars après le mot-clé)
+                for kw in _VETO_KEYWORDS:
+                    idx = result_text.find(kw)
+                    if idx >= 0:
+                        veto_motif = results.get(agent_name, "")[max(0, idx-20):idx+200].strip()
+                        break
+                break
+
+        if veto_agent and criticite in ("C4", "C5"):
+            log.warning("orchestra.veto_detected", agent=veto_agent, criticite=criticite)
+            # Interruption HITL obligatoire
+            hitl_payload = {
+                "veto_agent": veto_agent,
+                "veto_motif": veto_motif,
+                "message": f"⚠️ Veto émis par {veto_agent.upper()} — validation humaine requise avant de poursuivre.",
+                "assignments": state.get("assignments", []),
+            }
+            interrupt(hitl_payload)
+
+        return {"veto_agent": veto_agent, "veto_motif": veto_motif}
+
+    return plan_agents, zeus_distribute, execute_agents, zeus_judge, execute_complements, synthesize, veto_check
 
 
 def _route_after_judge(state: OrchestraState) -> str:
@@ -384,13 +451,14 @@ def _route_after_judge(state: OrchestraState) -> str:
 # ── Graph factory ────────────────────────────────────────────────
 
 def build_graph(affaire_id: UUID, user_id: UUID | None):
-    plan_agents, zeus_distribute, execute_agents, zeus_judge, execute_complements, synthesize = \
+    plan_agents, zeus_distribute, execute_agents, zeus_judge, execute_complements, synthesize, veto_check = \
         _make_nodes(affaire_id, user_id)
 
     builder = StateGraph(OrchestraState)
     builder.add_node("plan_agents", plan_agents)
     builder.add_node("zeus_distribute", zeus_distribute)
     builder.add_node("execute_agents", execute_agents)
+    builder.add_node("veto_check", veto_check)          # ← après execute_agents, avant le jugement
     builder.add_node("zeus_judge", zeus_judge)
     builder.add_node("execute_complements", execute_complements)
     builder.add_node("synthesize", synthesize)
@@ -398,7 +466,8 @@ def build_graph(affaire_id: UUID, user_id: UUID | None):
     builder.set_entry_point("plan_agents")
     builder.add_edge("plan_agents", "zeus_distribute")
     builder.add_edge("zeus_distribute", "execute_agents")
-    builder.add_edge("execute_agents", "zeus_judge")
+    builder.add_edge("execute_agents", "veto_check")
+    builder.add_edge("veto_check", "zeus_judge")
     builder.add_conditional_edges("zeus_judge", _route_after_judge, {
         "execute_complements": "execute_complements",
         "synthesize": "synthesize",
@@ -417,11 +486,17 @@ async def run_orchestra(
     affaire_id: UUID,
     user_id: UUID | None,
     agents: list[str] | None = None,
+    criticite: str = "C2",
 ) -> OrchestraRun:
     t_start = time.monotonic()
 
     initial_agents = [a for a in (agents or DEFAULT_AGENTS) if a in VALID_AGENTS] or DEFAULT_AGENTS
     log.info("orchestra.start", agents=initial_agents, affaire_id=str(affaire_id))
+
+    # Routing criticité
+    criticite = criticite if criticite in CRITICITE_ROUTING else "C2"
+    routing = CRITICITE_ROUTING[criticite]
+    hitl_auto = routing["hitl"]
 
     # Persister le run
     run = OrchestraRun(
@@ -429,6 +504,7 @@ async def run_orchestra(
         user_id=user_id,
         instruction=instruction,
         initial_agents=initial_agents,
+        criticite=criticite,
         status="running",
     )
     db.add(run)
@@ -450,7 +526,10 @@ async def run_orchestra(
             "complement_done": False,
             "final_answer": "",
             "verdict": "",
-            "hitl_enabled": False,
+            "criticite": criticite,
+            "veto_agent": "",
+            "veto_motif": "",
+            "hitl_enabled": hitl_auto,
             "hitl_approval": {},
         }
 

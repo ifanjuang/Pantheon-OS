@@ -48,6 +48,10 @@ class OrchestraRun(Base):
     checkpoint_thread_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     # thread_id LangGraph pour reprendre le graphe suspendu
 
+    # Criticité C1-C5
+    criticite: Mapped[str] = mapped_column(String(2), nullable=False, default="C2")
+    # C1=info | C2=question | C3=décision locale | C4=décision engageante | C5=risque majeur
+
     # Meta
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="running")
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
