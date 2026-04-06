@@ -1,6 +1,11 @@
-# OS PROJET — Plan de développement technique
+# DEVPLAN — Plan de développement initial (document historique)
 
-> Document de référence pour Claude. À relire au début de chaque session.
+> ⚠️ Ce document est le plan de conception original d'ARCEUS. Il sert de référence conceptuelle.
+> Pour l'état actuel du code et du backlog actif, voir :
+> - **ARCHITECTURE.md** — architecture réelle implémentée
+> - **DEVLIST.md** — backlog de développement à jour
+> - **CLAUDE.md** — conventions et contexte pour agents Claude Code
+> - **README.md** — guide utilisateur
 
 ---
 

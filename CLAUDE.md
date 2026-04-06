@@ -2,55 +2,118 @@
 
 ## Vue d'ensemble
 
-ARCEUS est un système d'intelligence opérationnelle pour agences MOE (Maîtrise d'Œuvre). Il centralise la gestion documentaire, le RAG sémantique, le suivi de chantier, la planification et les finances sur l'ensemble du cycle de vie des projets de construction.
+ARCEUS est un système d'intelligence opérationnelle pour agences MOE (Maîtrise d'Œuvre). Il centralise la gestion documentaire, le RAG sémantique, l'orchestration multi-agents, le suivi de chantier, la planification et les finances sur l'ensemble du cycle de vie des projets de construction.
 
-Stack : **FastAPI** (async) · **PostgreSQL + pgvector** · **MinIO** · **Ollama/OpenAI** · **LlamaIndex** · **Docker Compose**
+Stack : **FastAPI** (async) · **PostgreSQL + pgvector** · **LangGraph** · **MinIO** · **Ollama/OpenAI** · **ARQ/Redis** · **Docker Compose**
+
+---
 
 ## Architecture
 
 ```
 ARCEUS/
-├── api/                        # FastAPI — tout le backend
-│   ├── main.py                 # Startup, lifespan, seed admin
-│   ├── database.py             # SQLAlchemy async engine + Base
+├── api/
+│   ├── main.py                     # Startup, lifespan, seed admin
+│   ├── database.py                 # SQLAlchemy async engine + Base
+│   ├── worker.py                   # ARQ worker (jobs background)
 │   ├── core/
-│   │   ├── auth.py             # JWT, RBAC (admin/moe/collaborateur/lecteur)
-│   │   ├── settings.py         # Pydantic Settings (.env)
-│   │   ├── events.py           # Bus événements PostgreSQL LISTEN/NOTIFY
-│   │   ├── registry.py         # Chargeur dynamique de modules
-│   │   ├── base_engine.py      # Classe de base pour les engines de module
+│   │   ├── auth.py                 # JWT, RBAC (admin/moe/collaborateur/lecteur)
+│   │   ├── settings.py             # Pydantic Settings (.env)
+│   │   ├── checkpointer.py         # LangGraph PostgreSQL checkpointer (HITL)
+│   │   ├── queue.py                # ARQ Redis job queue
+│   │   ├── registry.py             # Chargeur dynamique de modules
 │   │   └── services/
-│   │       ├── rag_service.py  # Chunking + embedding + recherche pgvector
-│   │       ├── llm_service.py  # Chat + extraction structurée (Instructor)
+│   │       ├── rag_service.py      # Chunking + embedding + pgvector search
+│   │       ├── llm_service.py      # Chat + extraction structurée
 │   │       └── storage_service.py  # MinIO S3
 │   └── modules/
-│       ├── auth/               # Login, register, seed admin
-│       ├── admin/              # Config YAML, setup wizard
-│       ├── affaires/           # Modèle Affaire (dossier MOE)
-│       └── documents/          # Upload, ingest RAG, recherche sémantique
-├── alembic/                    # Migrations DB
-│   └── versions/
-│       └── 0001_initial_schema.py  # users, affaires, permissions, documents, chunks
-├── db/init.sql                 # Extensions PostgreSQL (pgvector, uuid-ossp, pg_trgm)
-├── modules.yaml                # Registre modules actifs (ordre = ordre de chargement)
-└── docker-compose.yml          # DB + API + MinIO + Ollama + OpenWebUI + Portainer
+│       ├── auth/                   # Login, register, seed admin
+│       ├── admin/                  # Config YAML, setup wizard, healthcheck
+│       ├── affaires/               # Dossiers MOE + contexte projet enrichi
+│       ├── documents/              # Upload, ingest RAG, trigger Thémis
+│       ├── agent/                  # Boucle ReAct, mémoire, outils RAG+web
+│       ├── orchestra/              # LangGraph Zeus, C1-C5, HITL, SSE streaming
+│       └── meeting/                # Analyse CR, extraction actions, OJ
+├── agents/                         # SOUL.md de chaque agent du panthéon
+│   ├── zeus/ hermes/ argos/
+│   ├── athena/ hephaistos/ promethee/ apollon/ dionysos/
+│   ├── themis/ chronos/ ares/
+│   ├── hestia/ mnemosyne/
+│   └── iris/ aphrodite/ dedale/
+├── alembic/versions/               # Migrations séquentielles 0001→0009
+├── modules.yaml                    # Registre modules actifs
+└── docker-compose.yml              # DB + API + MinIO + Redis + Ollama + OpenWebUI
 ```
+
+---
+
+## Le Panthéon — 15 agents + Zeus
+
+| Famille | Agent | Rôle |
+|---|---|---|
+| **Perception** | Hermès | Interface, routage, qualification C1-C5 |
+| | Argos | Observation visuelle, constat objectif (photos, plans) |
+| **Analyse** | Athéna | Structuration des problèmes, scénarios |
+| | Héphaïstos | Faisabilité technique, DTU, matériaux, fiches produits — **veto technique** |
+| | Prométhée | Contre-analyse, détection biais, critique logique |
+| | Apollon | Recherche web + RAG, vérification normative, cohérence finale |
+| | Dionysos | Pensée latérale, rupture créative |
+| **Cadrage** | Thémis | Réglementation + contrat MOE + déontologie — **veto contractuel** |
+| | Chronos | Temps, planning, délais légaux, impacts cascade |
+| | Arès | Action terrain rapide, décisions réversibles C3 |
+| **Continuité** | Hestia | Mémoire projet (décisions, hypothèses, dettes D0-D3) |
+| | Mnémosyne | Mémoire agence (patterns, leçons, précédents) |
+| **Communication** | Iris | Emails humains, correspondance, relances |
+| | Aphrodite | Marketing, réseaux sociaux, storytelling |
+| **Production** | Dédale | Dossiers complets (PC, DCE, DOE, marchés) |
+| **Orchestrateur** | Zeus | Arbitrage stratégique, distribution, jugement, veto global |
+
+---
 
 ## Modèles de données
 
 | Table | Description |
 |---|---|
 | `users` | Comptes utilisateurs, rôle RBAC |
-| `affaires` | Dossiers MOE (projets) |
+| `affaires` | Dossiers MOE + contexte (typology, region, budget, phase, ABF, zones) |
 | `affaire_permissions` | Override de rôle par affaire |
-| `documents` | Fichiers uploadés (PDF/DOCX/TXT) |
-| `chunks` | Fragments RAG avec vecteur `vector(768)` |
+| `documents` | Fichiers uploadés (PDF/DOCX/TXT/images) |
+| `chunks` | Fragments RAG, vecteur `vector(768)`, index HNSW |
+| `agent_runs` | Traces d'exécution agent (steps, sources RAG, durée) |
+| `agent_memory` | Leçons apprises — `scope` : `agence` ou `projet` |
+| `orchestra_runs` | Orchestrations Zeus : plans, assignments, résultats, HITL, criticité |
+| `project_decisions` | Décisions structurées C1-C5 avec dette D0-D3 |
+| `meeting_crs` | Comptes-rendus analysés |
+| `meeting_actions` | Actions extraites avec priorité, statut, échéance |
+| `meeting_agendas` | Ordres du jour générés |
+
+---
+
+## Criticité C1-C5
+
+| Niveau | Nature | Mode |
+|---|---|---|
+| C1 | Information | Agent unique, pas de Zeus |
+| C2 | Question | 1-2 agents |
+| C3 | Décision locale réversible | Zeus optionnel, Arès peut agir |
+| C4 | Décision engageante | Zeus + HITL humain |
+| C5 | Risque majeur | Zeus + HITL + veto check |
+
+---
+
+## Les 3 mémoires
+
+| Mémoire | Scope DB | Agent | Durée |
+|---|---|---|---|
+| **Agence** | `scope='agence'`, `affaire_id=NULL` | Mnémosyne | Permanente |
+| **Projet** | `scope='projet'`, `affaire_id=<uuid>` | Hestia | Durée affaire |
+| **Fonctionnelle** | LangGraph state / Redis | Hermès + Chronos | Session |
+
+---
 
 ## Conventions de code
 
 ### Créer un nouveau module
-
-Chaque module suit ce pattern :
 
 ```
 api/modules/{nom}/
@@ -58,7 +121,7 @@ api/modules/{nom}/
 ├── manifest.yaml       # name, version, description, prefix, depends_on
 ├── models.py           # Modèles SQLAlchemy (héritent de database.Base)
 ├── schemas.py          # Schémas Pydantic request/response
-├── service.py          # Logique métier pure (pas de FastAPI ici)
+├── service.py          # Logique métier pure
 └── router.py           # def get_router(config: dict) -> APIRouter
 ```
 
@@ -67,58 +130,40 @@ Le `registry.py` charge automatiquement `router.get_router(config)` et monte le 
 ### Règles importantes
 
 - **Toujours** hériter de `database.Base` pour les modèles SQLAlchemy
-- **Toujours** déclarer les nouvelles tables dans `alembic/env.py` (imports en haut du fichier)
+- **Toujours** déclarer les nouvelles tables dans `alembic/env.py`
 - **Toujours** créer une migration Alembic pour tout changement de schéma
-- Les **imports circulaires** entre modules sont évités via des imports tardifs (`from modules.x.models import Y` dans les fonctions)
-- Les services partagés (`RagService`, `LlmService`, `StorageService`) sont des **classmethods** — pas d'instanciation
-- Les **dépendances FastAPI** pour l'auth : `Depends(get_current_user)`, `Depends(require_role("admin", "moe"))`
+- Imports circulaires → imports tardifs dans les fonctions
+- Services partagés (`RagService`, `LlmService`, `StorageService`) → classmethods
+- Auth : `Depends(get_current_user)`, `Depends(require_role("admin", "moe"))`
 
-### Patterns SQLAlchemy 2.0
+### Pattern SQLAlchemy 2.0
 
 ```python
-# Requête async
 result = await db.execute(select(Model).where(Model.field == value))
 items = result.scalars().all()
+```
 
-# Recherche pgvector (cosine)
+### Pattern pgvector (cosine)
+
+```python
 rows = await db.execute(
     text("SELECT ... 1 - (embedding <=> :vec::vector) AS score FROM chunks WHERE ..."),
     {"vec": str(embedding_list), ...}
 )
 ```
 
+---
+
 ## Lancer le projet
 
 ```bash
-# 1. Copier et configurer l'environnement
 cp .env.example .env
-# Éditer .env : DB_PASSWORD, JWT_SECRET_KEY, ADMIN_EMAIL, ADMIN_PASSWORD
-
-# 2. Démarrer la stack
 docker compose up -d
-
-# 3. Appliquer les migrations (première fois)
 docker compose exec api alembic upgrade head
-
-# 4. L'API est disponible sur http://localhost:8000
-# Docs Swagger : http://localhost:8000/docs (DEBUG=true uniquement)
+# API : http://localhost:8000 | Docs : http://localhost:8000/docs (DEBUG=true)
 ```
 
-## Endpoints principaux
-
-```
-POST /auth/login           → JWT { access_token }
-POST /auth/register        → Créer utilisateur (admin)
-GET  /auth/me              → Profil courant
-GET  /auth/users           → Liste utilisateurs (admin)
-
-POST /documents/upload     → Upload fichier + ingest RAG (multipart)
-POST /documents/search     → Recherche sémantique { query, affaire_id, top_k }
-GET  /documents/?affaire_id=... → Liste documents
-
-GET  /admin/setup/status   → Santé de tous les services
-GET  /health               → Healthcheck API
-```
+---
 
 ## Variables d'environnement clés
 
@@ -130,43 +175,24 @@ OLLAMA_MODEL=mistral:7b
 EMBEDDING_PROVIDER=ollama
 OLLAMA_EMBEDDING_MODEL=nomic-embed-text
 EMBEDDING_DIM=768
+REDIS_URL=redis://redis:6379/0
+AGENTS_DIR=/agents
 ADMIN_EMAIL=admin@agence.fr
-ADMIN_PASSWORD=changeme      # À changer en prod
+ADMIN_PASSWORD=changeme
 ```
 
-## Utiliser OpenClaude sur ce projet
+---
 
-Pour travailler sur ARCEUS avec un LLM local (Ollama) au lieu des modèles Anthropic :
+## Migrations Alembic — séquence
 
-```bash
-# 1. Installer OpenClaude
-npm install -g @gitlawb/openclaude
-
-# 2. Configurer (voir scripts/openclaude-setup.sh)
-source scripts/openclaude-setup.sh
-
-# 3. Lancer
-openclaude
-```
-
-Le script pointe OpenClaude vers l'Ollama du docker-compose (port 11434).
-Modèle recommandé pour du code : `qwen2.5-coder:14b` ou `deepseek-coder-v2:16b`.
-
-```bash
-# Pull du modèle dans Ollama
-docker compose exec ollama ollama pull qwen2.5-coder:14b
-```
-
-## Roadmap modules
-
-| Module | Statut | Description |
-|---|---|---|
-| `auth` | ✅ v0 | Login JWT, RBAC 4 rôles |
-| `admin` | ✅ v0 | Config YAML, setup wizard |
-| `documents` | ✅ v0 | Upload + RAG |
-| `affaires` | ⬜ next | CRUD dossiers MOE |
-| `planning` | ⬜ v1 | Gantt, lots, impacts cascade |
-| `meeting` | ⬜ v1 | Analyse CR → actions |
-| `finance` | ⬜ v2 | Situations, avenants, budget |
-| `communications` | ⬜ v2 | Registre courrier |
-| `notifications` | ⬜ v1 | SMTP, Telegram, WhatsApp |
+| Migration | Contenu |
+|---|---|
+| 0001 | users, affaires, permissions, documents, chunks |
+| 0002 | agent_runs |
+| 0003 | orchestra_runs |
+| 0004 | agent_memory |
+| 0005 | agent_runs.sources |
+| 0006 | orchestra_runs HITL |
+| 0007 | meeting (crs, actions, agendas) |
+| 0008 | agent_memory.scope + orchestra_runs.criticite + project_decisions |
+| 0009 | affaires contexte enrichi (typology, region, budget, phase, ABF, zones) |
