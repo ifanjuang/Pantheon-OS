@@ -2,15 +2,20 @@
 OrchestraService — boucle de coordination multi-agents via LangGraph.
 
 Graphe Zeus :
-  [plan_agents] → [zeus_distribute] → [execute_agents] → [zeus_judge]
-                                                               │
-                                          ┌────────────────────┘
-                                          │ needs_complement
-                                          ▼
-                                   [execute_complements] → [synthesize]
-                                          │ complete
-                                          ▼
-                                      [synthesize]
+  [plan_agents] → [zeus_distribute] → [dispatch_subtasks] → [veto_check] → [zeus_judge]
+                        ↑ HITL C4/C5                               │ needs_complement
+                                                    ┌──────────────┘
+                                                    ▼
+                                           [execute_complements] → [synthesize]
+                                                    │ complete
+                                                    ▼
+                                               [synthesize]
+
+Patterns d'exécution dans dispatch_subtasks :
+  solo     — un seul agent
+  parallel — agents indépendants simultanés (asyncio.gather)
+  cascade  — séquence : chaque agent reçoit le contexte du précédent
+  arena    — agents en parallèle + juge qui arbitre
 """
 import asyncio
 import json
@@ -61,7 +66,7 @@ VALID_AGENTS = {
 # ── Prompts Zeus ────────────────────────────────────────────────────
 
 _ZEUS_PLAN_PROMPT = """\
-Tu reçois une demande et les plans de {n} agents. Distribue les rôles.
+Tu reçois une demande et les plans de {n} agents. Organise leur collaboration en sous-tâches.
 
 ## Demande
 {instruction}
@@ -69,14 +74,51 @@ Tu reçois une demande et les plans de {n} agents. Distribue les rôles.
 ## Plans des agents
 {plans}
 
+Patterns disponibles :
+- "solo"     : un agent seul
+- "parallel" : agents indépendants, en parallèle
+- "cascade"  : séquence — chaque agent reçoit les résultats du précédent
+- "arena"    : compétition — agents sur la même question, un juge tranche (exige "judge")
+
 Réponds en JSON strict (aucun texte en dehors) :
 {{
-  "reasoning": "...",
-  "assignments": [
-    {{"agent": "<nom>", "instruction": "<instruction autonome complète>", "priority": 1}}
+  "reasoning": "Pourquoi cette organisation",
+  "criticite": "C3",
+  "subtasks": [
+    {{
+      "id": "T1",
+      "pattern": "cascade",
+      "agents": ["argos", "hephaistos"],
+      "instruction": "Instruction spécifique à cette sous-tâche (optionnel)",
+      "depends_on": []
+    }},
+    {{
+      "id": "T2",
+      "pattern": "arena",
+      "agents": ["athena", "dionysos"],
+      "judge": "apollon",
+      "instruction": "",
+      "depends_on": []
+    }},
+    {{
+      "id": "T3",
+      "pattern": "solo",
+      "agents": ["chronos"],
+      "instruction": "",
+      "depends_on": ["T1"]
+    }}
   ],
   "synthesis_agent": "<nom>"
 }}
+
+Règles :
+- Au moins une sous-tâche
+- "arena" exige "judge" (apollon pour faits/normes, zeus pour arbitrage stratégique)
+- "depends_on" = IDs des sous-tâches prérequises ([] = démarre immédiatement)
+- Promethée systématiquement pour C4+
+- Chronos si impact planning
+- Agents disponibles : hermes, argos, athena, hephaistos, promethee, apollon, dionysos,
+  themis, chronos, ares, hestia, mnemosyne, iris, aphrodite, dedale
 """
 
 _ZEUS_JUDGE_PROMPT = """\
@@ -105,6 +147,23 @@ Ou si des compléments sont nécessaires (une seule fois !) :
 }}
 """
 
+_ARENA_JUDGE_PROMPT = """\
+Tu arbitres une arène entre {n} agents sur la même question.
+
+## Question
+{instruction}
+
+## Propositions des agents
+{proposals}
+
+Analyse chaque proposition. Synthétise ou retiens la plus solide.
+Structure ta réponse :
+1. **Proposition retenue / synthèse** : quelle option et pourquoi
+2. **Points forts** : ce qui est solide dans les propositions
+3. **Réserves** : ce qui doit être pondéré ou nuancé
+4. **Recommandation finale** : ta conclusion opérationnelle
+"""
+
 _SYNTHESIS_PROMPT_TEMPLATE = """\
 {synthesis_instruction}
 
@@ -129,13 +188,15 @@ class OrchestraState(TypedDict):
     # Phase 1
     agent_plans: dict           # {agent_name: {plan, needs, difficulties, expected_output}}
 
-    # Phase 2
+    # Phase 2 — Zeus plan
     zeus_reasoning: str
-    assignments: list           # [{agent, instruction, priority}]
+    subtasks: list              # [{id, pattern, agents, judge?, instruction, depends_on}]
+    assignments: list           # [{agent, instruction, priority}] — compat + complements
     synthesis_agent: str
 
-    # Phase 3
-    agent_results: dict         # {agent_name: result_text}
+    # Phase 3 — exécution
+    agent_results: dict         # {agent_name: result_text} — vue plate pour veto/synthèse
+    subtask_results: dict       # {task_id: {agent_name: result_text}} — vue structurée
     agent_run_ids: list         # UUIDs des AgentRun créés
 
     # Phase 3b — compléments (optionnel, une fois)
@@ -227,6 +288,121 @@ async def _run_agent_isolated(agent: str, instruction: str, affaire_id: UUID, us
         return agent, run.result or "", str(run.id)
 
 
+# ── Patterns d'exécution ────────────────────────────────────────────
+
+def _topological_levels(subtasks: list[dict]) -> list[list[dict]]:
+    """Groupe les sous-tâches par niveau d'exécution (tri topologique BFS).
+    Les sous-tâches sans dépendances forment le niveau 0, etc."""
+    if not subtasks:
+        return []
+    completed: set[str] = set()
+    remaining = list(subtasks)
+    levels = []
+    while remaining:
+        ready = [t for t in remaining if all(dep in completed for dep in t.get("depends_on", []))]
+        if not ready:
+            # Dépendance circulaire ou manquante → tout exécuter
+            ready = remaining
+        levels.append(ready)
+        completed.update(t["id"] for t in ready)
+        remaining = [t for t in remaining if t["id"] not in completed]
+    return levels
+
+
+async def _exec_parallel(
+    agents_instructions: dict[str, str],
+    affaire_uuid: UUID,
+    user_uuid: UUID | None,
+) -> tuple[dict, list]:
+    """Exécute plusieurs agents en parallèle. {agent: instruction} → ({agent: result}, [run_ids])"""
+    tasks = [
+        _run_agent_isolated(agent, instr, affaire_uuid, user_uuid)
+        for agent, instr in agents_instructions.items()
+    ]
+    raw = await asyncio.gather(*tasks, return_exceptions=True)
+    results, run_ids = {}, []
+    for r in raw:
+        if isinstance(r, Exception):
+            log.error("orchestra.parallel_failed", error=str(r))
+            continue
+        agent_name, result_text, run_id = r
+        results[agent_name] = result_text
+        run_ids.append(run_id)
+    return results, run_ids
+
+
+async def _exec_cascade(
+    agents: list[str],
+    instruction: str,
+    affaire_uuid: UUID,
+    user_uuid: UUID | None,
+) -> tuple[dict, list]:
+    """Exécute les agents en séquence — chaque agent reçoit le contexte des précédents."""
+    results, run_ids = {}, []
+    for agent in agents:
+        if results:
+            prior = "\n\n".join(f"### {a}\n{r}" for a, r in results.items())
+            agent_instruction = (
+                f"{instruction}\n\n"
+                f"## Contexte — analyses précédentes\n{prior}\n\n"
+                f"Appuie ton analyse sur ce qui précède."
+            )
+        else:
+            agent_instruction = instruction
+        try:
+            _, result_text, run_id = await _run_agent_isolated(agent, agent_instruction, affaire_uuid, user_uuid)
+            results[agent] = result_text
+            run_ids.append(run_id)
+        except Exception as exc:
+            log.error("orchestra.cascade_failed", agent=agent, error=str(exc))
+    return results, run_ids
+
+
+async def _exec_arena(
+    agents: list[str],
+    judge: str,
+    instruction: str,
+    affaire_uuid: UUID,
+    user_uuid: UUID | None,
+) -> tuple[dict, list]:
+    """Round 0 : agents en parallèle sur la même question.
+    Round 1 : le juge reçoit toutes les propositions et arbitre."""
+    # Round 0 — propositions indépendantes
+    tasks = [_run_agent_isolated(a, instruction, affaire_uuid, user_uuid) for a in agents]
+    raw = await asyncio.gather(*tasks, return_exceptions=True)
+    results, run_ids = {}, []
+    for r in raw:
+        if isinstance(r, Exception):
+            log.error("orchestra.arena_round0_failed", error=str(r))
+            continue
+        agent_name, result_text, run_id = r
+        results[agent_name] = result_text
+        run_ids.append(run_id)
+
+    if not results:
+        return results, run_ids
+
+    # Round 1 — arbitrage du juge
+    proposals_text = "\n\n".join(
+        f"## Proposition {agent}\n{result}"
+        for agent, result in results.items()
+    )
+    judge_instruction = _ARENA_JUDGE_PROMPT.format(
+        n=len(results),
+        instruction=instruction,
+        proposals=proposals_text,
+    )
+    judge_key = f"{judge}__verdict"
+    try:
+        _, judge_result, judge_run_id = await _run_agent_isolated(judge, judge_instruction, affaire_uuid, user_uuid)
+        results[judge_key] = judge_result
+        run_ids.append(judge_run_id)
+    except Exception as exc:
+        log.error("orchestra.arena_judge_failed", judge=judge, error=str(exc))
+
+    return results, run_ids
+
+
 # ── Nœuds LangGraph ────────────────────────────────────────────────
 
 def _make_nodes(affaire_uuid: UUID, user_uuid: UUID | None):
@@ -244,7 +420,7 @@ def _make_nodes(affaire_uuid: UUID, user_uuid: UUID | None):
         return {"agent_plans": plans}
 
     async def zeus_distribute(state: OrchestraState) -> dict:
-        """Phase 2 — Zeus analyse les plans et redistribue les rôles."""
+        """Phase 2 — Zeus analyse les plans et organise les sous-tâches avec patterns."""
         plans_text = "\n\n".join(
             f"### {agent}\n"
             f"Plan : {p['plan']}\n"
@@ -261,28 +437,70 @@ def _make_nodes(affaire_uuid: UUID, user_uuid: UUID | None):
         content = await _llm_call(_zeus_system(), prompt)
         parsed = _parse_json_response(content)
 
+        # ── Parsing subtasks (nouveau format) ─────────────────────
+        raw_subtasks = parsed.get("subtasks", [])
+        subtasks = []
+        for st in raw_subtasks:
+            agents = [a for a in st.get("agents", []) if a in VALID_AGENTS]
+            if not agents:
+                continue
+            judge = st.get("judge", "")
+            if judge and judge not in VALID_AGENTS:
+                judge = "apollon"
+            subtasks.append({
+                "id": st.get("id", f"T{len(subtasks) + 1}"),
+                "pattern": st.get("pattern", "parallel"),
+                "agents": agents,
+                "judge": judge,
+                "instruction": st.get("instruction", "") or state["instruction"],
+                "depends_on": st.get("depends_on", []),
+            })
+
+        # ── Fallback : ancien format assignments ───────────────────
         assignments = parsed.get("assignments", [])
-        # Fallback : si Zeus ne retourne rien, relancer les agents initiaux tel quel
-        if not assignments:
+        assignments = [a for a in assignments if a.get("agent") in VALID_AGENTS]
+
+        if not subtasks and not assignments:
+            # Fallback total — relancer les agents initiaux en parallèle
             assignments = [
                 {"agent": a, "instruction": state["instruction"], "priority": 1}
                 for a in state["initial_agents"]
             ]
 
-        # Filtrer les agents invalides
-        assignments = [a for a in assignments if a.get("agent") in VALID_AGENTS]
+        if not subtasks and assignments:
+            # Convertir l'ancien format en une seule sous-tâche parallèle
+            subtasks = [{
+                "id": "T1",
+                "pattern": "parallel",
+                "agents": [a["agent"] for a in assignments],
+                "judge": "",
+                "instruction": state["instruction"],
+                "depends_on": [],
+                "_agent_instructions": {a["agent"]: a.get("instruction", state["instruction"]) for a in assignments},
+            }]
 
-        log.info("orchestra.zeus_distributed", assignments=[a["agent"] for a in assignments])
+        # Pour compat HITL/synthèse — aplatir subtasks → assignments
+        if subtasks and not assignments:
+            assignments = []
+            for st in subtasks:
+                for agent in st["agents"]:
+                    assignments.append({"agent": agent, "instruction": st["instruction"], "priority": 1})
+                if st.get("judge"):
+                    assignments.append({"agent": st["judge"], "instruction": st["instruction"], "priority": 2})
 
+        log.info("orchestra.zeus_distributed",
+                 subtasks=[(s["id"], s["pattern"], s["agents"]) for s in subtasks])
+
+        approval = {}
         # ── Human-in-the-loop : pause avant exécution ─────────────
         if state.get("hitl_enabled"):
             approval = interrupt({
-                "message": "Zeus a distribué les rôles. Validez pour lancer l'exécution.",
+                "message": "Zeus a planifié les sous-tâches. Validez pour lancer l'exécution.",
                 "reasoning": parsed.get("reasoning", ""),
+                "subtasks": subtasks,
                 "assignments": assignments,
                 "synthesis_agent": parsed.get("synthesis_agent", "mnemosyne"),
             })
-            # L'humain peut modifier les assignments
             if approval.get("modified_assignments"):
                 assignments = [
                     a for a in approval["modified_assignments"]
@@ -291,38 +509,89 @@ def _make_nodes(affaire_uuid: UUID, user_uuid: UUID | None):
 
         return {
             "zeus_reasoning": parsed.get("reasoning", ""),
+            "subtasks": subtasks,
             "assignments": assignments,
             "synthesis_agent": parsed.get("synthesis_agent", "mnemosyne"),
-            "hitl_approval": approval if state.get("hitl_enabled") else {},
+            "hitl_approval": approval,
         }
 
-    async def execute_agents(state: OrchestraState) -> dict:
-        """Phase 3 — exécution parallèle des agents assignés."""
-        log.info("orchestra.execute", agents=[a["agent"] for a in state["assignments"]])
+    async def dispatch_subtasks(state: OrchestraState) -> dict:
+        """Phase 3 — dispatch des sous-tâches selon leur pattern.
+        Exécution niveau par niveau (topologique). Au sein d'un niveau,
+        les sous-tâches sans dépendance commune tournent en parallèle."""
+        subtasks = state.get("subtasks", [])
 
-        tasks = [
-            _run_agent_isolated(
-                agent=a["agent"],
-                instruction=a["instruction"],
-                affaire_id=affaire_uuid,
-                user_id=user_uuid,
-            )
-            for a in state["assignments"]
-        ]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        if not subtasks:
+            # Fallback : exécution parallèle simple des assignments
+            log.info("orchestra.dispatch_fallback", agents=[a["agent"] for a in state["assignments"]])
+            agents_instructions = {a["agent"]: a["instruction"] for a in state["assignments"]}
+            results, run_ids = await _exec_parallel(agents_instructions, affaire_uuid, user_uuid)
+            return {
+                "agent_results": results,
+                "subtask_results": {"T1": results},
+                "agent_run_ids": run_ids,
+            }
 
-        agent_results = {}
-        agent_run_ids = []
-        for r in results:
-            if isinstance(r, Exception):
-                log.error("orchestra.agent_failed", error=str(r))
-                continue
-            agent_name, result_text, run_id = r
-            agent_results[agent_name] = result_text
-            agent_run_ids.append(run_id)
+        agent_results: dict = {}
+        subtask_results: dict = {}
+        all_run_ids: list = []
 
-        log.info("orchestra.execution_done", agents=list(agent_results.keys()))
-        return {"agent_results": agent_results, "agent_run_ids": agent_run_ids}
+        levels = _topological_levels(subtasks)
+        log.info("orchestra.dispatch_levels", levels=[[s["id"] for s in lvl] for lvl in levels])
+
+        for level in levels:
+            # Exécuter toutes les sous-tâches de ce niveau en parallèle entre elles
+            level_tasks = []
+            for st in level:
+                instruction = st.get("instruction") or state["instruction"]
+                pattern = st.get("pattern", "parallel")
+                agents = st["agents"]
+                judge = st.get("judge", "")
+
+                # Injecter les résultats des dépendances dans l'instruction
+                deps_results = {}
+                for dep_id in st.get("depends_on", []):
+                    deps_results.update(subtask_results.get(dep_id, {}))
+                if deps_results:
+                    deps_text = "\n\n".join(f"### {a}\n{r}" for a, r in deps_results.items())
+                    instruction = (
+                        f"{instruction}\n\n"
+                        f"## Résultats des sous-tâches précédentes\n{deps_text}"
+                    )
+
+                if pattern == "cascade":
+                    level_tasks.append((st["id"], _exec_cascade(agents, instruction, affaire_uuid, user_uuid)))
+                elif pattern == "arena":
+                    eff_judge = judge if judge in VALID_AGENTS else "apollon"
+                    level_tasks.append((st["id"], _exec_arena(agents, eff_judge, instruction, affaire_uuid, user_uuid)))
+                elif pattern == "solo":
+                    single_agent = agents[0]
+                    level_tasks.append((st["id"], _exec_parallel({single_agent: instruction}, affaire_uuid, user_uuid)))
+                else:  # parallel (default)
+                    # Utiliser les instructions personnalisées par agent si disponibles
+                    agent_instrs = st.get("_agent_instructions", {a: instruction for a in agents})
+                    level_tasks.append((st["id"], _exec_parallel(agent_instrs, affaire_uuid, user_uuid)))
+
+            # Lancer toutes les sous-tâches du niveau en parallèle
+            level_coros = [coro for _, coro in level_tasks]
+            level_ids = [tid for tid, _ in level_tasks]
+            level_results = await asyncio.gather(*level_coros, return_exceptions=True)
+
+            for task_id, result in zip(level_ids, level_results):
+                if isinstance(result, Exception):
+                    log.error("orchestra.subtask_failed", task_id=task_id, error=str(result))
+                    continue
+                task_agent_results, task_run_ids = result
+                subtask_results[task_id] = task_agent_results
+                agent_results.update(task_agent_results)
+                all_run_ids.extend(task_run_ids)
+
+        log.info("orchestra.dispatch_done", agents=list(agent_results.keys()))
+        return {
+            "agent_results": agent_results,
+            "subtask_results": subtask_results,
+            "agent_run_ids": all_run_ids,
+        }
 
     async def zeus_judge(state: OrchestraState) -> dict:
         """Phase 4a — Zeus juge si les résultats sont complets."""
@@ -439,7 +708,7 @@ def _make_nodes(affaire_uuid: UUID, user_uuid: UUID | None):
 
         return {"veto_agent": veto_agent, "veto_motif": veto_motif}
 
-    return plan_agents, zeus_distribute, execute_agents, zeus_judge, execute_complements, synthesize, veto_check
+    return plan_agents, zeus_distribute, dispatch_subtasks, zeus_judge, execute_complements, synthesize, veto_check
 
 
 def _route_after_judge(state: OrchestraState) -> str:
@@ -451,22 +720,22 @@ def _route_after_judge(state: OrchestraState) -> str:
 # ── Graph factory ────────────────────────────────────────────────
 
 def build_graph(affaire_id: UUID, user_id: UUID | None):
-    plan_agents, zeus_distribute, execute_agents, zeus_judge, execute_complements, synthesize, veto_check = \
+    plan_agents, zeus_distribute, dispatch_subtasks, zeus_judge, execute_complements, synthesize, veto_check = \
         _make_nodes(affaire_id, user_id)
 
     builder = StateGraph(OrchestraState)
     builder.add_node("plan_agents", plan_agents)
     builder.add_node("zeus_distribute", zeus_distribute)
-    builder.add_node("execute_agents", execute_agents)
-    builder.add_node("veto_check", veto_check)          # ← après execute_agents, avant le jugement
+    builder.add_node("dispatch_subtasks", dispatch_subtasks)
+    builder.add_node("veto_check", veto_check)
     builder.add_node("zeus_judge", zeus_judge)
     builder.add_node("execute_complements", execute_complements)
     builder.add_node("synthesize", synthesize)
 
     builder.set_entry_point("plan_agents")
     builder.add_edge("plan_agents", "zeus_distribute")
-    builder.add_edge("zeus_distribute", "execute_agents")
-    builder.add_edge("execute_agents", "veto_check")
+    builder.add_edge("zeus_distribute", "dispatch_subtasks")
+    builder.add_edge("dispatch_subtasks", "veto_check")
     builder.add_edge("veto_check", "zeus_judge")
     builder.add_conditional_edges("zeus_judge", _route_after_judge, {
         "execute_complements": "execute_complements",
@@ -519,6 +788,8 @@ async def run_orchestra(
             "initial_agents": initial_agents,
             "agent_plans": {},
             "zeus_reasoning": "",
+            "subtasks": [],
+            "subtask_results": {},
             "assignments": [],
             "synthesis_agent": "mnemosyne",
             "agent_results": {},
@@ -535,12 +806,12 @@ async def run_orchestra(
 
         final_state = await graph.ainvoke(initial_state)
 
-        run.agent_plans = final_state.get("agent_plans", {})
+        run.agent_plans    = final_state.get("agent_plans", {})
         run.zeus_reasoning = final_state.get("zeus_reasoning", "")
-        run.assignments = final_state.get("assignments", [])
-        run.agent_results = final_state.get("agent_results", {})
-        run.agent_run_ids = final_state.get("agent_run_ids", [])
-        run.final_answer = final_state.get("final_answer", "")
+        run.assignments    = final_state.get("assignments", [])
+        run.agent_results  = final_state.get("agent_results", {})
+        run.agent_run_ids  = final_state.get("agent_run_ids", [])
+        run.final_answer   = final_state.get("final_answer", "")
         run.synthesis_agent = final_state.get("synthesis_agent", "mnemosyne")
         run.status = "completed"
 
@@ -594,10 +865,13 @@ async def run_orchestra_from_run_id(
             "affaire_id": str(affaire_id),
             "user_id": str(user_id) if user_id else None,
             "initial_agents": initial_agents,
-            "agent_plans": {}, "zeus_reasoning": "", "assignments": [],
-            "synthesis_agent": "mnemosyne", "agent_results": {},
-            "agent_run_ids": [], "complement_done": False,
-            "final_answer": "", "verdict": "",
+            "agent_plans": {}, "zeus_reasoning": "",
+            "subtasks": [], "subtask_results": {},
+            "assignments": [], "synthesis_agent": "mnemosyne",
+            "agent_results": {}, "agent_run_ids": [],
+            "complement_done": False, "final_answer": "", "verdict": "",
+            "criticite": "C2", "veto_agent": "", "veto_motif": "",
+            "hitl_enabled": False, "hitl_approval": {},
         }
         final_state = await graph.ainvoke(initial_state)
 
@@ -657,12 +931,13 @@ async def run_orchestra_hitl(
         "affaire_id": str(affaire_id),
         "user_id": str(user_id) if user_id else None,
         "initial_agents": initial_agents,
-        "agent_plans": {}, "zeus_reasoning": "", "assignments": [],
-        "synthesis_agent": "mnemosyne", "agent_results": {},
-        "agent_run_ids": [], "complement_done": False,
-        "final_answer": "", "verdict": "",
-        "hitl_enabled": True,
-        "hitl_approval": {},
+        "agent_plans": {}, "zeus_reasoning": "",
+        "subtasks": [], "subtask_results": {},
+        "assignments": [], "synthesis_agent": "mnemosyne",
+        "agent_results": {}, "agent_run_ids": [],
+        "complement_done": False, "final_answer": "", "verdict": "",
+        "criticite": "C4", "veto_agent": "", "veto_motif": "",
+        "hitl_enabled": True, "hitl_approval": {},
     }
     config = {"configurable": {"thread_id": thread_id}}
 
@@ -769,12 +1044,13 @@ async def resume_orchestra(
 
 # Mapping nœud LangGraph → label SSE lisible
 _NODE_LABELS = {
-    "plan_agents":          ("planning",  "Collecte des plans agents..."),
-    "zeus_distribute":      ("zeus",      "Zeus analyse et distribue les rôles..."),
-    "execute_agents":       ("executing", "Agents en cours d'exécution..."),
-    "execute_complements":  ("executing", "Compléments en cours..."),
-    "zeus_judge":           ("judging",   "Zeus juge les résultats..."),
-    "synthesize":           ("synthesis", "Synthèse en cours..."),
+    "plan_agents":          ("planning",   "Collecte des plans agents..."),
+    "zeus_distribute":      ("zeus",       "Zeus organise les sous-tâches..."),
+    "dispatch_subtasks":    ("executing",  "Exécution des agents (cascade / arène / parallèle)..."),
+    "veto_check":           ("veto",       "Vérification veto Thémis / Héphaïstos..."),
+    "execute_complements":  ("executing",  "Compléments en cours..."),
+    "zeus_judge":           ("judging",    "Zeus juge les résultats..."),
+    "synthesize":           ("synthesis",  "Synthèse en cours..."),
 }
 
 
@@ -828,6 +1104,8 @@ async def stream_orchestra(
         "initial_agents": initial_agents,
         "agent_plans": {},
         "zeus_reasoning": "",
+        "subtasks": [],
+        "subtask_results": {},
         "assignments": [],
         "synthesis_agent": "mnemosyne",
         "agent_results": {},
@@ -835,6 +1113,11 @@ async def stream_orchestra(
         "complement_done": False,
         "final_answer": "",
         "verdict": "",
+        "criticite": "C2",
+        "veto_agent": "",
+        "veto_motif": "",
+        "hitl_enabled": False,
+        "hitl_approval": {},
     }
 
     final_state: OrchestraState = initial_state.copy()
@@ -865,14 +1148,24 @@ async def stream_orchestra(
                 elif node_name == "zeus_distribute":
                     yield _sse("zeus_decision", {
                         "reasoning": updates.get("zeus_reasoning", ""),
+                        "subtasks": updates.get("subtasks", []),
                         "assignments": updates.get("assignments", []),
                         "synthesis_agent": updates.get("synthesis_agent", "mnemosyne"),
                     })
 
-                elif node_name in ("execute_agents", "execute_complements"):
+                elif node_name in ("dispatch_subtasks", "execute_complements"):
+                    # Émettre un événement par sous-tâche si disponible
+                    subtask_results = updates.get("subtask_results", {})
+                    if subtask_results:
+                        for task_id, task_res in subtask_results.items():
+                            yield _sse("subtask_done", {
+                                "task_id": task_id,
+                                "agents": list(task_res.keys()),
+                                "results": {a: r[:500] for a, r in task_res.items()},
+                            })
                     yield _sse("agents_done", {
                         "results": {
-                            agent: result[:500]   # résumé tronqué dans le stream
+                            agent: result[:500]
                             for agent, result in updates.get("agent_results", {}).items()
                         }
                     })

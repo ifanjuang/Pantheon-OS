@@ -79,11 +79,22 @@ Aphrodite
 ```
 [plan_agents]
      ↓
-[zeus_distribute] ←── interrupt() si hitl_enabled
+[zeus_distribute] ←── interrupt() si hitl_enabled (C4/C5)
+     │                Zeus produit des subtasks avec pattern de collaboration
      ↓
-[execute_agents]  ←── tous les agents en parallèle (asyncio.gather)
+[dispatch_subtasks]
+     │
+     ├─ solo     → 1 agent
+     ├─ parallel → asyncio.gather (N agents simultanés)
+     ├─ cascade  → séquence : chaque agent reçoit le contexte du précédent
+     └─ arena    → round 0 : agents en parallèle
+                   round 1 : juge reçoit toutes les propositions et arbitre
+     │
+     │   Niveaux d'exécution (topologique) :
+     │   Niveau 0 : sous-tâches sans depends_on → parallèles entre elles
+     │   Niveau N : sous-tâches dont les dépendances sont satisfaites
      ↓
-[veto_check]      ←── détecte veto Thémis/Héphaïstos, interrupt() si C4+C5
+[veto_check]      ←── détecte veto Thémis/Héphaïstos, interrupt() si C4/C5
      ↓
 [zeus_judge]
      ├─ needs_complement → [execute_complements] → [synthesize]
@@ -92,11 +103,21 @@ Aphrodite
                                                     [END]
 ```
 
+**Patterns — exemple de décomposition :**
+```
+Demande : "Peut-on transformer ce hangar en logements ?"
+
+T1 [cascade]  : argos → hephaistos → themis   (dépend de [])
+T2 [arena]    : athena vs dionysos, juge=apollon  (dépend de [])
+T3 [parallel] : chronos + mnemosyne            (dépend de ["T1"])
+→ synthèse : hermes
+```
+
 **Modes d'exécution :**
 - `run_orchestra()` — synchrone, bloquant
 - `run_orchestra_from_run_id()` — ARQ worker (Redis queue)
 - `run_orchestra_hitl()` — avec checkpointing PostgreSQL, reprend sur `resume_orchestra()`
-- `stream_orchestra()` — SSE streaming temps réel (événements par nœud)
+- `stream_orchestra()` — SSE streaming (événements `zeus_decision`, `subtask_done`, `agents_done`)
 
 ---
 
@@ -112,8 +133,8 @@ CRITICITE_ROUTING = {
 }
 ```
 
-C4+ → HITL automatique (pause avant `execute_agents`)
-C5 → HITL + veto check après `execute_agents`
+C4+ → HITL automatique (pause après `zeus_distribute`, avant `dispatch_subtasks`)
+C5 → HITL + veto check après `dispatch_subtasks`
 
 ---
 

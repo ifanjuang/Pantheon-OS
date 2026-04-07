@@ -16,9 +16,21 @@ class AgentAssignment(BaseModel):
     priority: int = 1
 
 
+class Subtask(BaseModel):
+    id: str
+    pattern: str = "parallel"        # "solo" | "parallel" | "cascade" | "arena"
+    agents: list[str]
+    judge: str = ""                   # agent arbitre (pattern=arena uniquement)
+    instruction: str = ""             # instruction spécifique à cette sous-tâche (optionnel)
+    depends_on: list[str] = []        # IDs de sous-tâches prérequises
+
+
 class ZeusOrchestration(BaseModel):
     reasoning: str
-    assignments: list[AgentAssignment]
+    criticite: str = "C2"
+    subtasks: list[Subtask] = []
+    # Compat ancien format
+    assignments: list[AgentAssignment] = []
     synthesis_agent: str = "mnemosyne"
 
 
@@ -40,8 +52,8 @@ class OrchestraRequest(BaseModel):
 
 class ApprovalRequest(BaseModel):
     approved: bool
-    feedback: Optional[str] = None          # commentaire libre
-    modified_assignments: Optional[list[dict]] = None  # si l'humain modifie les rôles
+    feedback: Optional[str] = None
+    modified_assignments: Optional[list[dict]] = None
 
 
 class AgentResultSummary(BaseModel):

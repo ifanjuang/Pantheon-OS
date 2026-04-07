@@ -1,7 +1,7 @@
 # DEVLIST — Backlog de développement ARCEUS
 
 > Ce fichier est la source de vérité du backlog. Mis à jour à chaque session.
-> Dernière mise à jour : 2026-04-06
+> Dernière mise à jour : 2026-04-07
 
 ---
 
@@ -98,6 +98,26 @@ Observations terrain, non-conformités, photos de chantier.
 ---
 
 ## Améliorations techniques
+
+### ✅ Orchestration multi-patterns — cascade / arène / parallèle / solo
+Zeus décompose maintenant les demandes en sous-tâches avec un pattern de collaboration.
+
+**Implémenté :**
+- `dispatch_subtasks` remplace `execute_agents` — gère les 4 patterns
+- `_exec_cascade` — séquence avec injection de contexte cumulatif
+- `_exec_arena` — round 0 parallèle + round 1 arbitrage du juge
+- `_exec_parallel` — comportement précédent (asyncio.gather)
+- `_topological_levels` — exécution par niveaux de dépendances
+- Zeus SOUL.md mis à jour — format plan avec subtasks + patterns
+- SSE enrichi — événement `subtask_done` par sous-tâche
+- `OrchestraState` — ajout `subtasks`, `subtask_results`
+- `schemas.py` — ajout `Subtask`
+
+**Améliorations futures (**DEVLIST**) :**
+- Chaîne de veto séquencée (section ci-dessous)
+- Multi-rounds arène (actuellement 1 round — extensible)
+
+---
 
 ### ⬜ Affaires — mise à jour schemas/router
 Les nouveaux champs de contexte (migration 0009) ne sont pas encore exposés dans l'API.
