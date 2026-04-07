@@ -18,6 +18,7 @@ Patterns d'exécution dans dispatch_subtasks :
   arena    — agents en parallèle + juge qui arbitre
 """
 import asyncio
+import functools
 import json
 import time
 from pathlib import Path
@@ -27,6 +28,7 @@ from uuid import UUID
 from langgraph.graph import StateGraph, END
 from langgraph.types import interrupt, Command
 from sqlalchemy.ext.asyncio import AsyncSession
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from core.logging import get_logger
 from core.services.llm_service import LlmService
@@ -222,27 +224,51 @@ class OrchestraState(TypedDict):
 
 # ── Helpers LLM ────────────────────────────────────────────────────
 
+@functools.lru_cache(maxsize=1)
 def _zeus_system() -> str:
+    """Charge SOUL.md de Zeus. Mis en cache (process lifetime)."""
     soul_path = AGENTS_DIR / "zeus" / "SOUL.md"
     return soul_path.read_text(encoding="utf-8") if soul_path.exists() else \
         "Tu es Zeus, orchestrateur. Réponds toujours en JSON strict."
 
 
 def _parse_json_response(content: str) -> dict:
-    """Parse JSON robuste — extrait le bloc JSON même si du texte l'entoure."""
+    """Parse JSON robuste — extraction par accolades équilibrées.
+    Gère correctement les accolades dans les valeurs de chaînes."""
     content = content.strip()
-    # Chercher le premier { et le dernier }
-    start = content.find("{")
-    end = content.rfind("}") + 1
-    if start >= 0 and end > start:
-        try:
-            return json.loads(content[start:end])
-        except json.JSONDecodeError:
-            pass
-    # Fallback — contenu brut dans reasoning
-    return {"reasoning": content, "assignments": [], "synthesis_agent": "mnemosyne"}
+
+    # 1. Parse direct
+    try:
+        return json.loads(content)
+    except json.JSONDecodeError:
+        pass
+
+    # 2. Extraction par parcours des accolades (équilibré)
+    depth = 0
+    start: int | None = None
+    for i, ch in enumerate(content):
+        if ch == "{":
+            if start is None:
+                start = i
+            depth += 1
+        elif ch == "}" and start is not None:
+            depth -= 1
+            if depth == 0:
+                try:
+                    return json.loads(content[start:i + 1])
+                except json.JSONDecodeError:
+                    start = None  # essayer le prochain bloc
+
+    # 3. Fallback
+    return {"reasoning": content[:300], "assignments": [], "synthesis_agent": "mnemosyne"}
 
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=8),
+    retry=retry_if_exception_type(Exception),
+    reraise=True,
+)
 async def _llm_call(system: str, user: str) -> str:
     response = await LlmService._get_client().chat.completions.create(
         model=settings.effective_llm_model,

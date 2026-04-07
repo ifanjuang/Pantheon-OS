@@ -3,7 +3,7 @@ RagService — pipeline RAG hybride (sémantique + full-text + RRF).
 
 Méthodes publiques :
   embed()          : génère un vecteur pour un texte
-  ingest()         : fichier → chunks → embeddings → INSERT chunks
+  ingest()         : fichier → chunks → embeddings → bulk INSERT chunks
   search()         : recherche hybride par défaut (délègue à search_hybrid)
   search_hybrid()  : cosine pgvector + FTS PostgreSQL fusionnés via RRF
   search_semantic(): cosine pgvector seul (pour cas spécifiques)
@@ -18,6 +18,7 @@ Hybrid search :
   - Full-text   : ts_rank PostgreSQL, to_tsvector('french', contenu)
   - Fusion      : Reciprocal Rank Fusion (RRF, k=60)
 """
+import asyncio
 import json
 import tempfile
 import time
@@ -193,6 +194,8 @@ class RagService:
         texts = [node.get_content() for node in nodes]
         embeddings = await cls._get_embed_model().aget_text_embedding_batch(texts)
 
+        # Bulk INSERT — un seul aller-retour DB pour tous les chunks
+        rows = []
         for idx, (node, embedding) in enumerate(zip(nodes, embeddings)):
             meta = {
                 "source_type": source_type,
@@ -200,29 +203,28 @@ class RagService:
                 **extra_meta,
                 **{k: v for k, v in node.metadata.items() if k != "window"},
             }
-            # Stocker la fenêtre contextuelle si présente (SentenceWindow)
             if "window" in node.metadata:
                 meta["window"] = node.metadata["window"]
+            rows.append({
+                "doc_id": str(document_id),
+                "aff_id": str(affaire_id),
+                "contenu": node.get_content(),
+                "embedding": str(embedding),
+                "idx": idx,
+                "meta": json.dumps(meta),
+            })
 
-            await db.execute(
-                text("""
-                    INSERT INTO chunks
-                        (id, document_id, affaire_id, contenu, embedding,
-                         chunk_index, meta, created_at)
-                    VALUES
-                        (uuid_generate_v4(), :doc_id, :aff_id, :contenu,
-                         :embedding::vector, :idx, :meta, now())
-                """),
-                {
-                    "doc_id": str(document_id),
-                    "aff_id": str(affaire_id),
-                    "contenu": node.get_content(),
-                    "embedding": str(embedding),
-                    "idx": idx,
-                    "meta": json.dumps(meta),
-                },
-            )
-
+        await db.execute(
+            text("""
+                INSERT INTO chunks
+                    (id, document_id, affaire_id, contenu, embedding,
+                     chunk_index, meta, created_at)
+                VALUES
+                    (uuid_generate_v4(), :doc_id, :aff_id, :contenu,
+                     :embedding::vector, :idx, :meta, now())
+            """),
+            rows,  # executemany — un seul aller-retour pour tous les chunks
+        )
         await db.commit()
         log.info(
             "rag.ingest",
@@ -277,7 +279,7 @@ class RagService:
         t0 = time.monotonic()
         fetch_k = top_k * 3  # Récupérer plus pour la fusion
 
-        semantic_hits, fts_hits = await __import__("asyncio").gather(
+        semantic_hits, fts_hits = await asyncio.gather(
             cls.search_semantic(db, query, affaire_id, fetch_k, source_type),
             cls._search_fts(db, query, affaire_id, fetch_k, source_type),
         )
@@ -369,20 +371,20 @@ class RagService:
         try:
             rows = await db.execute(
                 text(f"""
-                    SELECT
-                        id,
-                        document_id,
-                        contenu,
-                        meta,
-                        ts_rank_cd(
-                            to_tsvector('french', contenu),
-                            plainto_tsquery('french', :query)
-                        ) AS score
-                    FROM chunks
-                    WHERE affaire_id = :affaire_id
-                      AND to_tsvector('french', contenu) @@
-                          plainto_tsquery('french', :query)
-                    {extra_filter}
+                    SELECT id, document_id, contenu, meta, score
+                    FROM (
+                        SELECT
+                            id,
+                            document_id,
+                            contenu,
+                            meta,
+                            ts_rank_cd(tsv, plainto_tsquery('french', :query)) AS score
+                        FROM chunks,
+                             LATERAL to_tsvector('french', contenu) AS tsv
+                        WHERE affaire_id = :affaire_id
+                          AND tsv @@ plainto_tsquery('french', :query)
+                        {extra_filter}
+                    ) ranked
                     ORDER BY score DESC
                     LIMIT :top_k
                 """),
