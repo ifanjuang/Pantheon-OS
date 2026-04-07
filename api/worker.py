@@ -80,10 +80,36 @@ async def agent_job(
     log.info(f"[agent_job] done run_id={run_id}")
 
 
+async def memory_job(
+    ctx,
+    agent_name: str,
+    instruction: str,
+    result: str,
+    affaire_id: str,
+    run_id: str,
+):
+    """
+    Extrait et stocke les leçons d'un run agent terminé.
+    Planifié par agent/service.py après chaque run complété.
+    """
+    from modules.agent.memory import extract_and_store_memories
+
+    async with AsyncSessionLocal() as db:
+        count = await extract_and_store_memories(
+            agent_name=agent_name,
+            instruction=instruction,
+            result=result,
+            affaire_id=UUID(affaire_id),
+            run_id=UUID(run_id),
+            db=db,
+        )
+    log.info(f"[memory_job] done agent={agent_name} lessons={count} run_id={run_id}")
+
+
 # ── Configuration worker ──────────────────────────────────────────────────────
 
 class WorkerSettings:
-    functions = [orchestra_job, agent_job]
+    functions = [orchestra_job, agent_job, memory_job]
     redis_settings = RedisSettings.from_dsn(settings.REDIS_URL)
     max_jobs = 10
     job_timeout = 600           # 10 min max par job

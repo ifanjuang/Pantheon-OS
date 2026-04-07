@@ -8,12 +8,15 @@ Fonctionnement :
   4. Répète jusqu'à réponse finale ou max_iterations atteint
   5. Persiste l'historique complet dans agent_runs
 """
+import asyncio
+import functools
 import json
 import time
 from pathlib import Path
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from core.logging import get_logger
 from core.services.llm_service import LlmService
@@ -55,8 +58,10 @@ Règles :
 AGENTS_COMMON = (AGENTS_DIR / "AGENTS.md").read_text(encoding="utf-8") if (AGENTS_DIR / "AGENTS.md").exists() else ""
 
 
+@functools.lru_cache(maxsize=32)
 def _build_system_prompt(agent_name: str) -> str:
-    """Charge SOUL.md + MEMORY.md de l'agent demandé. Fallback sur prompt par défaut."""
+    """Charge SOUL.md + MEMORY.md de l'agent demandé. Résultat mis en cache (process lifetime).
+    Fallback sur prompt par défaut si fichier absent."""
     name = agent_name.lower() if agent_name else "athena"
     if name not in VALID_AGENTS:
         name = "athena"
@@ -67,15 +72,12 @@ def _build_system_prompt(agent_name: str) -> str:
     soul = soul_path.read_text(encoding="utf-8") if soul_path.exists() else _DEFAULT_PROMPT
     memory_raw = memory_path.read_text(encoding="utf-8").strip() if memory_path.exists() else ""
 
-    # Ne charger la mémoire que si elle contient du contenu réel (pas juste les commentaires)
     has_memory = any(
         line.strip() and not line.strip().startswith("#") and not line.strip().startswith("<!--")
         for line in memory_raw.splitlines()
     )
     memory_section = f"\n\n## Mémoire permanente\n{memory_raw}" if has_memory else ""
-
     common_section = f"\n\n## Règles communes\n{AGENTS_COMMON}" if AGENTS_COMMON else ""
-
     return f"{soul}{memory_section}{common_section}"
 
 
@@ -161,19 +163,27 @@ async def run_agent(
     final_answer: str | None = None
     model = settings.effective_llm_model
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=8),
+        retry=retry_if_exception_type(Exception),
+        reraise=True,
+    )
+    async def _llm_react_call(msgs: list) -> object:
+        return await LlmService._get_client().chat.completions.create(
+            model=model,
+            messages=msgs,
+            tools=DEFINITIONS,
+            tool_choice="auto",
+            temperature=0.3,
+            max_tokens=2048,
+        )
+
     try:
         for iteration in range(max_iterations):
             t_iter = time.monotonic()
 
-            # Appel LLM avec les outils
-            response = await LlmService._get_client().chat.completions.create(
-                model=model,
-                messages=messages,
-                tools=DEFINITIONS,
-                tool_choice="auto",
-                temperature=0.3,
-                max_tokens=2048,
-            )
+            response = await _llm_react_call(messages)
 
             choice = response.choices[0]
             msg = choice.message
@@ -261,20 +271,36 @@ async def run_agent(
         duration_ms=run.duration_ms,
     )
 
-    # Extraire et stocker les leçons en arrière-plan (fire-and-forget)
+    # Extraire et stocker les leçons via ARQ (job tracé, pas fire-and-forget)
     if run.status == "completed" and run.result:
-        async def _store_memories():
-            async with AsyncSessionLocal() as bg_db:
-                await extract_and_store_memories(
-                    agent_name=agent_name,
-                    instruction=instruction,
-                    result=run.result,
-                    affaire_id=affaire_id,
-                    run_id=run.id,
-                    db=bg_db,
-                )
-        import asyncio
-        asyncio.create_task(_store_memories())
+        try:
+            from core.queue import get_queue
+            pool = await get_queue()
+            await pool.enqueue_job(
+                "memory_job",
+                agent_name=agent_name,
+                instruction=instruction,
+                result=run.result,
+                affaire_id=str(affaire_id),
+                run_id=str(run.id),
+            )
+        except Exception as exc:
+            # Queue indisponible → fallback tâche locale tracée
+            log.warning("agent.memory.queue_failed", error=str(exc))
+            async def _store_memories_fallback():
+                try:
+                    async with AsyncSessionLocal() as bg_db:
+                        await extract_and_store_memories(
+                            agent_name=agent_name,
+                            instruction=instruction,
+                            result=run.result,
+                            affaire_id=affaire_id,
+                            run_id=run.id,
+                            db=bg_db,
+                        )
+                except Exception as e:
+                    log.error("agent.memory.fallback_failed", agent=agent_name, error=str(e))
+            asyncio.ensure_future(_store_memories_fallback())
 
     return run
 

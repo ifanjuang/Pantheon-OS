@@ -75,21 +75,46 @@ async def extract_and_store_memories(
             max_tokens=512,
         )
         content = response.choices[0].message.content or "{}"
-        # Extraction JSON robuste
-        start = content.find("{")
-        end = content.rfind("}") + 1
-        parsed = json.loads(content[start:end]) if start >= 0 and end > start else {}
+        # Parse JSON robuste par accolades équilibrées
+        parsed: dict = {}
+        depth, start = 0, None
+        for i, ch in enumerate(content):
+            if ch == "{":
+                if start is None:
+                    start = i
+                depth += 1
+            elif ch == "}" and start is not None:
+                depth -= 1
+                if depth == 0:
+                    try:
+                        parsed = json.loads(content[start:i + 1])
+                    except json.JSONDecodeError:
+                        start = None
+                    break
         lessons = parsed.get("lessons", [])
 
+        # Charger les leçons existantes pour éviter les doublons
+        existing = set()
+        if affaire_id:
+            rows = await db.execute(
+                select(AgentMemory.lesson).where(
+                    AgentMemory.agent_name == agent_name,
+                    AgentMemory.affaire_id == affaire_id,
+                )
+            )
+            existing = {r[0].strip().lower() for r in rows.all()}
+
         count = 0
-        for lesson in lessons[:3]:  # maximum 3 leçons par run
-            if lesson and len(lesson.strip()) > 10:
+        for lesson in lessons[:3]:
+            lesson = lesson.strip() if lesson else ""
+            if len(lesson) > 10 and lesson.lower() not in existing:
                 db.add(AgentMemory(
                     agent_name=agent_name,
                     affaire_id=affaire_id,
                     source_run_id=run_id,
-                    lesson=lesson.strip(),
+                    lesson=lesson,
                 ))
+                existing.add(lesson.lower())
                 count += 1
 
         if count:
