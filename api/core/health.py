@@ -43,12 +43,42 @@ async def _check_llm() -> str:
         return "error"
 
 
+async def _check_redis() -> str:
+    try:
+        from core.queue import get_queue
+        pool = await get_queue()
+        # ARQ pool exposes the redis connection
+        return "ok"
+    except Exception:
+        return "unavailable"
+
+
+async def _check_events() -> str:
+    try:
+        import core.events as events
+        pool = events.get_pool()
+        return "ok" if pool else "unavailable"
+    except RuntimeError:
+        return "unavailable"
+    except Exception:
+        return "error"
+
+
 @router.get("/health", include_in_schema=False)
 async def health(db: AsyncSession = Depends(get_db)):
     checks: dict = {}
     checks["db"] = await _check_db(db)
     checks["minio"] = await _check_minio()
     checks["llm"] = await _check_llm()
+    checks["redis"] = await _check_redis()
+    checks["events"] = await _check_events()
+
+    # Circuit breaker LLM (état du disjoncteur local)
+    try:
+        from core.circuit_breaker import llm_breaker
+        checks["llm_circuit"] = llm_breaker.state  # closed | open | half_open
+    except Exception:
+        pass
 
     # Provider notifications (si module chargé)
     try:

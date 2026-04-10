@@ -10,6 +10,7 @@ from typing import Optional
 
 from minio import Minio
 from minio.error import S3Error
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from core.settings import settings
 from core.logging import get_logger
@@ -48,6 +49,12 @@ class StorageService:
         return f"{affaire_id}/{module}/{filename}"
 
     @classmethod
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=5),
+        retry=retry_if_exception_type((S3Error, ConnectionError, OSError)),
+        reraise=True,
+    )
     async def upload(
         cls,
         affaire_id: UUID,
@@ -71,6 +78,12 @@ class StorageService:
         return key
 
     @classmethod
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=5),
+        retry=retry_if_exception_type((S3Error, ConnectionError, OSError)),
+        reraise=True,
+    )
     async def download(cls, key: str) -> bytes:
         """Télécharge un fichier depuis MinIO."""
         t0 = time.monotonic()

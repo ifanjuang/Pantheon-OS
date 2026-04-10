@@ -72,12 +72,20 @@ async def lifespan(app: FastAPI):
     # 3. Initialiser le bus d'événements PostgreSQL
     await events.init_pool(settings.ASYNCPG_URL)
 
-    # 4. Seed utilisateur admin par défaut
+    # 4. Créer les tables LangGraph (checkpointer HITL)
+    from core.checkpointer import setup_checkpointer
+    try:
+        await setup_checkpointer()
+        log.info("checkpointer.ready")
+    except Exception as e:
+        log.warning("checkpointer.setup_failed", error=str(e))
+
+    # 5. Seed utilisateur admin par défaut
     from modules.auth.service import seed_admin
     async with AsyncSessionLocal() as db:
         await seed_admin(db)
 
-    # 5. Charger les modules
+    # 6. Charger les modules
     from core.registry import ModuleRegistry
     reg = ModuleRegistry(app)
     reg.load_all("modules.yaml")

@@ -56,15 +56,24 @@ class LlmService:
         temperature: float = 0.7,
         max_tokens: int = 2048,
     ) -> str:
-        """Réponse texte libre."""
+        """Réponse texte libre. Protégé par circuit breaker."""
+        from core.circuit_breaker import llm_breaker
+        llm_breaker.check()  # fail-fast si Ollama est down
+
         t0 = time.monotonic()
         model = model or settings.effective_llm_model
-        response = await cls._get_client().chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
+        try:
+            response = await cls._get_client().chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+            llm_breaker.record_success()
+        except Exception:
+            llm_breaker.record_failure()
+            raise
+
         content = response.choices[0].message.content or ""
         log.info("llm.chat", model=model, tokens=response.usage.total_tokens if response.usage else 0,
                  duration_ms=int((time.monotonic() - t0) * 1000))
@@ -104,9 +113,11 @@ class LlmService:
 
     @classmethod
     async def ping(cls) -> bool:
-        """Vérifie que le LLM est accessible."""
+        """Vérifie que le LLM est accessible. Réinitialise le circuit breaker si OK."""
         try:
             await cls._get_client().models.list()
+            from core.circuit_breaker import llm_breaker
+            llm_breaker.record_success()
             return True
         except Exception as e:
             log.warning("llm.ping_failed", error=str(e))

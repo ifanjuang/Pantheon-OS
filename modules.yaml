@@ -45,9 +45,6 @@ modules:
   - name: rag
     enabled: false
 
-  - name: meeting
-    enabled: false
-
   - name: memory
     enabled: false
 

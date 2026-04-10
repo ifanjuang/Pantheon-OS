@@ -158,11 +158,21 @@ def get_router(config: dict) -> APIRouter:
     async def delete_document(
         document_id: uuid.UUID,
         db: AsyncSession = Depends(get_db),
-        _admin=Depends(require_role("admin", "moe")),
+        current_user=Depends(require_role("admin", "moe")),
     ):
         doc = await db.get(Document, document_id)
         if not doc:
             raise HTTPException(status_code=404, detail="Document introuvable")
+
+        # Vérifier l'accès à l'affaire du document (admin = accès total, moe = vérif par affaire)
+        if doc.affaire_id and current_user.role != "admin":
+            from core.auth import require_affaire_access
+            await require_affaire_access(
+                affaire_id=doc.affaire_id,
+                min_role="moe",
+                user=current_user,
+                db=db,
+            )
 
         # Supprimer chunks
         await RagService.delete_document(db=db, document_id=document_id)
