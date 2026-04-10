@@ -166,6 +166,8 @@ async def run_agent(
     llm_iterations: int = 0
     model = settings.effective_llm_model
 
+    _LLM_AGENT_TIMEOUT = 90  # secondes — empêche un Ollama pendu de figer la boucle
+
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=8),
@@ -173,14 +175,25 @@ async def run_agent(
         reraise=True,
     )
     async def _llm_react_call(msgs: list) -> object:
-        return await LlmService._get_client().chat.completions.create(
-            model=model,
-            messages=msgs,
-            tools=DEFINITIONS,
-            tool_choice="auto",
-            temperature=0.3,
-            max_tokens=2048,
-        )
+        from core.circuit_breaker import llm_breaker
+        llm_breaker.check()  # fail-fast si Ollama est down
+        try:
+            result = await asyncio.wait_for(
+                LlmService._get_client().chat.completions.create(
+                    model=model,
+                    messages=msgs,
+                    tools=DEFINITIONS,
+                    tool_choice="auto",
+                    temperature=0.3,
+                    max_tokens=2048,
+                ),
+                timeout=_LLM_AGENT_TIMEOUT,
+            )
+            llm_breaker.record_success()
+            return result
+        except Exception:
+            llm_breaker.record_failure()
+            raise
 
     try:
         for iteration in range(max_iterations):

@@ -274,19 +274,27 @@ def _parse_json_response(content: str) -> dict:
     reraise=True,
 )
 async def _llm_call(system: str, user: str) -> str:
-    response = await asyncio.wait_for(
-        LlmService._get_client().chat.completions.create(
-            model=settings.effective_llm_model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            temperature=0.2,
-            max_tokens=2048,
-        ),
-        timeout=_LLM_TIMEOUT,
-    )
-    return response.choices[0].message.content or ""
+    from core.circuit_breaker import llm_breaker
+    llm_breaker.check()  # fail-fast si Ollama est down
+
+    try:
+        response = await asyncio.wait_for(
+            LlmService._get_client().chat.completions.create(
+                model=settings.effective_llm_model,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                temperature=0.2,
+                max_tokens=2048,
+            ),
+            timeout=_LLM_TIMEOUT,
+        )
+        llm_breaker.record_success()
+        return response.choices[0].message.content or ""
+    except Exception:
+        llm_breaker.record_failure()
+        raise
 
 
 async def _get_agent_plan(agent_name: str, instruction: str) -> dict:

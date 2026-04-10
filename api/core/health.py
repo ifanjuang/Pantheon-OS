@@ -73,6 +73,13 @@ async def health(db: AsyncSession = Depends(get_db)):
     checks["redis"] = await _check_redis()
     checks["events"] = await _check_events()
 
+    # Circuit breaker LLM (état du disjoncteur local)
+    try:
+        from core.circuit_breaker import llm_breaker
+        checks["llm_circuit"] = llm_breaker.state  # closed | open | half_open
+    except Exception:
+        pass
+
     # Provider notifications (si module chargé)
     try:
         from core.registry import registry

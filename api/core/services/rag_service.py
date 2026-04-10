@@ -377,6 +377,14 @@ class RagService:
             params["source_type"] = source_type
 
         try:
+            # Sanitiser la query FTS : supprimer les caractères spéciaux qui cassent plainto_tsquery
+            import re
+            sanitized_query = re.sub(r'[^\w\s\-àâäéèêëïîôùûüÿçœæ]', ' ', query)
+            sanitized_query = ' '.join(sanitized_query.split())  # normaliser les espaces
+            if not sanitized_query.strip():
+                return []
+            params["query"] = sanitized_query
+
             rows = await db.execute(
                 text(f"""
                     SELECT id, document_id, contenu, meta, score
