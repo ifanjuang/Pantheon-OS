@@ -188,6 +188,158 @@ async def get_agent_memories(
         return []
 
 
+async def consolidate_memories(
+    db: AsyncSession,
+    agent_name: str | None = None,
+    min_lessons: int = 5,
+) -> int:
+    """
+    Consolide les leçons brutes en patterns de plus haut niveau.
+
+    Pour chaque couple (agent, affaire) ayant >= min_lessons leçons valides :
+      1. Regroupe les leçons par catégorie
+      2. Demande au LLM de fusionner en 1-2 patterns synthétiques
+      3. Crée les nouveaux patterns et marque les anciens comme superseded
+
+    Retourne le nombre total de consolidations effectuées.
+    Appelé périodiquement via ARQ cron (1x/jour).
+    """
+    from sqlalchemy import func
+
+    # Trouver les couples (agent, affaire) avec assez de leçons
+    stmt = (
+        select(
+            AgentMemory.agent_name,
+            AgentMemory.affaire_id,
+            AgentMemory.category,
+            func.count(AgentMemory.id).label("cnt"),
+        )
+        .where(
+            AgentMemory.valid_until.is_(None),
+            AgentMemory.superseded_by.is_(None),
+        )
+        .group_by(AgentMemory.agent_name, AgentMemory.affaire_id, AgentMemory.category)
+        .having(func.count(AgentMemory.id) >= min_lessons)
+    )
+    if agent_name:
+        stmt = stmt.where(AgentMemory.agent_name == agent_name)
+
+    groups = (await db.execute(stmt)).all()
+    total_consolidated = 0
+
+    for group in groups:
+        a_name, a_id, category, count = group.agent_name, group.affaire_id, group.category, group.cnt
+        try:
+            # Charger les leçons de ce groupe
+            lessons_rows = await db.execute(
+                select(AgentMemory)
+                .where(
+                    AgentMemory.agent_name == a_name,
+                    AgentMemory.affaire_id == a_id,
+                    AgentMemory.category == category,
+                    AgentMemory.valid_until.is_(None),
+                    AgentMemory.superseded_by.is_(None),
+                )
+                .order_by(AgentMemory.created_at)
+            )
+            lessons = list(lessons_rows.scalars().all())
+            if len(lessons) < min_lessons:
+                continue
+
+            lessons_text = "\n".join(f"- {m.lesson}" for m in lessons)
+
+            consolidation_prompt = (
+                f"Agent : {a_name}\n"
+                f"Catégorie : {category or 'general'}\n"
+                f"Nombre de leçons : {len(lessons)}\n\n"
+                f"Leçons brutes :\n{lessons_text}\n\n"
+                "Fusionne ces leçons en 1 ou 2 patterns synthétiques de haut niveau.\n"
+                "Chaque pattern doit capturer l'essence de plusieurs leçons.\n"
+                "Réponds en JSON strict :\n"
+                '{"patterns": [{"lesson": "...", "category": "..."}]}'
+            )
+
+            response = await LlmService._get_client().chat.completions.create(
+                model=settings.effective_llm_model,
+                messages=[{"role": "user", "content": consolidation_prompt}],
+                temperature=0.1,
+                max_tokens=400,
+            )
+            content = response.choices[0].message.content or "{}"
+
+            # Parse JSON
+            parsed: dict = {}
+            depth, start = 0, None
+            for i, ch in enumerate(content):
+                if ch == "{":
+                    if start is None:
+                        start = i
+                    depth += 1
+                elif ch == "}" and start is not None:
+                    depth -= 1
+                    if depth == 0:
+                        try:
+                            parsed = json.loads(content[start:i + 1])
+                        except json.JSONDecodeError:
+                            start = None
+                        break
+
+            patterns = parsed.get("patterns", [])
+            if not patterns:
+                continue
+
+            # Créer les nouveaux patterns et marquer les anciens
+            from datetime import datetime, timezone
+            now = datetime.now(timezone.utc)
+
+            for pattern_data in patterns[:2]:
+                p_text = pattern_data.get("lesson", "").strip()
+                p_cat = pattern_data.get("category", category)
+                if not p_text or len(p_text) < 10:
+                    continue
+                if p_cat not in MEMORY_CATEGORIES:
+                    p_cat = category or "general"
+
+                new_memory = AgentMemory(
+                    agent_name=a_name,
+                    affaire_id=a_id,
+                    lesson=p_text,
+                    scope="projet" if a_id else "agence",
+                    category=p_cat,
+                )
+                db.add(new_memory)
+                await db.flush()
+
+                # Marquer les anciennes leçons comme superseded
+                for old in lessons:
+                    old.valid_until = now
+                    old.superseded_by = new_memory.id
+
+                total_consolidated += len(lessons)
+
+            await db.commit()
+            log.info(
+                "agent.memory.consolidated",
+                agent=a_name,
+                affaire_id=str(a_id),
+                category=category,
+                old_count=len(lessons),
+                new_patterns=len(patterns),
+            )
+
+        except Exception as exc:
+            log.warning(
+                "agent.memory.consolidation_failed",
+                agent=a_name,
+                category=category,
+                error=str(exc),
+            )
+            await db.rollback()
+            continue
+
+    return total_consolidated
+
+
 async def invalidate_memory(
     db: AsyncSession,
     memory_id: UUID,

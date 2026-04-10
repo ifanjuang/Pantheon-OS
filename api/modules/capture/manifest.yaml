@@ -1,0 +1,7 @@
+name: capture
+version: "0.1.0"
+description: "NoobScribe — capture vocale chantier, transcription et structuration"
+prefix: /capture
+depends_on:
+  - agent
+  - documents

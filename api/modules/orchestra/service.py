@@ -12,10 +12,11 @@ Graphe Zeus :
                                                [synthesize]
 
 Patterns d'exécution dans dispatch_subtasks :
-  solo     — un seul agent
-  parallel — agents indépendants simultanés (asyncio.gather)
-  cascade  — séquence : chaque agent reçoit le contexte du précédent
-  arena    — agents en parallèle + juge qui arbitre
+  solo        — un seul agent
+  parallel    — agents indépendants simultanés (asyncio.gather)
+  cascade     — séquence : chaque agent reçoit le contexte du précédent
+  arena       — agents en parallèle + juge qui arbitre
+  exploration — pipeline créatif : Dionysos → Prométhée → Apollon
 """
 import asyncio
 import functools
@@ -85,6 +86,7 @@ Patterns disponibles :
 - "parallel" : agents indépendants, en parallèle
 - "cascade"  : séquence — chaque agent reçoit les résultats du précédent
 - "arena"    : compétition — agents sur la même question, un juge tranche (exige "judge")
+- "exploration" : pipeline créatif — Dionysos (options latérales) → Prométhée (critique) → Apollon (vérification)
 
 Réponds en JSON strict (aucun texte en dehors) :
 {{
@@ -605,6 +607,13 @@ def _make_nodes(affaire_uuid: UUID, user_uuid: UUID | None):
                 elif pattern == "arena":
                     eff_judge = judge if judge in VALID_AGENTS else "apollon"
                     level_tasks.append((st["id"], _exec_arena(agents, eff_judge, instruction, affaire_uuid, user_uuid)))
+                elif pattern == "exploration":
+                    # Exploration créative : Dionysos → Prométhée → Apollon
+                    exploration_agents = ["dionysos", "promethee", "apollon"]
+                    # Override agents si spécifié dans la subtask, sinon utiliser le pipeline standard
+                    if len(agents) >= 2:
+                        exploration_agents = agents
+                    level_tasks.append((st["id"], _exec_cascade(exploration_agents, instruction, affaire_uuid, user_uuid)))
                 elif pattern == "solo":
                     single_agent = agents[0]
                     level_tasks.append((st["id"], _exec_parallel({single_agent: instruction}, affaire_uuid, user_uuid)))

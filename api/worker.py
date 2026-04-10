@@ -220,10 +220,54 @@ async def memory_job(
     log.info(f"[memory_job] done agent={agent_name} lessons={count} run_id={run_id}")
 
 
+async def memory_consolidation_job(ctx):
+    """
+    Consolide les leçons brutes en patterns de haut niveau.
+    Exécuté périodiquement (cron 1x/jour) via ARQ.
+    """
+    from modules.agent.memory import consolidate_memories
+
+    log.info("[memory_consolidation_job] start")
+    async with AsyncSessionLocal() as db:
+        total = await consolidate_memories(db=db)
+    log.info(f"[memory_consolidation_job] done consolidated={total}")
+
+
+async def capture_job(
+    ctx,
+    capture_id: str,
+    affaire_id: str,
+    user_id: str | None,
+):
+    """
+    Traite une session de capture vocale NoobScribe :
+      1. Transcription audio (Whisper)
+      2. Passage par le pipeline agent
+    """
+    from modules.capture.service import process_capture
+
+    log.info(f"[capture_job] start capture_id={capture_id}")
+    async with AsyncSessionLocal() as db:
+        await process_capture(
+            db=db,
+            capture_id=UUID(capture_id),
+            affaire_id=UUID(affaire_id),
+            user_id=UUID(user_id) if user_id else None,
+        )
+    log.info(f"[capture_job] done capture_id={capture_id}")
+
+
 # ── Configuration worker ──────────────────────────────────────────────────────
 
 class WorkerSettings:
-    functions = [orchestra_job, agent_job, memory_job, telegram_message_job]
+    functions = [
+        orchestra_job, agent_job, memory_job, telegram_message_job,
+        capture_job, memory_consolidation_job,
+    ]
+    cron_jobs = [
+        # Consolidation mémoire : 1x/jour à 03:00 UTC
+        cron(memory_consolidation_job, hour=3, minute=0, run_at_startup=False),
+    ]
     redis_settings = RedisSettings.from_dsn(settings.REDIS_URL)
     max_jobs = 10
     job_timeout = 600           # 10 min max par job

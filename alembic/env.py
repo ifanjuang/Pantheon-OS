@@ -20,6 +20,7 @@ from modules.agent.models import AgentRun, AgentMemory   # noqa: F401
 from modules.orchestra.models import OrchestraRun        # noqa: F401
 from modules.meeting.models import MeetingCR, MeetingAction, MeetingAgenda  # noqa: F401
 from modules.webhooks.models import WebhookSession                           # noqa: F401
+from modules.capture.models import CaptureSession                            # noqa: F401
 
 config = context.config
 
