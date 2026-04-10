@@ -16,7 +16,14 @@ def _now() -> datetime:
 
 
 class AgentMemory(Base):
-    """Leçons apprises par un agent sur une affaire — mémoire dynamique persistée."""
+    """Leçons apprises par un agent sur une affaire — mémoire dynamique persistée.
+
+    Mémoire temporelle :
+      - valid_until  : NULL = toujours valide ; sinon date à partir de laquelle le fait est obsolète
+      - superseded_by: pointe vers la leçon plus récente qui remplace celle-ci
+      - category     : catégorisation thématique pour filtrage hiérarchique
+                       (technique, planning, budget, contractuel, general)
+    """
     __tablename__ = "agent_memory"
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -37,6 +44,17 @@ class AgentMemory(Base):
     lesson: Mapped[str] = mapped_column(Text, nullable=False)
     scope: Mapped[str] = mapped_column(String(20), nullable=False, default="agence", index=True)
     # scope: 'agence' (apprentissage global) | 'projet' (continuité affaire)
+    category: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    # technique | planning | budget | contractuel | general
+    valid_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True,
+    )
+    # NULL = toujours valide ; sinon la leçon est obsolète à partir de cette date
+    superseded_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("agent_memory.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=_now
     )
@@ -64,6 +82,8 @@ class AgentRun(Base):
     )
     instruction: Mapped[str] = mapped_column(Text, nullable=False)
     result: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Erreur séparée du contenu produit (failure distincte du résultat utile)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="running")
     # running | completed | failed
     steps: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)

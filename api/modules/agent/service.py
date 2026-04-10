@@ -15,6 +15,7 @@ import time
 from pathlib import Path
 from uuid import UUID
 
+import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
@@ -141,8 +142,6 @@ async def run_agent(
         memories_text = "\n".join(f"- {m}" for m in memories)
         system_prompt += f"\n\n## Mémoire dynamique — ce que tu as appris sur cette affaire\n{memories_text}"
 
-    log.info("agent.start", agent=agent_name, affaire_id=str(affaire_id))
-
     run = AgentRun(
         affaire_id=affaire_id,
         user_id=user_id,
@@ -153,6 +152,9 @@ async def run_agent(
     db.add(run)
     await db.flush()  # obtenir l'id sans commit
 
+    structlog.contextvars.bind_contextvars(run_id=str(run.id), run_type="agent", agent=agent_name)
+    log.info("agent.start", affaire_id=str(affaire_id))
+
     messages = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": instruction},
@@ -161,6 +163,7 @@ async def run_agent(
     steps: list[dict] = []
     all_sources: list[dict] = []   # sources RAG collectées sur tous les appels d'outils
     final_answer: str | None = None
+    llm_iterations: int = 0
     model = settings.effective_llm_model
 
     @retry(
@@ -181,6 +184,7 @@ async def run_agent(
 
     try:
         for iteration in range(max_iterations):
+            llm_iterations += 1
             t_iter = time.monotonic()
 
             response = await _llm_react_call(messages)
@@ -251,17 +255,19 @@ async def run_agent(
         run.result = final_answer
 
     except Exception as exc:
-        log.error("agent.run_failed", run_id=str(run.id), error=str(exc))
+        log.error("agent.run_failed", error=str(exc))
         run.status = "failed"
+        run.error_message = str(exc)
         run.result = f"Erreur lors de l'exécution : {exc}"
 
     finally:
         run.steps = steps
         run.sources = all_sources
-        run.iterations = len([s for s in steps]) // max(len(DEFINITIONS), 1) + 1
+        run.iterations = llm_iterations
         run.duration_ms = int((time.monotonic() - t_start) * 1000)
         await db.commit()
         await db.refresh(run)
+        structlog.contextvars.unbind_contextvars("run_id", "run_type", "agent")
 
     log.info(
         "agent.run_complete",
@@ -300,7 +306,9 @@ async def run_agent(
                         )
                 except Exception as e:
                     log.error("agent.memory.fallback_failed", agent=agent_name, error=str(e))
-            asyncio.ensure_future(_store_memories_fallback())
+            # create_task conserve une référence forte (évite le garbage-collect de ensure_future)
+            task = asyncio.create_task(_store_memories_fallback())
+            task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)
 
     return run
 

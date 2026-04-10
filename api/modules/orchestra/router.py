@@ -43,13 +43,15 @@ def get_router(config: dict) -> APIRouter:
         Pour un résultat en temps réel, utiliser POST /orchestra/stream.
         """
         # Créer le run en DB (status=queued) avant d'enqueuer
-        from modules.orchestra.service import VALID_AGENTS, DEFAULT_AGENTS
+        from modules.orchestra.service import VALID_AGENTS, DEFAULT_AGENTS, CRITICITE_ROUTING
         initial_agents = [a for a in (payload.agents or DEFAULT_AGENTS) if a in VALID_AGENTS] or DEFAULT_AGENTS
+        effective_criticite = payload.criticite if payload.criticite in CRITICITE_ROUTING else "C2"
         run = OrchestraRun(
             affaire_id=payload.affaire_id,
             user_id=current_user.id,
             instruction=payload.instruction,
             initial_agents=initial_agents,
+            criticite=effective_criticite,
             status="queued",
         )
         db.add(run)
@@ -66,6 +68,7 @@ def get_router(config: dict) -> APIRouter:
                 str(payload.affaire_id),
                 str(current_user.id),
                 payload.agents,
+                effective_criticite,
             )
         except Exception:
             # Si Redis indisponible, exécuter en synchrone (fallback)
@@ -109,6 +112,7 @@ def get_router(config: dict) -> APIRouter:
                 affaire_id=payload.affaire_id,
                 user_id=current_user.id,
                 agents=payload.agents,
+                criticite=payload.criticite if hasattr(payload, "criticite") else "C2",
             ),
             media_type="text/event-stream",
             headers={
@@ -202,6 +206,12 @@ def _to_response(run: OrchestraRun) -> OrchestraResponse:
         agent_results=run.agent_results or {},
         synthesis_agent=run.synthesis_agent,
         final_answer=run.final_answer,
+        subtasks=run.subtasks or [],
+        subtask_results=run.subtask_results or {},
+        veto_agent=run.veto_agent,
+        veto_motif=run.veto_motif,
+        error_message=run.error_message,
+        criticite=run.criticite or "C2",
         hitl_enabled=run.hitl_enabled or False,
         hitl_payload=run.hitl_payload,
         duration_ms=run.duration_ms,

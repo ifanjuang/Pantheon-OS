@@ -29,6 +29,8 @@ log = get_logger("events")
 
 _handlers: dict[str, list[Callable]] = defaultdict(list)
 _pool: asyncpg.Pool | None = None
+# Connexions dédiées aux listeners — conservées pour éviter les fuites de pool
+_listener_conns: list[asyncpg.Connection] = []
 
 
 async def init_pool(dsn: str) -> asyncpg.Pool:
@@ -41,6 +43,13 @@ async def init_pool(dsn: str) -> asyncpg.Pool:
 
 async def close_pool() -> None:
     global _pool
+    # Fermer les connexions listeners dédiées
+    for conn in _listener_conns:
+        try:
+            await conn.close()
+        except Exception:
+            pass
+    _listener_conns.clear()
     if _pool:
         await _pool.close()
         _pool = None
@@ -56,14 +65,14 @@ async def subscribe(channel: str, handler: Callable, pool: asyncpg.Pool | None =
     """
     Abonne un handler à un channel PostgreSQL.
     handler(payload: dict) sera appelé à chaque NOTIFY.
+    La connexion est conservée dans _listener_conns et libérée proprement dans close_pool().
     """
     pool = pool or get_pool()
     _handlers[channel].append(handler)
     conn = await pool.acquire()
+    _listener_conns.append(conn)
     await conn.add_listener(channel, _dispatch)
     log.info("events.subscribed", channel=channel, handler=handler.__qualname__)
-    # La connexion reste ouverte (le listener est actif tant que la connexion vit)
-    # En production, conserver une connexion dédiée par channel
 
 
 async def publish(channel: str, payload: dict, pool: asyncpg.Pool | None = None) -> None:

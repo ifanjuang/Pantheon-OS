@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import TypedDict, Optional
 from uuid import UUID
 
+import structlog
 from langgraph.graph import StateGraph, END
 from langgraph.types import interrupt, Command
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,6 +39,9 @@ from modules.agent.service import run_agent, _build_system_prompt
 from modules.orchestra.models import OrchestraRun
 
 log = get_logger("orchestra.service")
+
+# Timeout d'un appel LLM Zeus (secondes) — empêche un Ollama pendu de figer l'orchestration
+_LLM_TIMEOUT = 90
 
 AGENTS_DIR = Path(settings.AGENTS_DIR) if hasattr(settings, "AGENTS_DIR") else Path(__file__).parent.parent.parent.parent / "agents"
 DEFAULT_AGENTS = ["themis", "athena", "chronos"]
@@ -270,14 +274,17 @@ def _parse_json_response(content: str) -> dict:
     reraise=True,
 )
 async def _llm_call(system: str, user: str) -> str:
-    response = await LlmService._get_client().chat.completions.create(
-        model=settings.effective_llm_model,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user},
-        ],
-        temperature=0.2,
-        max_tokens=2048,
+    response = await asyncio.wait_for(
+        LlmService._get_client().chat.completions.create(
+            model=settings.effective_llm_model,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            temperature=0.2,
+            max_tokens=2048,
+        ),
+        timeout=_LLM_TIMEOUT,
     )
     return response.choices[0].message.content or ""
 
@@ -745,7 +752,13 @@ def _route_after_judge(state: OrchestraState) -> str:
 
 # ── Graph factory ────────────────────────────────────────────────
 
-def build_graph(affaire_id: UUID, user_id: UUID | None):
+def build_graph(affaire_id: UUID, user_id: UUID | None, checkpointer=None):
+    """Construit et compile le graphe Zeus.
+
+    Args:
+        checkpointer: si fourni, le graphe est compilé avec persistence
+                      (requis pour HITL pause/resume).
+    """
     plan_agents, zeus_distribute, dispatch_subtasks, zeus_judge, execute_complements, synthesize, veto_check = \
         _make_nodes(affaire_id, user_id)
 
@@ -770,7 +783,75 @@ def build_graph(affaire_id: UUID, user_id: UUID | None):
     builder.add_edge("execute_complements", "synthesize")
     builder.add_edge("synthesize", END)
 
-    return builder.compile()
+    return builder.compile(checkpointer=checkpointer)
+
+
+# ── Point d'entrée principal ────────────────────────────────────────
+
+def _build_initial_state(
+    instruction: str,
+    affaire_id: UUID,
+    user_id: UUID | None,
+    initial_agents: list[str],
+    criticite: str = "C2",
+    hitl_enabled: bool = False,
+) -> OrchestraState:
+    """Construit l'état initial du graphe Zeus. Factorisé entre les 3 entry points."""
+    return {
+        "instruction": instruction,
+        "affaire_id": str(affaire_id),
+        "user_id": str(user_id) if user_id else None,
+        "initial_agents": initial_agents,
+        "agent_plans": {},
+        "zeus_reasoning": "",
+        "subtasks": [],
+        "subtask_results": {},
+        "assignments": [],
+        "synthesis_agent": "mnemosyne",
+        "agent_results": {},
+        "agent_run_ids": [],
+        "complement_done": False,
+        "final_answer": "",
+        "verdict": "",
+        "criticite": criticite,
+        "veto_agent": "",
+        "veto_motif": "",
+        "hitl_enabled": hitl_enabled,
+        "hitl_approval": {},
+    }
+
+
+def _persist_run_state(run: OrchestraRun, final_state: dict) -> None:
+    """Copie l'état final du graphe dans le run DB. Factorisé entre les 3 entry points."""
+    run.agent_plans     = final_state.get("agent_plans", {})
+    run.zeus_reasoning  = final_state.get("zeus_reasoning", "")
+    run.assignments     = final_state.get("assignments", [])
+    run.agent_results   = final_state.get("agent_results", {})
+    run.agent_run_ids   = final_state.get("agent_run_ids", [])
+    run.final_answer    = final_state.get("final_answer", "")
+    run.synthesis_agent = final_state.get("synthesis_agent", "mnemosyne")
+    # Champs traçabilité 0012
+    run.subtasks        = final_state.get("subtasks", [])
+    run.subtask_results = final_state.get("subtask_results", {})
+    run.veto_agent      = final_state.get("veto_agent", "") or None
+    run.veto_motif      = final_state.get("veto_motif", "") or None
+
+
+async def _safe_publish_event(event_type: str, run: OrchestraRun) -> None:
+    """Publie un événement orchestra sur le bus PostgreSQL (best-effort).
+    Ne lève jamais d'exception — le bus events peut ne pas être initialisé (worker ARQ)."""
+    try:
+        import core.events as events
+        await events.publish("orchestra_channel", {
+            "event_type": event_type,
+            "run_id": str(run.id),
+            "affaire_id": str(run.affaire_id) if run.affaire_id else None,
+            "status": run.status,
+            "criticite": run.criticite,
+            "veto_agent": run.veto_agent,
+        })
+    except Exception:
+        pass  # bus non initialisé (worker) ou pool fermé — silencieux
 
 
 # ── Point d'entrée principal ────────────────────────────────────────
@@ -786,7 +867,6 @@ async def run_orchestra(
     t_start = time.monotonic()
 
     initial_agents = [a for a in (agents or DEFAULT_AGENTS) if a in VALID_AGENTS] or DEFAULT_AGENTS
-    log.info("orchestra.start", agents=initial_agents, affaire_id=str(affaire_id))
 
     # Routing criticité
     criticite = criticite if criticite in CRITICITE_ROUTING else "C2"
@@ -805,59 +885,40 @@ async def run_orchestra(
     db.add(run)
     await db.flush()
 
+    structlog.contextvars.bind_contextvars(run_id=str(run.id), run_type="orchestra")
+    log.info("orchestra.start", agents=initial_agents, affaire_id=str(affaire_id), criticite=criticite)
+
     try:
         graph = build_graph(affaire_id, user_id)
-        initial_state: OrchestraState = {
-            "instruction": instruction,
-            "affaire_id": str(affaire_id),
-            "user_id": str(user_id) if user_id else None,
-            "initial_agents": initial_agents,
-            "agent_plans": {},
-            "zeus_reasoning": "",
-            "subtasks": [],
-            "subtask_results": {},
-            "assignments": [],
-            "synthesis_agent": "mnemosyne",
-            "agent_results": {},
-            "agent_run_ids": [],
-            "complement_done": False,
-            "final_answer": "",
-            "verdict": "",
-            "criticite": criticite,
-            "veto_agent": "",
-            "veto_motif": "",
-            "hitl_enabled": hitl_auto,
-            "hitl_approval": {},
-        }
+        initial_state = _build_initial_state(
+            instruction, affaire_id, user_id, initial_agents, criticite, hitl_auto,
+        )
 
         final_state = await graph.ainvoke(initial_state)
-
-        run.agent_plans    = final_state.get("agent_plans", {})
-        run.zeus_reasoning = final_state.get("zeus_reasoning", "")
-        run.assignments    = final_state.get("assignments", [])
-        run.agent_results  = final_state.get("agent_results", {})
-        run.agent_run_ids  = final_state.get("agent_run_ids", [])
-        run.final_answer   = final_state.get("final_answer", "")
-        run.synthesis_agent = final_state.get("synthesis_agent", "mnemosyne")
+        _persist_run_state(run, final_state)
         run.status = "completed"
 
     except Exception as exc:
-        log.error("orchestra.failed", run_id=str(run.id), error=str(exc))
+        log.error("orchestra.failed", error=str(exc))
         run.status = "failed"
+        run.error_message = str(exc)
         run.final_answer = f"Erreur lors de l'orchestration : {exc}"
 
     finally:
         run.duration_ms = int((time.monotonic() - t_start) * 1000)
         await db.commit()
         await db.refresh(run)
+        structlog.contextvars.unbind_contextvars("run_id", "run_type")
 
     log.info(
         "orchestra.complete",
         run_id=str(run.id),
         status=run.status,
         agents=list(run.agent_results.keys()),
+        veto_agent=run.veto_agent,
         duration_ms=run.duration_ms,
     )
+    await _safe_publish_event("orchestra.completed", run)
     return run
 
 
@@ -868,10 +929,12 @@ async def run_orchestra_from_run_id(
     affaire_id: UUID,
     user_id: UUID | None,
     agents: list[str] | None = None,
+    criticite: str | None = None,
 ) -> OrchestraRun:
     """
     Variante utilisée par le worker ARQ : le run existe déjà en DB (status=queued).
     Met à jour son statut et exécute le graphe.
+    Lit la criticité depuis le run existant si non fournie explicitement.
     """
     run = await db.get(OrchestraRun, run_id)
     if not run:
@@ -879,45 +942,39 @@ async def run_orchestra_from_run_id(
         raise ValueError(f"OrchestraRun {run_id} introuvable")
 
     initial_agents = [a for a in (agents or DEFAULT_AGENTS) if a in VALID_AGENTS] or DEFAULT_AGENTS
+    effective_criticite = criticite or run.criticite or "C2"
+    routing = CRITICITE_ROUTING.get(effective_criticite, CRITICITE_ROUTING["C2"])
+
     run.status = "running"
     run.initial_agents = initial_agents
+    run.criticite = effective_criticite
     await db.commit()
+
+    structlog.contextvars.bind_contextvars(run_id=str(run.id), run_type="orchestra.worker")
+    log.info("orchestra.worker_start", agents=initial_agents, criticite=effective_criticite)
 
     t_start = time.monotonic()
     try:
         graph = build_graph(affaire_id, user_id)
-        initial_state: OrchestraState = {
-            "instruction": instruction,
-            "affaire_id": str(affaire_id),
-            "user_id": str(user_id) if user_id else None,
-            "initial_agents": initial_agents,
-            "agent_plans": {}, "zeus_reasoning": "",
-            "subtasks": [], "subtask_results": {},
-            "assignments": [], "synthesis_agent": "mnemosyne",
-            "agent_results": {}, "agent_run_ids": [],
-            "complement_done": False, "final_answer": "", "verdict": "",
-            "criticite": "C2", "veto_agent": "", "veto_motif": "",
-            "hitl_enabled": False, "hitl_approval": {},
-        }
+        initial_state = _build_initial_state(
+            instruction, affaire_id, user_id, initial_agents,
+            effective_criticite, routing["hitl"],
+        )
         final_state = await graph.ainvoke(initial_state)
-
-        run.agent_plans = final_state.get("agent_plans", {})
-        run.zeus_reasoning = final_state.get("zeus_reasoning", "")
-        run.assignments = final_state.get("assignments", [])
-        run.agent_results = final_state.get("agent_results", {})
-        run.agent_run_ids = final_state.get("agent_run_ids", [])
-        run.final_answer = final_state.get("final_answer", "")
-        run.synthesis_agent = final_state.get("synthesis_agent", "mnemosyne")
+        _persist_run_state(run, final_state)
         run.status = "completed"
     except Exception as exc:
-        log.error("orchestra.worker_failed", run_id=str(run_id), error=str(exc))
+        log.error("orchestra.worker_failed", error=str(exc))
         run.status = "failed"
+        run.error_message = str(exc)
         run.final_answer = f"Erreur : {exc}"
     finally:
         run.duration_ms = int((time.monotonic() - t_start) * 1000)
         await db.commit()
         await db.refresh(run)
+        structlog.contextvars.unbind_contextvars("run_id", "run_type")
 
+    await _safe_publish_event("orchestra.completed", run)
     return run
 
 
@@ -929,6 +986,7 @@ async def run_orchestra_hitl(
     affaire_id: UUID,
     user_id: UUID | None,
     agents: list[str] | None = None,
+    criticite: str = "C4",
 ) -> OrchestraRun:
     """
     Lance une orchestration avec pause HITL après la distribution Zeus.
@@ -936,15 +994,18 @@ async def run_orchestra_hitl(
     Reprendre avec resume_orchestra().
     """
     from core.checkpointer import get_checkpointer
+    import uuid as _uuid
 
     initial_agents = [a for a in (agents or DEFAULT_AGENTS) if a in VALID_AGENTS] or DEFAULT_AGENTS
-    thread_id = str(__import__("uuid").uuid4())
+    effective_criticite = criticite if criticite in CRITICITE_ROUTING else "C4"
+    thread_id = str(_uuid.uuid4())
 
     run = OrchestraRun(
         affaire_id=affaire_id,
         user_id=user_id,
         instruction=instruction,
         initial_agents=initial_agents,
+        criticite=effective_criticite,
         status="running",
         hitl_enabled=True,
         checkpoint_thread_id=thread_id,
@@ -952,32 +1013,23 @@ async def run_orchestra_hitl(
     db.add(run)
     await db.flush()
 
-    initial_state: OrchestraState = {
-        "instruction": instruction,
-        "affaire_id": str(affaire_id),
-        "user_id": str(user_id) if user_id else None,
-        "initial_agents": initial_agents,
-        "agent_plans": {}, "zeus_reasoning": "",
-        "subtasks": [], "subtask_results": {},
-        "assignments": [], "synthesis_agent": "mnemosyne",
-        "agent_results": {}, "agent_run_ids": [],
-        "complement_done": False, "final_answer": "", "verdict": "",
-        "criticite": "C4", "veto_agent": "", "veto_motif": "",
-        "hitl_enabled": True, "hitl_approval": {},
-    }
+    structlog.contextvars.bind_contextvars(run_id=str(run.id), run_type="orchestra.hitl")
+    initial_state = _build_initial_state(
+        instruction, affaire_id, user_id, initial_agents,
+        effective_criticite, hitl_enabled=True,
+    )
     config = {"configurable": {"thread_id": thread_id}}
 
     try:
         async with get_checkpointer() as cp:
-            graph = build_graph(affaire_id, user_id)
-            compiled = graph.compile(checkpointer=cp)
+            # build_graph(checkpointer=cp) compile directement avec le checkpointer
+            compiled = build_graph(affaire_id, user_id, checkpointer=cp)
             # Le graphe s'arrête sur interrupt() dans zeus_distribute
             state = await compiled.ainvoke(initial_state, config)
 
             # Vérifier si le graphe est suspendu (interrupt)
             graph_state = await compiled.aget_state(config)
             if graph_state.next:
-                # Suspendu — récupérer le payload de l'interrupt
                 interrupt_data = {}
                 for task in graph_state.tasks:
                     if hasattr(task, "interrupts") and task.interrupts:
@@ -988,18 +1040,22 @@ async def run_orchestra_hitl(
                 run.hitl_payload = interrupt_data
                 run.zeus_reasoning = interrupt_data.get("reasoning", "")
                 run.assignments = interrupt_data.get("assignments", [])
+                run.subtasks = interrupt_data.get("subtasks", [])
             else:
-                # Complété sans interruption (cas inattendu)
+                _persist_run_state(run, state)
                 run.status = "completed"
-                run.final_answer = state.get("final_answer", "")
-                run.agent_results = state.get("agent_results", {})
 
     except Exception as exc:
-        log.error("orchestra.hitl_failed", run_id=str(run.id), error=str(exc))
+        log.error("orchestra.hitl_failed", error=str(exc))
         run.status = "failed"
+        run.error_message = str(exc)
 
-    await db.commit()
-    await db.refresh(run)
+    finally:
+        await db.commit()
+        await db.refresh(run)
+        structlog.contextvars.unbind_contextvars("run_id", "run_type")
+
+    await _safe_publish_event("orchestra.hitl_paused" if run.status == "awaiting_approval" else "orchestra.completed", run)
     return run
 
 
@@ -1025,8 +1081,10 @@ async def resume_orchestra(
         run.final_answer = f"Annulé par l'utilisateur. Feedback : {feedback or '—'}"
         await db.commit()
         await db.refresh(run)
+        await _safe_publish_event("orchestra.cancelled", run)
         return run
 
+    structlog.contextvars.bind_contextvars(run_id=str(run.id), run_type="orchestra.resume")
     t_start = time.monotonic()
     run.status = "running"
     await db.commit()
@@ -1040,29 +1098,26 @@ async def resume_orchestra(
 
     try:
         async with get_checkpointer() as cp:
-            graph = build_graph(run.affaire_id, run.user_id)
-            compiled = graph.compile(checkpointer=cp)
+            # build_graph(checkpointer=cp) — même graphe, même checkpointer
+            compiled = build_graph(run.affaire_id, run.user_id, checkpointer=cp)
             final_state = await compiled.ainvoke(Command(resume=approval_data), config)
 
-        run.agent_plans = final_state.get("agent_plans", {})
-        run.zeus_reasoning = final_state.get("zeus_reasoning", "")
-        run.assignments = final_state.get("assignments", [])
-        run.agent_results = final_state.get("agent_results", {})
-        run.agent_run_ids = final_state.get("agent_run_ids", [])
-        run.final_answer = final_state.get("final_answer", "")
-        run.synthesis_agent = final_state.get("synthesis_agent", "mnemosyne")
+        _persist_run_state(run, final_state)
         run.status = "completed"
 
     except Exception as exc:
-        log.error("orchestra.resume_failed", run_id=str(run_id), error=str(exc))
+        log.error("orchestra.resume_failed", error=str(exc))
         run.status = "failed"
+        run.error_message = str(exc)
         run.final_answer = f"Erreur lors de la reprise : {exc}"
 
     finally:
         run.duration_ms = int((time.monotonic() - t_start) * 1000)
         await db.commit()
         await db.refresh(run)
+        structlog.contextvars.unbind_contextvars("run_id", "run_type")
 
+    await _safe_publish_event("orchestra.completed", run)
     return run
 
 
@@ -1090,6 +1145,7 @@ async def stream_orchestra(
     affaire_id: UUID,
     user_id: UUID | None,
     agents: list[str] | None = None,
+    criticite: str = "C2",
 ):
     """
     Générateur async SSE — yield les événements LangGraph au fil de l'exécution.
@@ -1104,6 +1160,7 @@ async def stream_orchestra(
       error         — exception {detail}
     """
     initial_agents = [a for a in (agents or DEFAULT_AGENTS) if a in VALID_AGENTS] or DEFAULT_AGENTS
+    effective_criticite = criticite if criticite in CRITICITE_ROUTING else "C2"
     t_start = time.monotonic()
 
     # Créer le run DB avant de streamer
@@ -1113,6 +1170,7 @@ async def stream_orchestra(
             user_id=user_id,
             instruction=instruction,
             initial_agents=initial_agents,
+            criticite=effective_criticite,
             status="running",
         )
         db.add(run)
@@ -1123,28 +1181,9 @@ async def stream_orchestra(
     yield _sse("run_created", {"run_id": str(run_id), "agents": initial_agents})
 
     graph = build_graph(affaire_id, user_id)
-    initial_state: OrchestraState = {
-        "instruction": instruction,
-        "affaire_id": str(affaire_id),
-        "user_id": str(user_id) if user_id else None,
-        "initial_agents": initial_agents,
-        "agent_plans": {},
-        "zeus_reasoning": "",
-        "subtasks": [],
-        "subtask_results": {},
-        "assignments": [],
-        "synthesis_agent": "mnemosyne",
-        "agent_results": {},
-        "agent_run_ids": [],
-        "complement_done": False,
-        "final_answer": "",
-        "verdict": "",
-        "criticite": "C2",
-        "veto_agent": "",
-        "veto_motif": "",
-        "hitl_enabled": False,
-        "hitl_approval": {},
-    }
+    initial_state = _build_initial_state(
+        instruction, affaire_id, user_id, initial_agents, effective_criticite,
+    )
 
     final_state: OrchestraState = initial_state.copy()
 
@@ -1212,13 +1251,7 @@ async def stream_orchestra(
         async with AsyncSessionLocal() as db:
             run = await db.get(OrchestraRun, run_id)
             if run:
-                run.agent_plans = final_state.get("agent_plans", {})
-                run.zeus_reasoning = final_state.get("zeus_reasoning", "")
-                run.assignments = final_state.get("assignments", [])
-                run.agent_results = final_state.get("agent_results", {})
-                run.agent_run_ids = final_state.get("agent_run_ids", [])
-                run.final_answer = final_state.get("final_answer", "")
-                run.synthesis_agent = final_state.get("synthesis_agent", "mnemosyne")
+                _persist_run_state(run, final_state)
                 run.status = "completed"
                 run.duration_ms = int((time.monotonic() - t_start) * 1000)
                 await db.commit()
@@ -1230,10 +1263,15 @@ async def stream_orchestra(
 
     except Exception as exc:
         log.error("orchestra.stream_failed", run_id=str(run_id), error=str(exc))
-        async with AsyncSessionLocal() as db:
-            run = await db.get(OrchestraRun, run_id)
-            if run:
-                run.status = "failed"
-                run.duration_ms = int((time.monotonic() - t_start) * 1000)
-                await db.commit()
+        # Filet de sécurité : marquer le run en erreur même si le stream est interrompu
+        try:
+            async with AsyncSessionLocal() as db:
+                run = await db.get(OrchestraRun, run_id)
+                if run and run.status == "running":
+                    run.status = "failed"
+                    run.error_message = str(exc)
+                    run.duration_ms = int((time.monotonic() - t_start) * 1000)
+                    await db.commit()
+        except Exception:
+            pass  # DB inaccessible — rien à faire
         yield _sse("error", {"detail": str(exc), "run_id": str(run_id)})

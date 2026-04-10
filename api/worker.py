@@ -31,12 +31,13 @@ async def orchestra_job(
     affaire_id: str,
     user_id: str | None,
     agents: list[str] | None,
+    criticite: str | None = None,
 ):
     """
     Exécute une orchestration Zeus pour un OrchestraRun déjà créé en DB (status=queued).
     Met à jour le run avec les résultats une fois terminé.
+    Le paramètre criticite est optionnel pour rester compatible avec les jobs déjà en queue.
     """
-    from modules.orchestra.models import OrchestraRun
     from modules.orchestra.service import run_orchestra_from_run_id
 
     log.info(f"[orchestra_job] start run_id={run_id}")
@@ -48,6 +49,7 @@ async def orchestra_job(
             affaire_id=UUID(affaire_id),
             user_id=UUID(user_id) if user_id else None,
             agents=agents,
+            criticite=criticite,
         )
     log.info(f"[orchestra_job] done run_id={run_id}")
 

@@ -17,7 +17,8 @@ from unittest.mock import AsyncMock, MagicMock
 from modules.auth.models import AffairePermission, User  # noqa: F401
 from modules.affaires.models import Affaire              # noqa: F401
 from modules.documents.models import Chunk, Document     # noqa: F401
-from modules.agent.models import AgentRun                # noqa: F401
+from modules.agent.models import AgentRun, AgentMemory   # noqa: F401
+from modules.orchestra.models import OrchestraRun        # noqa: F401
 
 from core.auth import create_access_token
 from core.settings import settings

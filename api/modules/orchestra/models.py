@@ -31,14 +31,25 @@ class OrchestraRun(Base):
     # Phase 2 — distribution Zeus
     zeus_reasoning: Mapped[str | None] = mapped_column(Text, nullable=True)
     assignments: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    # Décomposition Zeus structurée (subtasks topologiques) — persistée pour audit
+    subtasks: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
 
     # Phase 3 — résultats d'exécution
     agent_results: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    # Résultats par sous-tâche : {task_id: {agent_name: result_text}}
+    subtask_results: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     agent_run_ids: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+
+    # Veto Thémis / Héphaïstos (vide si aucun)
+    veto_agent: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    veto_motif: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Phase 4 — synthèse
     final_answer: Mapped[str | None] = mapped_column(Text, nullable=True)
     synthesis_agent: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+    # Erreur séparée du contenu produit (ne mélange plus échec ↔ final_answer)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Human-in-the-loop
     hitl_enabled: Mapped[bool] = mapped_column(nullable=False, default=False)

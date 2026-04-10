@@ -47,6 +47,7 @@ class OrchestraRequest(BaseModel):
     instruction: str = Field(..., min_length=5)
     affaire_id: UUID
     agents: Optional[list[str]] = None  # None = Zeus choisit parmi tous
+    criticite: str = "C2"               # C1-C5, détermine le routing HITL/veto
     hitl: bool = False                  # True = pause avant exécution pour validation humaine
 
 
@@ -71,6 +72,13 @@ class OrchestraResponse(BaseModel):
     agent_results: dict
     synthesis_agent: Optional[str]
     final_answer: Optional[str]
+    # Traçabilité 0012
+    subtasks: list[dict] = []
+    subtask_results: dict = {}
+    veto_agent: Optional[str] = None
+    veto_motif: Optional[str] = None
+    error_message: Optional[str] = None
+    criticite: str = "C2"
     hitl_enabled: bool = False
     hitl_payload: Optional[dict] = None
     duration_ms: Optional[int]
