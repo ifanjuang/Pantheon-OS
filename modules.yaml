@@ -36,6 +36,9 @@ modules:
   - name: scoring
     enabled: true
 
+  - name: decisions
+    enabled: true
+
   - name: chantier
     enabled: false
 

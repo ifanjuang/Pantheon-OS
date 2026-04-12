@@ -1,0 +1,7 @@
+name: decisions
+version: "0.1.0"
+description: "Dashboard mémoire projet — décisions, tâches liées, observations, vues filtrées et KPIs"
+prefix: /decisions
+depends_on:
+  - affaires
+  - scoring

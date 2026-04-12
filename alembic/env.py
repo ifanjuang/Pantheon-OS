@@ -22,6 +22,7 @@ from modules.meeting.models import MeetingCR, MeetingAction, MeetingAgenda  # no
 from modules.webhooks.models import WebhookSession                           # noqa: F401
 from modules.wiki.models import WikiPage                                     # noqa: F401
 from modules.scoring.models import DecisionScore                             # noqa: F401
+from modules.decisions.models import ProjectDecision, ProjectTask, ProjectObservation  # noqa: F401
 
 config = context.config
 
