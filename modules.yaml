@@ -30,6 +30,9 @@ modules:
   - name: meeting
     enabled: true
 
+  - name: capture
+    enabled: true
+
   - name: wiki
     enabled: true
 

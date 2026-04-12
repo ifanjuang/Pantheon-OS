@@ -196,3 +196,20 @@ ADMIN_PASSWORD=changeme
 | 0007 | meeting (crs, actions, agendas) |
 | 0008 | agent_memory.scope + orchestra_runs.criticite + project_decisions |
 | 0009 | affaires contexte enrichi (typology, region, budget, phase, ABF, zones) |
+| 0010 | index GIN full-text sur chunks.contenu (hybrid search RRF) |
+| 0011 | webhook_sessions (canal externe → affaire) |
+| 0012 | traçabilité orchestra (subtasks, veto) + agent error_message + memory category |
+| 0013 | capture_sessions + chunks.tsv tsvector + trigger auto-update |
+
+---
+
+## Changelog & Releases
+
+Le fichier `CHANGELOG.md` à la racine documente toutes les modifications notables.
+
+**Règle obligatoire** : tout commit contenant un changement fonctionnel (feat, fix, refactor impactant) doit ajouter une entrée dans la section `[Unreleased]` du CHANGELOG. Lors d'une release (merge vers main d'un lot cohérent), la section `[Unreleased]` est renommée avec le nouveau numéro de version et la date.
+
+Convention SemVer :
+- **MAJOR** : rupture d'API ou changement de schéma DB non rétrocompatible
+- **MINOR** : nouvelle fonctionnalité, nouveau module, nouveau pattern
+- **PATCH** : correctif, optimisation, refactoring interne

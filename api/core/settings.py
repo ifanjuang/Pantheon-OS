@@ -69,6 +69,14 @@ class Settings(BaseSettings):
     # ── Agents ───────────────────────────────────────────────────
     AGENTS_DIR: str = "/agents"
 
+    # ── RAG avancé ────────────────────────────────────────────────
+    CONTEXTUAL_RETRIEVAL: bool = True     # enrichissement LLM par chunk à l'ingestion
+    RERANK_ENABLED: bool = False          # cross-encoder reranking post-RRF
+    RERANK_MODEL: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+
+    # ── Capture / Whisper ────────────────────────────────────────
+    WHISPER_ENDPOINT: Optional[str] = None  # ex: http://whisper:9000/v1/audio/transcriptions
+
     # ── Telegram ─────────────────────────────────────────────────
     TELEGRAM_TOKEN: Optional[str] = None
     TELEGRAM_DEFAULT_CHAT_ID: Optional[str] = None

@@ -102,6 +102,48 @@ def _rrf_fusion(
     return results
 
 
+def _rerank(query: str, hits: list[dict], top_k: int) -> list[dict]:
+    """
+    Rerank post-RRF via cross-encoder (sentence-transformers).
+    Modèle léger (~80 Mo) compatible CPU/local.
+    Fallback silencieux : retourne les hits tels quels si le modèle n'est pas disponible.
+    """
+    if not hits or len(hits) <= 1:
+        return hits
+
+    rerank_enabled = getattr(settings, "RERANK_ENABLED", False)
+    if not rerank_enabled:
+        return hits
+
+    try:
+        from sentence_transformers import CrossEncoder
+        _model_name = getattr(settings, "RERANK_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
+
+        if not hasattr(_rerank, "_model") or _rerank._model is None:
+            _rerank._model = CrossEncoder(_model_name)
+
+        pairs = [(query, h["contenu"][:512]) for h in hits]
+        scores = _rerank._model.predict(pairs)
+
+        for hit, score in zip(hits, scores):
+            hit["rerank_score"] = float(score)
+
+        reranked = sorted(hits, key=lambda h: h["rerank_score"], reverse=True)[:top_k]
+        for h in reranked:
+            h["score_type"] = "rerank"
+            h["score"] = h.pop("rerank_score")
+        return reranked
+
+    except ImportError:
+        log.debug("rag.rerank_unavailable", reason="sentence-transformers not installed")
+        return hits[:top_k]
+    except Exception as exc:
+        log.warning("rag.rerank_failed", error=str(exc))
+        return hits[:top_k]
+
+_rerank._model = None  # lazy-loaded singleton
+
+
 class RagService:
     _embed_model = None
 
@@ -192,7 +234,54 @@ class RagService:
 
         # Embedding en batch sur le contenu principal (pas la window)
         texts = [node.get_content() for node in nodes]
-        embeddings = await cls._get_embed_model().aget_text_embedding_batch(texts)
+
+        # ── Contextual Retrieval (Anthropic pattern) ────────────────────
+        # Génère un court contexte par chunk situant le fragment dans son document source.
+        # Améliore la précision de la recherche sémantique de ~49% (Anthropic, 2024).
+        # Désactivable via CONTEXTUAL_RETRIEVAL=false dans .env.
+        contextual_enabled = getattr(settings, "CONTEXTUAL_RETRIEVAL", True)
+        contexts: list[str] = [""] * len(texts)
+
+        if contextual_enabled and len(texts) <= 200:  # skip pour très gros documents
+            try:
+                doc_summary = texts[0][:500] if texts else ""
+                _CTX_PROMPT = (
+                    f"Document source : {filename} (type: {source_type})\n"
+                    f"Début du document : {doc_summary}\n\n"
+                    "Pour le fragment suivant, écris UNE phrase de contexte (max 50 mots) "
+                    "qui situe ce fragment dans son document source. "
+                    "Commence par 'Ce fragment...' ou 'Cet extrait...'\n\n"
+                    "Fragment :\n{chunk}\n\nContexte :"
+                )
+                # Batch : on traite par lots de 10 pour ne pas saturer Ollama
+                from core.services.llm_service import LlmService
+                for batch_start in range(0, len(texts), 10):
+                    batch = texts[batch_start:batch_start + 10]
+                    ctx_tasks = [
+                        LlmService.chat(
+                            messages=[{"role": "user", "content": _CTX_PROMPT.format(chunk=t[:800])}],
+                            temperature=0.0,
+                            max_tokens=80,
+                        )
+                        for t in batch
+                    ]
+                    batch_results = await asyncio.gather(*ctx_tasks, return_exceptions=True)
+                    for i, result in enumerate(batch_results):
+                        if isinstance(result, str) and len(result.strip()) > 10:
+                            contexts[batch_start + i] = result.strip()
+
+                log.info("rag.contextual_retrieval", chunks=len(texts),
+                         contexts_generated=sum(1 for c in contexts if c))
+            except Exception as exc:
+                log.warning("rag.contextual_retrieval_failed", error=str(exc))
+                # Continuer sans contexte — pas bloquant
+
+        # Préparer le texte pour embedding : contexte + contenu
+        embed_texts = [
+            f"{ctx}\n\n{t}" if ctx else t
+            for ctx, t in zip(contexts, texts)
+        ]
+        embeddings = await cls._get_embed_model().aget_text_embedding_batch(embed_texts)
 
         # Bulk INSERT — un seul aller-retour DB pour tous les chunks
         rows = []
@@ -292,7 +381,12 @@ class RagService:
         if isinstance(results_or_errors[1], Exception):
             log.warning("rag.fts_failed_gather", error=str(results_or_errors[1]))
 
-        results = _rrf_fusion(semantic_hits, fts_hits, top_k)
+        # RRF : récupérer plus de candidats pour le reranking
+        rrf_k = top_k * 2 if getattr(settings, "RERANK_ENABLED", False) else top_k
+        results = _rrf_fusion(semantic_hits, fts_hits, rrf_k)
+
+        # Cross-encoder reranking (si activé via RERANK_ENABLED=true)
+        results = _rerank(query, results, top_k)
 
         log.info(
             "rag.search_hybrid",
@@ -385,22 +479,16 @@ class RagService:
                 return []
             params["query"] = sanitized_query
 
+            # Utilise la colonne pré-calculée tsv (migration 0013) avec index GIN
+            # au lieu du LATERAL to_tsvector() coûteux à chaque requête
             rows = await db.execute(
                 text(f"""
-                    SELECT id, document_id, contenu, meta, score
-                    FROM (
-                        SELECT
-                            id,
-                            document_id,
-                            contenu,
-                            meta,
-                            ts_rank_cd(tsv, plainto_tsquery('french', :query)) AS score
-                        FROM chunks,
-                             LATERAL to_tsvector('french', contenu) AS tsv
-                        WHERE affaire_id = :affaire_id
-                          AND tsv @@ plainto_tsquery('french', :query)
-                        {extra_filter}
-                    ) ranked
+                    SELECT id, document_id, contenu, meta,
+                           ts_rank_cd(tsv, plainto_tsquery('french', :query)) AS score
+                    FROM chunks
+                    WHERE affaire_id = :affaire_id
+                      AND tsv @@ plainto_tsquery('french', :query)
+                    {extra_filter}
                     ORDER BY score DESC
                     LIMIT :top_k
                 """),

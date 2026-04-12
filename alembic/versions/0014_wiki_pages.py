@@ -12,8 +12,8 @@ Colonnes clés :
   - decision_id     : FK nullable vers project_decisions (promotion)
   - reuse_count     : incrémenté à chaque lookup de précédent
 
-Revision ID: 0013
-Revises: 0012
+Revision ID: 0014
+Revises: 0013
 """
 from alembic import op
 import sqlalchemy as sa
@@ -21,8 +21,8 @@ from sqlalchemy.dialects import postgresql
 
 from core.settings import settings
 
-revision = "0013"
-down_revision = "0012"
+revision = "0014"
+down_revision = "0013"
 branch_labels = None
 depends_on = None
 

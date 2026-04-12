@@ -6,15 +6,15 @@ Crée la table decision_scores qui matérialise le scoring sur 5 axes
 Une ligne = un calcul, l'historique est conservé. Le score actif d'une
 décision est le plus récent pour decision_id donné.
 
-Revision ID: 0014
-Revises: 0013
+Revision ID: 0015
+Revises: 0014
 """
 from alembic import op
 import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
-revision = "0014"
-down_revision = "0013"
+revision = "0015"
+down_revision = "0014"
 branch_labels = None
 depends_on = None
 
