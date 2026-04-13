@@ -1,0 +1,7 @@
+name: scoring
+version: "0.1.0"
+description: "Scoring décisionnel 100 points sur 5 axes (technique/contractuel/planning/cohérence/logique) avec bonus/malus automatiques via wiki et dette"
+prefix: /scoring
+depends_on:
+  - affaires
+  - wiki

@@ -1,0 +1,7 @@
+name: wiki
+version: "0.1.0"
+description: "Synthesis cache — pages markdown navigables issues des décisions validées, réutilisables pour le bonus scoring « déjà validé »"
+prefix: /wiki
+depends_on:
+  - affaires
+  - orchestra
