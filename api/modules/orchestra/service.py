@@ -6,10 +6,13 @@ Graphe Zeus :
                         ↑ HITL C4/C5                               │ needs_complement
                                                     ┌──────────────┘
                                                     ▼
-                                           [execute_complements] → [synthesize]
-                                                    │ complete
+                                           [execute_complements] ─┐
+                                                                  │ complete
+                                                    ┌─────────────┘
                                                     ▼
-                                               [synthesize]
+                                           [score_decision] → [synthesize] → [write_memories] → END
+                                            (C4/C5 only)       synthèse       Hestia/Mnémosyne
+                                                                              + wiki C4/C5
 
 Patterns d'exécution dans dispatch_subtasks :
   solo        — un seul agent
@@ -226,6 +229,15 @@ class OrchestraState(TypedDict):
     # Human-in-the-loop
     hitl_enabled: bool
     hitl_approval: dict         # {approved, feedback, modified_assignments}
+
+    # Scoring décisionnel (C4/C5)
+    score_id: str               # UUID du DecisionScore créé
+    score_verdict: str          # "robuste" | "acceptable" | "fragile" | "dangereux"
+    score_total: int            # total_final /100
+
+    # Mémoires écrites
+    memories_written: int       # nombre de leçons extraites au niveau orchestre
+    wiki_page_id: str           # UUID de la page wiki promue (C4/C5)
 
 
 # ── Helpers LLM ────────────────────────────────────────────────────
@@ -758,13 +770,139 @@ def _make_nodes(affaire_uuid: UUID, user_uuid: UUID | None):
 
         return {"veto_agent": veto_agent, "veto_motif": veto_motif}
 
-    return plan_agents, zeus_distribute, dispatch_subtasks, zeus_judge, execute_complements, synthesize, veto_check
+    async def score_decision(state: OrchestraState) -> dict:
+        """Score automatique pour C4/C5 — appelle ScoringService.score_auto().
+        Pour C1-C3, nœud passant (no-op)."""
+        criticite = state.get("criticite", "C2")
+        if criticite not in ("C4", "C5"):
+            log.info("orchestra.score_skipped", criticite=criticite)
+            return {}
+
+        from modules.scoring.service import ScoringService
+
+        sujet = state["instruction"][:512]
+        contexte = "\n\n".join(
+            f"### {agent}\n{result}"
+            for agent, result in state.get("agent_results", {}).items()
+        )
+
+        try:
+            async with AsyncSessionLocal() as db:
+                score = await ScoringService.score_auto(
+                    db,
+                    sujet=sujet,
+                    contexte=contexte,
+                    affaire_id=UUID(state["affaire_id"]) if state.get("affaire_id") else None,
+                    certitude=0.7,
+                    computed_by=UUID(state["user_id"]) if state.get("user_id") else None,
+                )
+            log.info(
+                "orchestra.score_done",
+                score_id=str(score.id),
+                verdict=score.verdict,
+                total=score.total_final,
+            )
+            return {
+                "score_id": str(score.id),
+                "score_verdict": score.verdict,
+                "score_total": score.total_final,
+            }
+        except Exception as exc:
+            log.error("orchestra.score_failed", error=str(exc))
+            return {}
+
+    async def write_memories(state: OrchestraState) -> dict:
+        """Écrit la mémoire orchestre (Hestia/Mnémosyne) et promeut en wiki pour C4/C5.
+
+        Les mémoires par agent sont déjà extraites par run_agent() —
+        ce nœud se concentre sur la mémoire de synthèse globale."""
+        from modules.agent.models import AgentMemory
+
+        affaire_id_val = UUID(state["affaire_id"]) if state.get("affaire_id") else None
+        final_answer = state.get("final_answer", "")
+        criticite = state.get("criticite", "C2")
+        memories_count = 0
+        wiki_page_id = ""
+
+        if not final_answer or len(final_answer.strip()) < 50:
+            return {"memories_written": 0, "wiki_page_id": ""}
+
+        # ── 1. Mémoire de synthèse orchestre ──────────────────────────
+        # Hestia (projet) stocke la leçon liée à cette affaire
+        # Mnémosyne (agence) stocke un pattern réutilisable si C4/C5
+        try:
+            async with AsyncSessionLocal() as db:
+                # Leçon projet (Hestia) — toujours
+                lesson_text = (
+                    f"Orchestration {criticite} — "
+                    f"{state['instruction'][:200]} → "
+                    f"Verdict agents : {state.get('score_verdict', 'non scoré')}. "
+                    f"Agents impliqués : {', '.join(state.get('agent_results', {}).keys())}."
+                )
+                hestia_mem = AgentMemory(
+                    agent_name="hestia",
+                    affaire_id=affaire_id_val,
+                    lesson=lesson_text[:500],
+                    scope="projet",
+                    category="general",
+                )
+                db.add(hestia_mem)
+                memories_count += 1
+
+                # Pattern agence (Mnémosyne) — seulement C4/C5
+                if criticite in ("C4", "C5"):
+                    pattern_text = (
+                        f"Pattern {criticite} : {state['instruction'][:150]}. "
+                        f"Score : {state.get('score_total', '?')}/100 "
+                        f"({state.get('score_verdict', 'non scoré')}). "
+                        f"Agents : {', '.join(state.get('agent_results', {}).keys())}."
+                    )
+                    mnemosyne_mem = AgentMemory(
+                        agent_name="mnemosyne",
+                        affaire_id=None,
+                        lesson=pattern_text[:500],
+                        scope="agence",
+                        category="general",
+                    )
+                    db.add(mnemosyne_mem)
+                    memories_count += 1
+
+                await db.commit()
+        except Exception as exc:
+            log.error("orchestra.memories_failed", error=str(exc))
+
+        # ── 2. Promotion wiki pour C4/C5 ──────────────────────────────
+        if criticite in ("C4", "C5") and affaire_id_val:
+            try:
+                from modules.wiki.service import WikiService
+
+                async with AsyncSessionLocal() as db:
+                    page = await WikiService.create_page(
+                        db,
+                        titre=state["instruction"][:512],
+                        contenu_md=final_answer,
+                        scope="projet",
+                        affaire_id=affaire_id_val,
+                        tags=[criticite, f"score:{state.get('score_total', '?')}"],
+                        criticite=criticite,
+                        score=state.get("score_total"),
+                        auto_validate=False,  # reste à valider par un humain
+                    )
+                    wiki_page_id = str(page.id)
+                log.info("orchestra.wiki_promoted", page_id=wiki_page_id, criticite=criticite)
+            except Exception as exc:
+                log.error("orchestra.wiki_promote_failed", error=str(exc))
+
+        log.info("orchestra.memories_written", count=memories_count, wiki=bool(wiki_page_id))
+        return {"memories_written": memories_count, "wiki_page_id": wiki_page_id}
+
+    return plan_agents, zeus_distribute, dispatch_subtasks, zeus_judge, execute_complements, synthesize, veto_check, score_decision, write_memories
 
 
 def _route_after_judge(state: OrchestraState) -> str:
     if state.get("verdict") == "needs_complement" and not state.get("complement_done"):
         return "execute_complements"
-    return "synthesize"
+    return "score_decision"
 
 
 # ── Graph factory ────────────────────────────────────────────────
@@ -776,8 +914,9 @@ def build_graph(affaire_id: UUID, user_id: UUID | None, checkpointer=None):
         checkpointer: si fourni, le graphe est compilé avec persistence
                       (requis pour HITL pause/resume).
     """
-    plan_agents, zeus_distribute, dispatch_subtasks, zeus_judge, execute_complements, synthesize, veto_check = \
-        _make_nodes(affaire_id, user_id)
+    (plan_agents, zeus_distribute, dispatch_subtasks, zeus_judge,
+     execute_complements, synthesize, veto_check,
+     score_decision, write_memories) = _make_nodes(affaire_id, user_id)
 
     builder = StateGraph(OrchestraState)
     builder.add_node("plan_agents", plan_agents)
@@ -786,7 +925,9 @@ def build_graph(affaire_id: UUID, user_id: UUID | None, checkpointer=None):
     builder.add_node("veto_check", veto_check)
     builder.add_node("zeus_judge", zeus_judge)
     builder.add_node("execute_complements", execute_complements)
+    builder.add_node("score_decision", score_decision)
     builder.add_node("synthesize", synthesize)
+    builder.add_node("write_memories", write_memories)
 
     builder.set_entry_point("plan_agents")
     builder.add_edge("plan_agents", "zeus_distribute")
@@ -795,10 +936,12 @@ def build_graph(affaire_id: UUID, user_id: UUID | None, checkpointer=None):
     builder.add_edge("veto_check", "zeus_judge")
     builder.add_conditional_edges("zeus_judge", _route_after_judge, {
         "execute_complements": "execute_complements",
-        "synthesize": "synthesize",
+        "score_decision": "score_decision",
     })
-    builder.add_edge("execute_complements", "synthesize")
-    builder.add_edge("synthesize", END)
+    builder.add_edge("execute_complements", "score_decision")
+    builder.add_edge("score_decision", "synthesize")
+    builder.add_edge("synthesize", "write_memories")
+    builder.add_edge("write_memories", END)
 
     return builder.compile(checkpointer=checkpointer)
 
@@ -835,6 +978,11 @@ def _build_initial_state(
         "veto_motif": "",
         "hitl_enabled": hitl_enabled,
         "hitl_approval": {},
+        "score_id": "",
+        "score_verdict": "",
+        "score_total": 0,
+        "memories_written": 0,
+        "wiki_page_id": "",
     }
 
 
@@ -852,6 +1000,12 @@ def _persist_run_state(run: OrchestraRun, final_state: dict) -> None:
     run.subtask_results = final_state.get("subtask_results", {})
     run.veto_agent      = final_state.get("veto_agent", "") or None
     run.veto_motif      = final_state.get("veto_motif", "") or None
+    # Scoring + mémoires (nœuds score_decision / write_memories)
+    run.score_id        = final_state.get("score_id", "") or None
+    run.score_verdict   = final_state.get("score_verdict", "") or None
+    run.score_total     = final_state.get("score_total") or None
+    run.memories_written = final_state.get("memories_written", 0)
+    run.wiki_page_id    = final_state.get("wiki_page_id", "") or None
 
 
 async def _safe_publish_event(event_type: str, run: OrchestraRun) -> None:
@@ -1148,7 +1302,9 @@ _NODE_LABELS = {
     "veto_check":           ("veto",       "Vérification veto Thémis / Héphaïstos..."),
     "execute_complements":  ("executing",  "Compléments en cours..."),
     "zeus_judge":           ("judging",    "Zeus juge les résultats..."),
+    "score_decision":       ("scoring",    "Scoring décisionnel (5 axes / 100 pts)..."),
     "synthesize":           ("synthesis",  "Synthèse en cours..."),
+    "write_memories":       ("memories",   "Écriture mémoires Hestia / Mnémosyne..."),
 }
 
 
@@ -1258,10 +1414,24 @@ async def stream_orchestra(
                         "complement_requested": updates.get("verdict") == "needs_complement",
                     })
 
+                elif node_name == "score_decision":
+                    if updates.get("score_id"):
+                        yield _sse("score_computed", {
+                            "score_id": updates.get("score_id", ""),
+                            "verdict": updates.get("score_verdict", ""),
+                            "total": updates.get("score_total", 0),
+                        })
+
                 elif node_name == "synthesize":
                     yield _sse("final_answer", {
                         "answer": updates.get("final_answer", ""),
                         "run_id": str(run_id),
+                    })
+
+                elif node_name == "write_memories":
+                    yield _sse("memories_written", {
+                        "count": updates.get("memories_written", 0),
+                        "wiki_page_id": updates.get("wiki_page_id", ""),
                     })
 
         # Persister l'état final

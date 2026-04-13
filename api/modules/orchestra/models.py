@@ -63,6 +63,15 @@ class OrchestraRun(Base):
     criticite: Mapped[str] = mapped_column(String(2), nullable=False, default="C2")
     # C1=info | C2=question | C3=décision locale | C4=décision engageante | C5=risque majeur
 
+    # Scoring décisionnel (nœud score_decision)
+    score_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    score_verdict: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    score_total: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    # Mémoires écrites (nœud write_memories)
+    memories_written: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    wiki_page_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
     # Meta
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="running")
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)

@@ -21,6 +21,19 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Module wiki (synthesis-cache)** : pages markdown navigables depuis les décisions validées, recherche hybride cosine+LIKE, précédents agence (+5 scoring). Routes CRUD `/wiki/pages/`, promotion `/wiki/pages/from-decision/{id}`, recherche `/wiki/search`, check précédents `/wiki/precedents`
+- **Module scoring** : scoring décisionnel 100 pts / 5 axes (technique, contractuel, planning, cohérence, logique) avec bonus/malus automatiques. Modes manuel et auto (LLM via Instructor). Routes `/scoring/manual`, `/scoring/auto`, `/scoring/stats`
+- **Module decisions (dashboard)** : CRUD décisions/tâches/observations, 5 vues dashboard (critiques, dettes, non-validées, par lot, timeline), KPIs agrégés. Routes `/decisions/kpis`, `/decisions/views/{view}`
+- **Nœud `score_decision`** dans le graphe Zeus : scoring automatique pour C4/C5 via ScoringService.score_auto() après le jugement Zeus
+- **Nœud `write_memories`** dans le graphe Zeus : mémoire Hestia (projet) + Mnémosyne (agence) après synthèse, promotion wiki automatique pour C4/C5
+- **Migration 0014** : table `wiki_pages` avec vector pgvector + HNSW cosine
+- **Migration 0015** : table `decision_scores` avec index composite (decision_id, computed_at DESC)
+- **Migration 0016** : enrichissement `project_decisions` + tables `project_tasks` / `project_observations`
+- **Migration 0017** : colonnes scoring + mémoires sur `orchestra_runs`
+
 ## [0.5.0] - 2026-04-10
 
 ### Added

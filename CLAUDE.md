@@ -200,6 +200,10 @@ ADMIN_PASSWORD=changeme
 | 0011 | webhook_sessions (canal externe → affaire) |
 | 0012 | traçabilité orchestra (subtasks, veto) + agent error_message + memory category |
 | 0013 | capture_sessions + chunks.tsv tsvector + trigger auto-update |
+| 0014 | wiki_pages (synthesis cache, vector pgvector, HNSW cosine) |
+| 0015 | decision_scores (scoring décisionnel 100 pts / 5 axes) |
+| 0016 | enrichissement project_decisions + project_tasks + project_observations |
+| 0017 | orchestra_runs scoring + mémoires (score_id, score_verdict, memories_written, wiki_page_id) |
 
 ---
 
