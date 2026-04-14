@@ -84,6 +84,12 @@ class ProjectDecision(Base):
     date_decision: Mapped[date | None] = mapped_column(Date, nullable=True)
     phase_revision: Mapped[str | None] = mapped_column(String(16), nullable=True)
 
+    # Enrichissements (0019) — guards module
+    condition_levee: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Si un veto a été opposé, ce qu'il faut produire/valider pour le lever
+    reversible: Mapped[bool | None] = mapped_column(nullable=True)
+    # Réversibilité de la décision (reversibility_guard)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=_now
     )

@@ -45,6 +45,9 @@ modules:
   - name: preprocessing
     enabled: true
 
+  - name: guards
+    enabled: true
+
   - name: chantier
     enabled: false
 

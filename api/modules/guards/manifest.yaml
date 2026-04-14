@@ -1,0 +1,5 @@
+name: guards
+version: "0.1.0"
+description: "Gardes-fous explicites : criticality / reversibility / loop / structured_veto"
+prefix: /guards
+depends_on: []

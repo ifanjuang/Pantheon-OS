@@ -62,11 +62,14 @@ AGENTS_DIR = Path(settings.AGENTS_DIR) if hasattr(settings, "AGENTS_DIR") else P
 DEFAULT_AGENTS = ["themis", "athena", "chronos"]
 
 # Routing automatique selon criticité
+# - hitl       : interruption pour validation humaine sur veto bloquant
+# - zeus       : passage par le distributeur Zeus (vs agent unique)
+# - veto_check : exécution du structured_veto via GuardsService (M2)
 CRITICITE_ROUTING = {
     "C1": {"hitl": False, "zeus": False, "veto_check": False},
     "C2": {"hitl": False, "zeus": False, "veto_check": False},
-    "C3": {"hitl": False, "zeus": True,  "veto_check": False},
-    "C4": {"hitl": True,  "zeus": True,  "veto_check": False},
+    "C3": {"hitl": False, "zeus": True,  "veto_check": True},
+    "C4": {"hitl": True,  "zeus": True,  "veto_check": True},
     "C5": {"hitl": True,  "zeus": True,  "veto_check": True},
 }
 VALID_AGENTS = {
@@ -233,9 +236,11 @@ class OrchestraState(TypedDict):
     # Criticité C1-C5
     criticite: str              # "C1" | "C2" | "C3" | "C4" | "C5"
 
-    # Veto (Thémis / Héphaïstos)
+    # Veto (Thémis / Héphaïstos) — structured_veto via GuardsService
     veto_agent: str             # nom de l'agent ayant émis le veto
     veto_motif: str             # raison du veto
+    veto_severity: str          # bloquant | reserve | information
+    veto_condition_levee: str   # ce qu'il faut produire/valider pour lever le veto
 
     # Human-in-the-loop
     hitl_enabled: bool
@@ -792,8 +797,17 @@ def _make_nodes(affaire_uuid: UUID, user_uuid: UUID | None):
         complements = parsed.get("complement_requests", [])
         synthesis_instruction = parsed.get("synthesis_instruction", state["instruction"])
 
-        # Si déjà fait un complément, forcer "complete"
-        if state.get("complement_done"):
+        # Loop guard (M2 — guards module) : empêche les boucles
+        # d'enrichissement infinies. Au-delà de max_complements (=1 par
+        # défaut), on force "complete" même si Zeus en redemande.
+        from modules.guards.service import GuardsService
+        loop_verdict = GuardsService.loop_guard(state, max_complements=1)
+        if not loop_verdict.should_continue and verdict == "needs_complement":
+            log.info(
+                "orchestra.loop_guard_stop",
+                reason=loop_verdict.reason,
+                iteration=loop_verdict.iteration,
+            )
             verdict = "complete"
 
         log.info("orchestra.zeus_verdict", verdict=verdict, complements=len(complements))
@@ -854,41 +868,91 @@ def _make_nodes(affaire_uuid: UUID, user_uuid: UUID | None):
 
     async def veto_check(state: OrchestraState) -> dict:
         """
-        Nœud veto — après execute_agents, vérifie si Thémis ou Héphaïstos
-        ont émis un veto dans leurs résultats.
-        Si veto détecté ET criticité C5 → interruption HITL obligatoire.
+        Nœud veto — délègue à GuardsService.structured_veto (M2).
+
+        Analyse LLM (Instructor) des sorties Thémis / Héphaïstos / Apollon
+        pour détecter un veto structuré (vs détection keyword fragile).
+        Retourne le veto le plus sévère (bloquant > reserve > information).
+
+        Si veto.severity == "bloquant" ET criticité C4/C5 → interrupt HITL.
+        Pour C3, on trace le veto mais on continue (decision réversible).
         """
-        _VETO_KEYWORDS = ("veto", "🚫", "infaisable", "bloque", "hors responsabilité", "risque majeur")
-        results = state.get("agent_results", {})
+        from modules.guards.service import GuardsService
+
         criticite = state.get("criticite", "C2")
+        routing = CRITICITE_ROUTING.get(criticite, CRITICITE_ROUTING["C2"])
+        if not routing.get("veto_check"):
+            log.info("orchestra.veto_skipped", criticite=criticite)
+            return {
+                "veto_agent": "",
+                "veto_motif": "",
+                "veto_severity": "",
+                "veto_condition_levee": "",
+            }
 
-        veto_agent = ""
-        veto_motif = ""
+        results = state.get("agent_results", {})
+        # Ordre d'évaluation : Thémis (juridique) > Héphaïstos (technique) > Apollon (normatif)
+        candidates = [a for a in ("themis", "hephaistos", "apollon") if results.get(a)]
 
-        for agent_name in ("themis", "hephaistos"):
-            result_text = results.get(agent_name, "").lower()
-            if any(kw in result_text for kw in _VETO_KEYWORDS):
-                veto_agent = agent_name
-                # Extraire un extrait du motif (100 premiers chars après le mot-clé)
-                for kw in _VETO_KEYWORDS:
-                    idx = result_text.find(kw)
-                    if idx >= 0:
-                        veto_motif = results.get(agent_name, "")[max(0, idx-20):idx+200].strip()
-                        break
-                break
+        worst_veto = None
+        for agent_name in candidates:
+            decision = await GuardsService.structured_veto(
+                agent=agent_name,
+                agent_output=results.get(agent_name, ""),
+                criticite=criticite,
+            )
+            if decision.veto and decision.severity == "bloquant":
+                worst_veto = decision
+                break  # priorité Thémis > Héphaïstos > Apollon
+            if decision.veto and decision.severity == "reserve" and worst_veto is None:
+                worst_veto = decision
 
-        if veto_agent and criticite in ("C4", "C5"):
-            log.warning("orchestra.veto_detected", agent=veto_agent, criticite=criticite)
-            # Interruption HITL obligatoire
+        if worst_veto is None:
+            return {
+                "veto_agent": "",
+                "veto_motif": "",
+                "veto_severity": "",
+                "veto_condition_levee": "",
+            }
+
+        update = {
+            "veto_agent": worst_veto.agent,
+            "veto_motif": worst_veto.motif,
+            "veto_severity": worst_veto.severity,
+            "veto_condition_levee": worst_veto.condition_levee,
+        }
+
+        # Interrupt HITL uniquement si veto bloquant ET criticité engageante
+        if worst_veto.severity == "bloquant" and criticite in ("C4", "C5"):
+            log.warning(
+                "orchestra.veto_blocking",
+                agent=worst_veto.agent,
+                criticite=criticite,
+                condition_levee=worst_veto.condition_levee[:120],
+            )
             hitl_payload = {
-                "veto_agent": veto_agent,
-                "veto_motif": veto_motif,
-                "message": f"⚠️ Veto émis par {veto_agent.upper()} — validation humaine requise avant de poursuivre.",
+                "veto_agent": worst_veto.agent,
+                "veto_motif": worst_veto.motif,
+                "veto_severity": worst_veto.severity,
+                "veto_condition_levee": worst_veto.condition_levee,
+                "message": (
+                    f"⚠️ Veto bloquant émis par {worst_veto.agent.upper()} — "
+                    f"validation humaine requise.\n"
+                    f"Motif : {worst_veto.motif}\n"
+                    f"Condition de levée : {worst_veto.condition_levee or '—'}"
+                ),
                 "assignments": state.get("assignments", []),
             }
             interrupt(hitl_payload)
+        else:
+            log.info(
+                "orchestra.veto_traced",
+                agent=worst_veto.agent,
+                severity=worst_veto.severity,
+                criticite=criticite,
+            )
 
-        return {"veto_agent": veto_agent, "veto_motif": veto_motif}
+        return update
 
     async def score_decision(state: OrchestraState) -> dict:
         """Score automatique pour C4/C5 — appelle ScoringService.score_auto().
@@ -1116,6 +1180,8 @@ def _build_initial_state(
         "criticite": criticite,
         "veto_agent": "",
         "veto_motif": "",
+        "veto_severity": "",
+        "veto_condition_levee": "",
         "hitl_enabled": hitl_enabled,
         "hitl_approval": {},
         "score_id": "",
@@ -1143,6 +1209,9 @@ def _persist_run_state(run: OrchestraRun, final_state: dict) -> None:
     run.subtask_results = final_state.get("subtask_results", {})
     run.veto_agent      = final_state.get("veto_agent", "") or None
     run.veto_motif      = final_state.get("veto_motif", "") or None
+    # Structured veto (M2 — guards module)
+    run.veto_severity         = final_state.get("veto_severity", "") or None
+    run.veto_condition_levee  = final_state.get("veto_condition_levee", "") or None
     # Scoring + mémoires (nœuds score_decision / write_memories)
     run.score_id        = final_state.get("score_id", "") or None
     run.score_verdict   = final_state.get("score_verdict", "") or None
@@ -1448,7 +1517,7 @@ _NODE_LABELS = {
     "zeus_distribute":      ("zeus",       "Zeus organise les sous-tâches..."),
     "workflow_precheck":    ("precheck",   "Gate Precheck — dimensionnement du plan..."),
     "dispatch_subtasks":    ("executing",  "Exécution des agents (cascade / arène / parallèle)..."),
-    "veto_check":           ("veto",       "Vérification veto Thémis / Héphaïstos..."),
+    "veto_check":           ("veto",       "Veto structuré (Thémis / Héphaïstos / Apollon)..."),
     "execute_complements":  ("executing",  "Compléments en cours..."),
     "zeus_judge":           ("judging",    "Zeus juge les résultats..."),
     "score_decision":       ("scoring",    "Scoring décisionnel (5 axes / 100 pts)..."),
@@ -1586,6 +1655,15 @@ async def stream_orchestra(
                             for agent, result in updates.get("agent_results", {}).items()
                         }
                     })
+
+                elif node_name == "veto_check":
+                    if updates.get("veto_agent"):
+                        yield _sse("veto_detected", {
+                            "agent": updates.get("veto_agent", ""),
+                            "severity": updates.get("veto_severity", ""),
+                            "motif": updates.get("veto_motif", ""),
+                            "condition_levee": updates.get("veto_condition_levee", ""),
+                        })
 
                 elif node_name == "zeus_judge":
                     yield _sse("zeus_verdict", {
