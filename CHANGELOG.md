@@ -24,6 +24,11 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 ## [Unreleased]
 
 ### Added
+- **Module preprocessing (Hermès++)** : normalisation d'entrée (cleaned_question, reformulated_question, intent, phase/domaine, missing_information, confidence, suggested_criticite) + gate Precheck (approved|trim|upgrade|clarification|blocked). Routes de preview `/preprocessing/preview` et `/preprocessing/precheck`
+- **Nœud `preprocess`** en tête du graphe Zeus : reformulation LLM via LlmService.extract() avant plan_agents, avec fallback silencieux si LLM down
+- **Nœud `workflow_precheck`** entre `zeus_distribute` et `dispatch_subtasks` : évalue le dimensionnement du plan Zeus (trim sur-dimensionné, upgrade criticité sous-estimée), court-circuite vers END sur clarification/blocked avec message utilisateur
+- **Événements SSE** `preprocess_ready` + `precheck_verdict` pour suivi temps réel du gate
+- **Migration 0018** : colonnes `preprocessed_input` (JSONB), `precheck_verdict` (String 32), `precheck_reasoning` (Text) sur `orchestra_runs`
 - **Module wiki (synthesis-cache)** : pages markdown navigables depuis les décisions validées, recherche hybride cosine+LIKE, précédents agence (+5 scoring). Routes CRUD `/wiki/pages/`, promotion `/wiki/pages/from-decision/{id}`, recherche `/wiki/search`, check précédents `/wiki/precedents`
 - **Module scoring** : scoring décisionnel 100 pts / 5 axes (technique, contractuel, planning, cohérence, logique) avec bonus/malus automatiques. Modes manuel et auto (LLM via Instructor). Routes `/scoring/manual`, `/scoring/auto`, `/scoring/stats`
 - **Module decisions (dashboard)** : CRUD décisions/tâches/observations, 5 vues dashboard (critiques, dettes, non-validées, par lot, timeline), KPIs agrégés. Routes `/decisions/kpis`, `/decisions/views/{view}`
@@ -33,6 +38,10 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 - **Migration 0015** : table `decision_scores` avec index composite (decision_id, computed_at DESC)
 - **Migration 0016** : enrichissement `project_decisions` + tables `project_tasks` / `project_observations`
 - **Migration 0017** : colonnes scoring + mémoires sur `orchestra_runs`
+
+### Changed
+- **Graphe Zeus** : flow étendu `preprocess → plan_agents → zeus_distribute → workflow_precheck → dispatch_subtasks → veto_check → zeus_judge → [execute_complements] → score_decision → synthesize → write_memories → END`
+- **OrchestraState** : nouveaux champs `preprocessed_input`, `precheck_verdict`, `precheck_reasoning`
 
 ## [0.5.0] - 2026-04-10
 
