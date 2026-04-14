@@ -63,6 +63,16 @@ class OrchestraRun(Base):
     criticite: Mapped[str] = mapped_column(String(2), nullable=False, default="C2")
     # C1=info | C2=question | C3=décision locale | C4=décision engageante | C5=risque majeur
 
+    # Preprocessing Hermès (nœud preprocess)
+    preprocessed_input: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # {cleaned_question, reformulated_question, intent, phase_projet, domaine,
+    #  project_detected, missing_information, confidence, suggested_criticite}
+
+    # Gate Precheck (nœud workflow_precheck)
+    precheck_verdict: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    # approved | trim | upgrade | clarification | blocked
+    precheck_reasoning: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     # Scoring décisionnel (nœud score_decision)
     score_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     score_verdict: Mapped[str | None] = mapped_column(String(16), nullable=True)

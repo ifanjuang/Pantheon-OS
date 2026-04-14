@@ -2,17 +2,28 @@
 OrchestraService — boucle de coordination multi-agents via LangGraph.
 
 Graphe Zeus :
-  [plan_agents] → [zeus_distribute] → [dispatch_subtasks] → [veto_check] → [zeus_judge]
-                        ↑ HITL C4/C5                               │ needs_complement
-                                                    ┌──────────────┘
-                                                    ▼
-                                           [execute_complements] ─┐
-                                                                  │ complete
-                                                    ┌─────────────┘
-                                                    ▼
-                                           [score_decision] → [synthesize] → [write_memories] → END
-                                            (C4/C5 only)       synthèse       Hestia/Mnémosyne
-                                                                              + wiki C4/C5
+  [preprocess] → [plan_agents] → [zeus_distribute] → [workflow_precheck]
+                                        ↑ HITL C4/C5   │ approved|trim|upgrade
+                                                       │ (clarification|blocked → END)
+                                                       ▼
+                                                [dispatch_subtasks] → [veto_check] → [zeus_judge]
+                                                                                        │ needs_complement
+                                                                          ┌─────────────┘
+                                                                          ▼
+                                                                 [execute_complements] ─┐
+                                                                                        │ complete
+                                                                          ┌─────────────┘
+                                                                          ▼
+                                                                 [score_decision] → [synthesize] → [write_memories] → END
+                                                                  (C4/C5 only)       synthèse       Hestia/Mnémosyne
+                                                                                                    + wiki C4/C5
+
+Nœuds de tête (M1) :
+  preprocess         — Hermès++ : cleaned_question, reformulated_question,
+                       intent, missing_information, confidence, suggested_criticite
+  workflow_precheck  — gate avant dispatch :
+                         approved|trim|upgrade → dispatch_subtasks
+                         clarification|blocked → END (final_answer = message)
 
 Patterns d'exécution dans dispatch_subtasks :
   solo        — un seul agent
@@ -239,6 +250,13 @@ class OrchestraState(TypedDict):
     memories_written: int       # nombre de leçons extraites au niveau orchestre
     wiki_page_id: str           # UUID de la page wiki promue (C4/C5)
 
+    # Preprocessing Hermès (nœud preprocess)
+    preprocessed_input: dict    # PreprocessedInput.model_dump()
+
+    # Gate Precheck (nœud workflow_precheck)
+    precheck_verdict: str       # approved | trim | upgrade | clarification | blocked
+    precheck_reasoning: str
+
 
 # ── Helpers LLM ────────────────────────────────────────────────────
 
@@ -462,6 +480,108 @@ async def _exec_arena(
 
 def _make_nodes(affaire_uuid: UUID, user_uuid: UUID | None):
     """Crée les nœuds du graphe en clôturant affaire_id et user_id."""
+
+    async def preprocess(state: OrchestraState) -> dict:
+        """M1 — Hermès++ : normalise la demande avant plan_agents.
+
+        Produit PreprocessedInput (cleaned, reformulated, intent, missing_info,
+        confidence, suggested_criticite). Si la confiance ≥ 0.5 et qu'une
+        reformulation existe, l'instruction du graphe est remplacée par la
+        version reformulée (plus précise pour les agents).
+        """
+        from modules.preprocessing.service import PreprocessingService
+
+        affaire_hint = state.get("affaire_id") or None
+        result = await PreprocessingService.preprocess(
+            state["instruction"],
+            affaire_hint=affaire_hint,
+        )
+        updates: dict = {"preprocessed_input": result.model_dump()}
+
+        if result.confidence >= 0.5 and result.reformulated_question:
+            reformulated = result.reformulated_question.strip()
+            if reformulated and reformulated != state["instruction"]:
+                updates["instruction"] = reformulated
+
+        log.info(
+            "orchestra.preprocess_done",
+            intent=result.intent,
+            confidence=round(result.confidence, 2),
+            missing=len(result.missing_information),
+        )
+        return updates
+
+    async def workflow_precheck(state: OrchestraState) -> dict:
+        """M1 — gate entre zeus_distribute et dispatch_subtasks.
+
+        Évalue si le plan Zeus est bien dimensionné. Verdicts :
+          approved | trim | upgrade  → dispatch_subtasks
+          clarification | blocked    → END (final_answer = message)
+        """
+        from modules.preprocessing.schemas import PreprocessedInput
+        from modules.preprocessing.service import PreprocessingService
+
+        preprocessed: PreprocessedInput | None = None
+        raw = state.get("preprocessed_input")
+        if raw:
+            try:
+                preprocessed = PreprocessedInput(**raw)
+            except Exception:
+                preprocessed = None
+
+        decision = await PreprocessingService.precheck(
+            instruction=state["instruction"],
+            criticite=state.get("criticite", "C2"),
+            subtasks=state.get("subtasks", []),
+            preprocessed=preprocessed,
+        )
+
+        updates: dict = {
+            "precheck_verdict": decision.verdict,
+            "precheck_reasoning": decision.reasoning,
+        }
+
+        if decision.verdict == "trim" and decision.suggested_subtask_ids:
+            keep = set(decision.suggested_subtask_ids)
+            trimmed = [
+                st for st in state.get("subtasks", []) if st.get("id") in keep
+            ]
+            if trimmed:
+                updates["subtasks"] = trimmed
+                new_assignments: list = []
+                for st in trimmed:
+                    for agent in st["agents"]:
+                        new_assignments.append({
+                            "agent": agent,
+                            "instruction": st.get("instruction") or state["instruction"],
+                            "priority": 1,
+                        })
+                    if st.get("judge"):
+                        new_assignments.append({
+                            "agent": st["judge"],
+                            "instruction": st.get("instruction") or state["instruction"],
+                            "priority": 2,
+                        })
+                updates["assignments"] = new_assignments
+
+        if decision.verdict == "upgrade" and decision.suggested_criticite:
+            updates["criticite"] = decision.suggested_criticite
+
+        if decision.verdict in ("clarification", "blocked"):
+            msg = decision.clarification_message.strip() or decision.reasoning
+            prefix = (
+                "⚠️ Clarification requise"
+                if decision.verdict == "clarification"
+                else "🚫 Demande bloquée"
+            )
+            updates["final_answer"] = f"{prefix} — {msg}"
+
+        log.info(
+            "orchestra.precheck_done",
+            verdict=decision.verdict,
+            criticite=updates.get("criticite", state.get("criticite")),
+        )
+        return updates
 
     async def plan_agents(state: OrchestraState) -> dict:
         """Phase 1 — chaque agent déclare son plan."""
@@ -896,13 +1016,26 @@ def _make_nodes(affaire_uuid: UUID, user_uuid: UUID | None):
         log.info("orchestra.memories_written", count=memories_count, wiki=bool(wiki_page_id))
         return {"memories_written": memories_count, "wiki_page_id": wiki_page_id}
 
-    return plan_agents, zeus_distribute, dispatch_subtasks, zeus_judge, execute_complements, synthesize, veto_check, score_decision, write_memories
+    return (preprocess, workflow_precheck, plan_agents, zeus_distribute,
+            dispatch_subtasks, zeus_judge, execute_complements, synthesize,
+            veto_check, score_decision, write_memories)
 
 
 def _route_after_judge(state: OrchestraState) -> str:
     if state.get("verdict") == "needs_complement" and not state.get("complement_done"):
         return "execute_complements"
     return "score_decision"
+
+
+def _route_after_precheck(state: OrchestraState) -> str:
+    """Routing post-precheck :
+      approved|trim|upgrade  → dispatch_subtasks
+      clarification|blocked  → end
+    """
+    verdict = state.get("precheck_verdict", "approved")
+    if verdict in ("clarification", "blocked"):
+        return "end"
+    return "dispatch_subtasks"
 
 
 # ── Graph factory ────────────────────────────────────────────────
@@ -914,13 +1047,15 @@ def build_graph(affaire_id: UUID, user_id: UUID | None, checkpointer=None):
         checkpointer: si fourni, le graphe est compilé avec persistence
                       (requis pour HITL pause/resume).
     """
-    (plan_agents, zeus_distribute, dispatch_subtasks, zeus_judge,
-     execute_complements, synthesize, veto_check,
-     score_decision, write_memories) = _make_nodes(affaire_id, user_id)
+    (preprocess, workflow_precheck, plan_agents, zeus_distribute,
+     dispatch_subtasks, zeus_judge, execute_complements, synthesize,
+     veto_check, score_decision, write_memories) = _make_nodes(affaire_id, user_id)
 
     builder = StateGraph(OrchestraState)
+    builder.add_node("preprocess", preprocess)
     builder.add_node("plan_agents", plan_agents)
     builder.add_node("zeus_distribute", zeus_distribute)
+    builder.add_node("workflow_precheck", workflow_precheck)
     builder.add_node("dispatch_subtasks", dispatch_subtasks)
     builder.add_node("veto_check", veto_check)
     builder.add_node("zeus_judge", zeus_judge)
@@ -929,9 +1064,14 @@ def build_graph(affaire_id: UUID, user_id: UUID | None, checkpointer=None):
     builder.add_node("synthesize", synthesize)
     builder.add_node("write_memories", write_memories)
 
-    builder.set_entry_point("plan_agents")
+    builder.set_entry_point("preprocess")
+    builder.add_edge("preprocess", "plan_agents")
     builder.add_edge("plan_agents", "zeus_distribute")
-    builder.add_edge("zeus_distribute", "dispatch_subtasks")
+    builder.add_edge("zeus_distribute", "workflow_precheck")
+    builder.add_conditional_edges("workflow_precheck", _route_after_precheck, {
+        "dispatch_subtasks": "dispatch_subtasks",
+        "end": END,
+    })
     builder.add_edge("dispatch_subtasks", "veto_check")
     builder.add_edge("veto_check", "zeus_judge")
     builder.add_conditional_edges("zeus_judge", _route_after_judge, {
@@ -983,6 +1123,9 @@ def _build_initial_state(
         "score_total": 0,
         "memories_written": 0,
         "wiki_page_id": "",
+        "preprocessed_input": {},
+        "precheck_verdict": "",
+        "precheck_reasoning": "",
     }
 
 
@@ -1006,6 +1149,10 @@ def _persist_run_state(run: OrchestraRun, final_state: dict) -> None:
     run.score_total     = final_state.get("score_total") or None
     run.memories_written = final_state.get("memories_written", 0)
     run.wiki_page_id    = final_state.get("wiki_page_id", "") or None
+    # Preprocessing + Precheck (M1)
+    run.preprocessed_input = final_state.get("preprocessed_input") or None
+    run.precheck_verdict   = final_state.get("precheck_verdict", "") or None
+    run.precheck_reasoning = final_state.get("precheck_reasoning", "") or None
 
 
 async def _safe_publish_event(event_type: str, run: OrchestraRun) -> None:
@@ -1296,8 +1443,10 @@ async def resume_orchestra(
 
 # Mapping nœud LangGraph → label SSE lisible
 _NODE_LABELS = {
+    "preprocess":           ("preprocess", "Normalisation Hermès..."),
     "plan_agents":          ("planning",   "Collecte des plans agents..."),
     "zeus_distribute":      ("zeus",       "Zeus organise les sous-tâches..."),
+    "workflow_precheck":    ("precheck",   "Gate Precheck — dimensionnement du plan..."),
     "dispatch_subtasks":    ("executing",  "Exécution des agents (cascade / arène / parallèle)..."),
     "veto_check":           ("veto",       "Vérification veto Thémis / Héphaïstos..."),
     "execute_complements":  ("executing",  "Compléments en cours..."),
@@ -1324,13 +1473,17 @@ async def stream_orchestra(
     Générateur async SSE — yield les événements LangGraph au fil de l'exécution.
 
     Événements émis :
-      phase_start   — début d'un nœud {phase, message}
-      plans_ready   — fin plan_agents {plans}
-      zeus_decision — fin zeus_distribute {reasoning, assignments, synthesis_agent}
-      agents_done   — fin execute_agents {results}
-      zeus_verdict  — fin zeus_judge {verdict}
-      final_answer  — fin synthesize {answer, run_id}
-      error         — exception {detail}
+      phase_start       — début d'un nœud {phase, message}
+      preprocess_ready  — fin preprocess {intent, confidence, suggested_criticite, missing}
+      plans_ready       — fin plan_agents {plans}
+      zeus_decision     — fin zeus_distribute {reasoning, assignments, synthesis_agent}
+      precheck_verdict  — fin workflow_precheck {verdict, reasoning, criticite}
+      agents_done       — fin execute_agents {results}
+      zeus_verdict      — fin zeus_judge {verdict}
+      score_computed    — fin score_decision {score_id, verdict, total}
+      final_answer      — fin synthesize {answer, run_id}
+      memories_written  — fin write_memories {count, wiki_page_id}
+      error             — exception {detail}
     """
     initial_agents = [a for a in (agents or DEFAULT_AGENTS) if a in VALID_AGENTS] or DEFAULT_AGENTS
     effective_criticite = criticite if criticite in CRITICITE_ROUTING else "C2"
@@ -1372,7 +1525,17 @@ async def stream_orchestra(
                 final_state.update(updates)
 
                 # Événements sémantiques selon le nœud
-                if node_name == "plan_agents":
+                if node_name == "preprocess":
+                    pp = updates.get("preprocessed_input", {}) or {}
+                    yield _sse("preprocess_ready", {
+                        "intent": pp.get("intent"),
+                        "confidence": pp.get("confidence"),
+                        "suggested_criticite": pp.get("suggested_criticite"),
+                        "missing_information": pp.get("missing_information", []),
+                        "reformulated_question": pp.get("reformulated_question", ""),
+                    })
+
+                elif node_name == "plan_agents":
                     yield _sse("plans_ready", {
                         "plans": {
                             agent: {
@@ -1390,6 +1553,22 @@ async def stream_orchestra(
                         "assignments": updates.get("assignments", []),
                         "synthesis_agent": updates.get("synthesis_agent", "mnemosyne"),
                     })
+
+                elif node_name == "workflow_precheck":
+                    precheck_verdict = updates.get("precheck_verdict", "approved")
+                    yield _sse("precheck_verdict", {
+                        "verdict": precheck_verdict,
+                        "reasoning": updates.get("precheck_reasoning", ""),
+                        "criticite": updates.get("criticite") or final_state.get("criticite"),
+                        "subtasks_trimmed": bool(updates.get("subtasks")),
+                    })
+                    # Si clarification/blocked, le graphe s'arrête ici : émettre final_answer
+                    if precheck_verdict in ("clarification", "blocked") and updates.get("final_answer"):
+                        yield _sse("final_answer", {
+                            "answer": updates.get("final_answer", ""),
+                            "run_id": str(run_id),
+                            "short_circuited": True,
+                        })
 
                 elif node_name in ("dispatch_subtasks", "execute_complements"):
                     # Émettre un événement par sous-tâche si disponible

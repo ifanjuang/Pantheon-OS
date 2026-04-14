@@ -1,0 +1,5 @@
+name: preprocessing
+version: "0.1.0"
+description: "Normalisation d'entrée (Hermès++) et gate Precheck avant orchestration coûteuse"
+prefix: /preprocessing
+depends_on: []

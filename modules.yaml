@@ -42,6 +42,9 @@ modules:
   - name: decisions
     enabled: true
 
+  - name: preprocessing
+    enabled: true
+
   - name: chantier
     enabled: false
 

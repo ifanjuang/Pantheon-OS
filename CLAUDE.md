@@ -204,6 +204,7 @@ ADMIN_PASSWORD=changeme
 | 0015 | decision_scores (scoring décisionnel 100 pts / 5 axes) |
 | 0016 | enrichissement project_decisions + project_tasks + project_observations |
 | 0017 | orchestra_runs scoring + mémoires (score_id, score_verdict, memories_written, wiki_page_id) |
+| 0018 | orchestra_runs preprocessing + precheck (preprocessed_input JSONB, precheck_verdict, precheck_reasoning) |
 
 ---
 
