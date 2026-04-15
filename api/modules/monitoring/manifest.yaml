@@ -1,0 +1,5 @@
+name: monitoring
+version: "0.1.0"
+description: "Observabilité ARCEUS — KPIs agrégés orchestra / agents / scoring / vetos"
+prefix: /monitoring
+depends_on: []

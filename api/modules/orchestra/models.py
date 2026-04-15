@@ -43,6 +43,10 @@ class OrchestraRun(Base):
     # Veto Thémis / Héphaïstos (vide si aucun)
     veto_agent: Mapped[str | None] = mapped_column(String(64), nullable=True)
     veto_motif: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Structured veto (M2 — guards module)
+    veto_severity: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    # bloquant | reserve | information
+    veto_condition_levee: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Phase 4 — synthèse
     final_answer: Mapped[str | None] = mapped_column(Text, nullable=True)

@@ -1,0 +1,5 @@
+name: memory
+version: "0.1.0"
+description: "Mémoire fonctionnelle (Redis TTL) — contexte session, promotion vers Hestia"
+prefix: /memory
+depends_on: []

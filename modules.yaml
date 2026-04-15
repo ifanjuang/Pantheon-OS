@@ -45,6 +45,15 @@ modules:
   - name: preprocessing
     enabled: true
 
+  - name: guards
+    enabled: true
+
+  - name: memory
+    enabled: true
+
+  - name: monitoring
+    enabled: true
+
   - name: chantier
     enabled: false
 
@@ -58,9 +67,6 @@ modules:
     enabled: false
 
   - name: rag
-    enabled: false
-
-  - name: memory
     enabled: false
 
   - name: finance

@@ -24,6 +24,15 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 ## [Unreleased]
 
 ### Added
+- **Module memory (M3)** : mémoire fonctionnelle Redis TTL (session). Comble le chaînon entre Mnémosyne (agence, permanente) et Hestia (projet, durée affaire). `FunctionalMemoryService.set_context` / `get_context` / `delete_context` / `promote_to_project`. Fallback silencieux si Redis down. Routes `GET|POST|DELETE /memory/context/{thread_id}` + `POST /memory/promote`
+- **Module monitoring (M3)** : observabilité ARCEUS — KPIs agrégés depuis `orchestra_runs`, `agent_runs`, `decision_scores`. 4 familles : OrchestraKPIs (durée p50/p95/mean, distribution criticité, taux enrichissement, HITL), AgentKPIs (taux erreur, itérations, top 10 agents), ScoringKPIs (verdicts, scores, axes), GuardsKPIs (veto bloquant/reserve, verdicts précheck, shortcircuit rate). Fenêtres 24h/7d/30d/90d. Routes `GET /monitoring/kpis[/{orchestra|agents|scoring|guards}]`
+- **Intégration mémoire fonctionnelle dans le graphe Zeus** : `preprocess` lit le contexte session Redis (affaire_id, phase, domaine) et persiste `last_preprocessed` ; `write_memories` persiste `last_verdict` + `last_answer_excerpt` pour continuité conversationnelle sur N runs
+- **OrchestraState** : nouveau champ `thread_id` pour la mémoire fonctionnelle (par défaut = run_id)
+- **Module guards (M2)** : gardes-fous explicites — `criticality_guard` (règle pure C1-C5 dérivée de impact_cout/impact_delai/severity/intent), `reversibility_guard` (LLM, distingue actions réversibles/irréversibles, force HITL si nécessaire), `loop_guard` (anti-boucle d'enrichissement), `structured_veto` (LLM Instructor, remplace la détection keyword fragile, retourne `severity: bloquant|reserve|information` + `condition_levee`). Routes de preview `/guards/veto/preview`, `/guards/reversibility/preview`, `/guards/criticality/preview`
+- **Refactor `veto_check`** : utilise `GuardsService.structured_veto` au lieu de `_VETO_KEYWORDS`. Évalue Thémis > Héphaïstos > Apollon par ordre de priorité, ne déclenche HITL que sur veto bloquant + criticité C4/C5 (C3 trace le veto sans interrompre)
+- **Loop guard dans `zeus_judge`** : remplace `if state.get("complement_done")` inline par `GuardsService.loop_guard(state, max_complements=1)` — extensible à un compteur futur
+- **Événement SSE** `veto_detected` : émet agent, severity, motif, condition_levee dès qu'un veto est détecté
+- **Migration 0019** : colonnes `condition_levee` + `reversible` sur `project_decisions`, colonnes `veto_severity` + `veto_condition_levee` sur `orchestra_runs`
 - **Module preprocessing (Hermès++)** : normalisation d'entrée (cleaned_question, reformulated_question, intent, phase/domaine, missing_information, confidence, suggested_criticite) + gate Precheck (approved|trim|upgrade|clarification|blocked). Routes de preview `/preprocessing/preview` et `/preprocessing/precheck`
 - **Nœud `preprocess`** en tête du graphe Zeus : reformulation LLM via LlmService.extract() avant plan_agents, avec fallback silencieux si LLM down
 - **Nœud `workflow_precheck`** entre `zeus_distribute` et `dispatch_subtasks` : évalue le dimensionnement du plan Zeus (trim sur-dimensionné, upgrade criticité sous-estimée), court-circuite vers END sur clarification/blocked avec message utilisateur
@@ -41,7 +50,9 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 
 ### Changed
 - **Graphe Zeus** : flow étendu `preprocess → plan_agents → zeus_distribute → workflow_precheck → dispatch_subtasks → veto_check → zeus_judge → [execute_complements] → score_decision → synthesize → write_memories → END`
-- **OrchestraState** : nouveaux champs `preprocessed_input`, `precheck_verdict`, `precheck_reasoning`
+- **OrchestraState** : nouveaux champs `preprocessed_input`, `precheck_verdict`, `precheck_reasoning`, `veto_severity`, `veto_condition_levee`, `thread_id`
+- **CRITICITE_ROUTING** : `veto_check` activé sur C3 et C4 (avant : uniquement C5). Le HITL reste réservé aux vetos bloquants C4/C5.
+- **modules.yaml** : activation de `memory` (précédemment placeholder désactivé) et ajout de `monitoring`.
 
 ## [0.5.0] - 2026-04-10
 

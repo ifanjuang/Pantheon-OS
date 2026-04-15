@@ -107,7 +107,7 @@ ARCEUS/
 |---|---|---|---|
 | **Agence** | `scope='agence'`, `affaire_id=NULL` | Mnémosyne | Permanente |
 | **Projet** | `scope='projet'`, `affaire_id=<uuid>` | Hestia | Durée affaire |
-| **Fonctionnelle** | LangGraph state / Redis | Hermès + Chronos | Session |
+| **Fonctionnelle** | Redis TTL (`memory:fn:{thread_id}:*`) / module `memory` | Hermès + Chronos | Session (TTL 1h) |
 
 ---
 
@@ -205,6 +205,7 @@ ADMIN_PASSWORD=changeme
 | 0016 | enrichissement project_decisions + project_tasks + project_observations |
 | 0017 | orchestra_runs scoring + mémoires (score_id, score_verdict, memories_written, wiki_page_id) |
 | 0018 | orchestra_runs preprocessing + precheck (preprocessed_input JSONB, precheck_verdict, precheck_reasoning) |
+| 0019 | guards : project_decisions (condition_levee, reversible) + orchestra_runs (veto_severity, veto_condition_levee) |
 
 ---
 
