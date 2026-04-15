@@ -1,0 +1,34 @@
+id: openclaw-courrier
+title: "OpenClaw — Rédaction de courriers (Iris)"
+description: |
+  Cas de production de correspondance. Vérifie Iris + cadrage Thémis +
+  ton approprié (pas d'agressivité, pas de concession imprudente).
+
+cases:
+  - id: courrier-relance-entreprise
+    instruction: "Rédige une relance ferme mais courtoise à l'entreprise GrosŒuvre qui n'a pas transmis les plans d'exécution fondations sous 15 jours."
+    criticite: "C2"
+    tags: [courrier, relance, production]
+    expected_intent: "production"
+    expected_precheck: "approved"
+    expected_agents: [iris]
+    must_contain: ["plans d'exécution"]
+    must_not_contain: ["menace"]
+
+  - id: courrier-refus-avenant
+    instruction: "Rédige une lettre au MOA refusant l'avenant n°3 (modification du CCTP lot façade, +45 k€) car non conforme à la consultation."
+    criticite: "C4"
+    tags: [courrier, refus, avenant]
+    expected_intent: "production"
+    expected_precheck: "approved"
+    expected_agents: [iris, themis]
+    must_contain: ["CCTP"]
+
+  - id: courrier-reponse-administration
+    instruction: "Rédige la réponse à l'ABF qui demande des compléments sur les menuiseries bois (essence, teinte, sections)."
+    criticite: "C3"
+    tags: [courrier, administration, abf]
+    expected_intent: "production"
+    expected_precheck: "approved"
+    expected_agents: [iris, dedale]
+    must_contain: ["menuiserie"]

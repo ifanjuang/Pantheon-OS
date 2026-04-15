@@ -33,7 +33,12 @@ ARCEUS/
 │       ├── documents/              # Upload, ingest RAG, trigger Thémis
 │       ├── agent/                  # Boucle ReAct, mémoire, outils RAG+web
 │       ├── orchestra/              # LangGraph Zeus, C1-C5, HITL, SSE streaming
-│       └── meeting/                # Analyse CR, extraction actions, OJ
+│       ├── meeting/                # Analyse CR, extraction actions, OJ
+│       ├── preprocessing/          # Hermès++ : cleaning, intent, precheck gate
+│       ├── guards/                 # Criticality / reversibility / loop / structured_veto
+│       ├── memory/                 # Mémoire fonctionnelle Redis TTL (session)
+│       ├── monitoring/             # KPIs observabilité (durée, coût, vetos, scoring)
+│       └── evaluation/             # OpenClaw — harness d'éval reproductible
 ├── agents/                         # SOUL.md de chaque agent du panthéon
 │   ├── zeus/ hermes/ argos/
 │   ├── athena/ hephaistos/ promethee/ apollon/ dionysos/

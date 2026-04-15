@@ -1,0 +1,36 @@
+id: openclaw-chantier
+title: "OpenClaw — Questions chantier / EXE"
+description: |
+  Situations terrain : non-conformité, réunion de chantier, retard
+  d'approvisionnement, découverte imprévue.
+
+cases:
+  - id: chantier-non-conformite
+    instruction: "Sur le chantier Rivoli, le ferraillage du plancher haut ne respecte pas le BA EL : diamètres inférieurs au plan d'exécution."
+    criticite: "C4"
+    tags: [chantier, non-conformite, structure]
+    expected_intent: "alerte"
+    expected_precheck: "approved"
+    expected_agents: [hephaistos, themis]
+    expected_veto: true
+    must_contain: ["arrêt", "contrôle"]
+
+  - id: chantier-retard
+    instruction: "L'entreprise électricité annonce 3 semaines de retard à cause d'une rupture de câbles. Impact sur le planning global ?"
+    criticite: "C3"
+    tags: [planning, retard]
+    expected_intent: "question"
+    expected_precheck: "approved"
+    expected_agents: [chronos]
+    must_contain: ["planning"]
+
+  - id: chantier-decouverte-amiante
+    instruction: "Pendant la dépose de l'ancienne toiture, on a trouvé des plaques d'amiante non signalées dans le DTA. Que faire ?"
+    criticite: "C5"
+    tags: [securite, amiante, urgence]
+    expected_intent: "alerte"
+    expected_precheck: "upgrade"
+    expected_agents: [themis, hephaistos]
+    expected_veto: true
+    must_contain: ["arrêt", "désamiantage"]
+    must_not_contain: ["continuez"]

@@ -1,0 +1,36 @@
+id: openclaw-devis
+title: "OpenClaw — Analyse de devis MOE"
+description: |
+  Cas typiques d'analyse de devis entreprise / consultation / chiffrage.
+  Couvre : lecture d'offres, écart vs estimation, alerte sur sous-chiffrage.
+
+cases:
+  - id: devis-simple
+    instruction: "L'entreprise Dubois nous envoie un devis pour les travaux de maçonnerie à 82 000 € HT. C'est dans quelle tranche d'estimation ?"
+    criticite: "C2"
+    tags: [devis, chiffrage, comparaison]
+    expected_intent: "question"
+    expected_precheck: "approved"
+    expected_agents: [chronos, themis]
+    forbidden_agents: [dionysos, aphrodite]
+    must_not_contain: ["je ne sais pas"]
+
+  - id: devis-alerte-sous-chiffrage
+    instruction: "Nous avons 3 devis pour le lot charpente : 45 k€, 48 k€ et 28 k€. On prend le moins cher ?"
+    criticite: "C3"
+    tags: [devis, alerte, comparaison]
+    expected_intent: "decision_locale"
+    expected_precheck: "approved"
+    expected_agents: [themis, hephaistos]
+    expected_veto: false
+    must_contain: ["sous-chiffrage", "risque"]
+
+  - id: devis-signature-engageante
+    instruction: "Le maître d'ouvrage veut signer aujourd'hui le marché travaux avec Leroux BTP pour 1,2 M€. Je valide ?"
+    criticite: "C4"
+    tags: [marche, signature, engageant]
+    expected_intent: "decision_engageante"
+    expected_precheck: "approved"
+    expected_agents: [themis, chronos]
+    must_contain: ["vérification", "garantie"]
+    must_not_contain: ["signez tout de suite"]

@@ -1,0 +1,5 @@
+name: evaluation
+version: "0.1.0"
+description: "OpenClaw — harness d'éval reproductible (datasets YAML, scoring pertinence/sécurité/complétude)"
+prefix: /evaluation
+depends_on: []
