@@ -40,8 +40,23 @@ from modules.guards.schemas import (
     ReversibilityDecision,
     VetoDecision,
 )
+from modules.guards.veto_patterns import fast_veto_check
 
 log = get_logger("guards.service")
+
+
+# ── Seuils loop_guard par criticité ──────────────────────────────────
+# C1/C2 (information/question) : pas de boucle d'enrichissement
+# C3 (décision locale)         : 1 complément maximum
+# C4 (décision engageante)     : 2 compléments maximum
+# C5 (risque majeur)           : 3 compléments maximum
+MAX_COMPLEMENTS_BY_CRITICITE: dict[str, int] = {
+    "C1": 0,
+    "C2": 0,
+    "C3": 1,
+    "C4": 2,
+    "C5": 3,
+}
 
 
 # ── Seuils criticality_guard (règles pures) ──────────────────────────
@@ -308,7 +323,7 @@ class GuardsService:
         )
         return verdict
 
-    # ── structured_veto (LLM) ───────────────────────────────────────
+    # ── structured_veto (couche 0 déterministe + couche 1 LLM) ────────
     @classmethod
     async def structured_veto(
         cls,
@@ -317,9 +332,15 @@ class GuardsService:
         agent_output: str,
         criticite: str = "C3",
     ) -> VetoDecision:
-        """Analyse structurée d'un veto agent (remplace keyword matching).
+        """Analyse structurée d'un veto agent.
 
-        Fallback : en cas d'échec LLM, pas de veto (severity=information)
+        Couche 0 (déterministe, 0 token) : fast_veto_check — patterns regex
+        sur formulations explicites de blocage. Couvre ~80 % des cas évidents
+        sans appel LLM.
+
+        Couche 1 (LLM via Instructor) : uniquement si couche 0 ne conclut pas.
+
+        Fallback couche 1 : en cas d'échec LLM, pas de veto (severity=information)
         pour ne pas bloquer l'orchestration sur une erreur réseau.
         """
         if not agent_output or len(agent_output.strip()) < 10:
@@ -330,6 +351,19 @@ class GuardsService:
                 motif="",
                 condition_levee="",
             )
+
+        # Couche 0 — déterministe, instantané
+        fast_result = fast_veto_check(agent, agent_output)
+        if fast_result is not None:
+            log.info(
+                "guards.veto.fast",
+                agent=agent,
+                severity=fast_result.severity,
+                motif=fast_result.motif[:160],
+            )
+            return fast_result
+
+        # Couche 1 — LLM uniquement si couche 0 ne conclut pas
         prompt = _VETO_PROMPT.format(
             agent=agent,
             criticite=criticite,

@@ -839,10 +839,12 @@ def _make_nodes(affaire_uuid: UUID, user_uuid: UUID | None):
         synthesis_instruction = parsed.get("synthesis_instruction", state["instruction"])
 
         # Loop guard (M2 — guards module) : empêche les boucles
-        # d'enrichissement infinies. Au-delà de max_complements (=1 par
-        # défaut), on force "complete" même si Zeus en redemande.
-        from modules.guards.service import GuardsService
-        loop_verdict = GuardsService.loop_guard(state, max_complements=1)
+        # d'enrichissement infinies. Le seuil max_complements dépend de la
+        # criticité : C1/C2 = 0, C3 = 1, C4 = 2, C5 = 3.
+        from modules.guards.service import GuardsService, MAX_COMPLEMENTS_BY_CRITICITE
+        _criticite = state.get("criticite", "C3")
+        _max = MAX_COMPLEMENTS_BY_CRITICITE.get(_criticite, 1)
+        loop_verdict = GuardsService.loop_guard(state, max_complements=_max)
         if not loop_verdict.should_continue and verdict == "needs_complement":
             log.info(
                 "orchestra.loop_guard_stop",
