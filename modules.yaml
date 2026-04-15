@@ -54,6 +54,9 @@ modules:
   - name: monitoring
     enabled: true
 
+  - name: evaluation
+    enabled: true
+
   - name: chantier
     enabled: false
 

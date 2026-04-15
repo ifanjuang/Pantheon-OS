@@ -24,6 +24,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 ## [Unreleased]
 
 ### Added
+- **Module evaluation — OpenClaw (M4)** : harness d'éval reproductible. Datasets YAML (`datasets/openclaw-*.yaml`) décrivant cas + attendus (`expected_criticite`, `expected_intent`, `expected_precheck`, `expected_agents`, `forbidden_agents`, `expected_veto`, `must_contain`, `must_not_contain`, `max_duration_ms`). `EvaluationService.run_eval(dataset_id)` invoque le graphe Zeus sur chaque cas. Scoring d'éval distinct du scoring décisionnel : 3 axes pondérés (completeness 40%, relevance 35%, security 25%) + passage conditionné à `total ≥ 0.6 AND security ≥ 0.5`. Routes `GET /evaluation/datasets`, `GET /evaluation/datasets/{id}`, `POST /evaluation/run/{id}`. CLI `python -m modules.evaluation.cli run openclaw-devis [--max-cases N] [--dry-run] [--json]`. 5 datasets par défaut : devis, chantier, photo, litige, courrier (15 cas au total)
 - **Module memory (M3)** : mémoire fonctionnelle Redis TTL (session). Comble le chaînon entre Mnémosyne (agence, permanente) et Hestia (projet, durée affaire). `FunctionalMemoryService.set_context` / `get_context` / `delete_context` / `promote_to_project`. Fallback silencieux si Redis down. Routes `GET|POST|DELETE /memory/context/{thread_id}` + `POST /memory/promote`
 - **Module monitoring (M3)** : observabilité ARCEUS — KPIs agrégés depuis `orchestra_runs`, `agent_runs`, `decision_scores`. 4 familles : OrchestraKPIs (durée p50/p95/mean, distribution criticité, taux enrichissement, HITL), AgentKPIs (taux erreur, itérations, top 10 agents), ScoringKPIs (verdicts, scores, axes), GuardsKPIs (veto bloquant/reserve, verdicts précheck, shortcircuit rate). Fenêtres 24h/7d/30d/90d. Routes `GET /monitoring/kpis[/{orchestra|agents|scoring|guards}]`
 - **Intégration mémoire fonctionnelle dans le graphe Zeus** : `preprocess` lit le contexte session Redis (affaire_id, phase, domaine) et persiste `last_preprocessed` ; `write_memories` persiste `last_verdict` + `last_answer_excerpt` pour continuité conversationnelle sur N runs
@@ -52,7 +53,7 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 - **Graphe Zeus** : flow étendu `preprocess → plan_agents → zeus_distribute → workflow_precheck → dispatch_subtasks → veto_check → zeus_judge → [execute_complements] → score_decision → synthesize → write_memories → END`
 - **OrchestraState** : nouveaux champs `preprocessed_input`, `precheck_verdict`, `precheck_reasoning`, `veto_severity`, `veto_condition_levee`, `thread_id`
 - **CRITICITE_ROUTING** : `veto_check` activé sur C3 et C4 (avant : uniquement C5). Le HITL reste réservé aux vetos bloquants C4/C5.
-- **modules.yaml** : activation de `memory` (précédemment placeholder désactivé) et ajout de `monitoring`.
+- **modules.yaml** : activation de `memory` (précédemment placeholder désactivé), ajout de `monitoring` et `evaluation`.
 
 ## [0.5.0] - 2026-04-10
 

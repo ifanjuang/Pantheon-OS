@@ -1,0 +1,31 @@
+id: openclaw-photo
+title: "OpenClaw — Analyse photo chantier (Argos)"
+description: |
+  Cas d'interprétation visuelle / observation objective. Vérifie que
+  Argos est bien invoqué et que la qualification reste factuelle.
+
+cases:
+  - id: photo-fissure
+    instruction: "Photo jointe : fissure en escalier sur mur de refend, largeur estimée 2 mm. Diagnostic ?"
+    criticite: "C4"
+    tags: [photo, structure, diagnostic]
+    expected_intent: "question"
+    expected_precheck: "approved"
+    expected_agents: [argos, hephaistos]
+    must_contain: ["observation", "tassement"]
+
+  - id: photo-etancheite
+    instruction: "Trace d'humidité en plafond R+2 après les pluies (voir photo). Origine probable ?"
+    criticite: "C3"
+    tags: [photo, etancheite]
+    expected_intent: "question"
+    expected_precheck: "approved"
+    expected_agents: [argos, hephaistos]
+
+  - id: photo-info-routine
+    instruction: "Photo d'avancement semaine 12 : gros œuvre niveau +3 terminé. RAS ?"
+    criticite: "C1"
+    tags: [photo, reporting]
+    expected_intent: "information"
+    expected_precheck: "trim"
+    forbidden_agents: [themis, hephaistos]
