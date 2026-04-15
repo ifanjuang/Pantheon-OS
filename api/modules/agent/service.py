@@ -24,6 +24,7 @@ from core.services.llm_service import LlmService
 from core.settings import settings
 from database import AsyncSessionLocal
 from modules.agent.models import AgentRun
+from modules.agent.memory import extract_and_store_memories, get_agent_memories, get_unified_memory
 from modules.agent.tools import DEFINITIONS, execute_tool, _DB_TOOLS
 
 log = get_logger("agent.service")
@@ -122,10 +123,9 @@ async def run_agent(
     user_id: UUID | None,
     agent_name: str = "athena",
     max_iterations: int = 10,
+    thread_id: str = "",
 ) -> AgentRun:
     """Exécute la boucle agentique et persiste le résultat."""
-    from modules.agent.memory import extract_and_store_memories, get_agent_memories
-
     t_start = time.monotonic()
 
     # Construire le system prompt
@@ -136,11 +136,28 @@ async def run_agent(
     if affaire_context:
         system_prompt += f"\n\n## Contexte projet\n{affaire_context}"
 
-    # Injecter la mémoire dynamique (leçons apprises sur cette affaire)
-    memories = await get_agent_memories(db, agent_name, affaire_id)
-    if memories:
-        memories_text = "\n".join(f"- {m}" for m in memories)
-        system_prompt += f"\n\n## Mémoire dynamique — ce que tu as appris sur cette affaire\n{memories_text}"
+    # C5 — mémoire unifiée : projet + agence + session
+    mem = await get_unified_memory(db, agent_name, affaire_id, thread_id=thread_id)
+    if mem["projet"]:
+        system_prompt += (
+            "\n\n## Mémoire projet — leçons apprises sur cette affaire\n"
+            + "\n".join(f"- {m}" for m in mem["projet"])
+        )
+    if mem["agence"]:
+        system_prompt += (
+            "\n\n## Patterns agence — bonnes pratiques réutilisables\n"
+            + "\n".join(f"- {m}" for m in mem["agence"])
+        )
+    if mem["session"]:
+        bits = []
+        if mem["session"].get("last_answer_excerpt"):
+            bits.append(f"Dernière réponse : {mem['session']['last_answer_excerpt'][:200]}")
+        if mem["session"].get("phase_projet"):
+            bits.append(f"Phase projet : {mem['session']['phase_projet']}")
+        if mem["session"].get("domaine"):
+            bits.append(f"Domaine : {mem['session']['domaine']}")
+        if bits:
+            system_prompt += "\n\n## Contexte session\n" + "\n".join(bits)
 
     run = AgentRun(
         affaire_id=affaire_id,

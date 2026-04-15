@@ -66,10 +66,11 @@ async def _exec_parallel(
     agents_instructions: dict[str, str],
     affaire_uuid: UUID,
     user_uuid: UUID | None,
+    thread_id: str = "",
 ) -> tuple[dict, list]:
     """Exécute plusieurs agents en parallèle. {agent: instruction} → ({agent: result}, [run_ids])"""
     tasks = [
-        _run_agent_isolated(agent, instr, affaire_uuid, user_uuid)
+        _run_agent_isolated(agent, instr, affaire_uuid, user_uuid, thread_id)
         for agent, instr in agents_instructions.items()
     ]
     raw = await asyncio.gather(*tasks, return_exceptions=True)
@@ -89,6 +90,7 @@ async def _exec_cascade(
     instruction: str,
     affaire_uuid: UUID,
     user_uuid: UUID | None,
+    thread_id: str = "",
 ) -> tuple[dict, list]:
     """Exécute les agents en séquence — chaque agent reçoit le contexte des précédents."""
     results, run_ids = {}, []
@@ -104,7 +106,7 @@ async def _exec_cascade(
             agent_instruction = instruction
         try:
             _, result_text, run_id = await _run_agent_isolated(
-                agent, agent_instruction, affaire_uuid, user_uuid
+                agent, agent_instruction, affaire_uuid, user_uuid, thread_id
             )
             results[agent] = result_text
             run_ids.append(run_id)
@@ -119,10 +121,11 @@ async def _exec_arena(
     instruction: str,
     affaire_uuid: UUID,
     user_uuid: UUID | None,
+    thread_id: str = "",
 ) -> tuple[dict, list]:
     """Round 0 : agents en parallèle sur la même question.
     Round 1 : le juge reçoit toutes les propositions et arbitre."""
-    tasks = [_run_agent_isolated(a, instruction, affaire_uuid, user_uuid) for a in agents]
+    tasks = [_run_agent_isolated(a, instruction, affaire_uuid, user_uuid, thread_id) for a in agents]
     raw = await asyncio.gather(*tasks, return_exceptions=True)
     results, run_ids = {}, []
     for r in raw:
@@ -148,7 +151,7 @@ async def _exec_arena(
     judge_key = f"{judge}__verdict"
     try:
         _, judge_result, judge_run_id = await _run_agent_isolated(
-            judge, judge_instruction, affaire_uuid, user_uuid
+            judge, judge_instruction, affaire_uuid, user_uuid, thread_id
         )
         results[judge_key] = judge_result
         run_ids.append(judge_run_id)
@@ -168,6 +171,7 @@ async def dispatch_subtasks(state: OrchestraState) -> dict:
     """
     affaire_uuid = UUID(state["affaire_id"])
     user_uuid = UUID(state["user_id"]) if state.get("user_id") else None
+    thread_id = state.get("thread_id", "")
 
     subtasks = state.get("subtasks", [])
 
@@ -176,7 +180,9 @@ async def dispatch_subtasks(state: OrchestraState) -> dict:
         log.info("orchestra.dispatch_fallback",
                  agents=[a["agent"] for a in state["assignments"]])
         agents_instructions = {a["agent"]: a["instruction"] for a in state["assignments"]}
-        results, run_ids = await _exec_parallel(agents_instructions, affaire_uuid, user_uuid)
+        results, run_ids = await _exec_parallel(
+            agents_instructions, affaire_uuid, user_uuid, thread_id
+        )
         return {
             "agent_results": results,
             "subtask_results": {"T1": results},
@@ -212,29 +218,29 @@ async def dispatch_subtasks(state: OrchestraState) -> dict:
 
             if pattern == "cascade":
                 level_tasks.append((st["id"], _exec_cascade(
-                    agents, instruction, affaire_uuid, user_uuid
+                    agents, instruction, affaire_uuid, user_uuid, thread_id
                 )))
             elif pattern == "arena":
                 eff_judge = judge if judge in VALID_AGENTS else "apollon"
                 level_tasks.append((st["id"], _exec_arena(
-                    agents, eff_judge, instruction, affaire_uuid, user_uuid
+                    agents, eff_judge, instruction, affaire_uuid, user_uuid, thread_id
                 )))
             elif pattern == "exploration":
                 exploration_agents = ["dionysos", "promethee", "apollon"]
                 if len(agents) >= 2:
                     exploration_agents = agents
                 level_tasks.append((st["id"], _exec_cascade(
-                    exploration_agents, instruction, affaire_uuid, user_uuid
+                    exploration_agents, instruction, affaire_uuid, user_uuid, thread_id
                 )))
             elif pattern == "solo":
                 level_tasks.append((st["id"], _exec_parallel(
-                    {agents[0]: instruction}, affaire_uuid, user_uuid
+                    {agents[0]: instruction}, affaire_uuid, user_uuid, thread_id
                 )))
             else:  # parallel (default)
                 agent_instrs = st.get("_agent_instructions",
                                       {a: instruction for a in agents})
                 level_tasks.append((st["id"], _exec_parallel(
-                    agent_instrs, affaire_uuid, user_uuid
+                    agent_instrs, affaire_uuid, user_uuid, thread_id
                 )))
 
         level_coros = [coro for _, coro in level_tasks]
@@ -262,6 +268,7 @@ async def execute_complements(state: OrchestraState) -> dict:
     """Phase 3b — exécution des compléments demandés par Zeus."""
     affaire_uuid = UUID(state["affaire_id"])
     user_uuid = UUID(state["user_id"]) if state.get("user_id") else None
+    thread_id = state.get("thread_id", "")
 
     log.info("orchestra.complements", agents=[a["agent"] for a in state["assignments"]])
     tasks = [
@@ -270,6 +277,7 @@ async def execute_complements(state: OrchestraState) -> dict:
             instruction=a["instruction"],
             affaire_id=affaire_uuid,
             user_id=user_uuid,
+            thread_id=thread_id,
         )
         for a in state["assignments"]
     ]

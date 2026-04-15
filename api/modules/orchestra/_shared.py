@@ -247,6 +247,7 @@ async def _run_agent_isolated(
     instruction: str,
     affaire_id: UUID,
     user_id: UUID | None,
+    thread_id: str = "",
 ):
     """Exécute un agent avec sa propre session DB."""
     async with AsyncSessionLocal() as session:
@@ -256,5 +257,6 @@ async def _run_agent_isolated(
             affaire_id=affaire_id,
             user_id=user_id,
             agent_name=agent,
+            thread_id=thread_id,
         )
         return agent, run.result or "", str(run.id)
