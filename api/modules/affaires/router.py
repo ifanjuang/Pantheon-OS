@@ -49,6 +49,11 @@ def get_router(config: dict) -> APIRouter:
     ):
         if await get_affaire_by_code(db, payload.code):
             raise HTTPException(status_code=409, detail=f"Code '{payload.code}' déjà utilisé")
+        _base = {"code", "nom", "description", "statut"}
+        context = {
+            k: v for k, v in payload.model_dump(exclude_none=True).items()
+            if k not in _base
+        }
         affaire = await create_affaire(
             db,
             code=payload.code,
@@ -56,6 +61,7 @@ def get_router(config: dict) -> APIRouter:
             description=payload.description,
             statut=payload.statut,
             created_by=current_user.id,
+            **context,
         )
         await db.commit()
         await db.refresh(affaire)

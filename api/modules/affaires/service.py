@@ -35,6 +35,7 @@ async def create_affaire(
     description: str | None,
     statut: str,
     created_by: UUID | None,
+    **context_fields,
 ) -> Affaire:
     affaire = Affaire(
         code=code,
@@ -42,6 +43,7 @@ async def create_affaire(
         description=description,
         statut=statut,
         created_by=created_by,
+        **{k: v for k, v in context_fields.items() if v is not None},
     )
     db.add(affaire)
     await db.flush()

@@ -33,6 +33,7 @@ async def synthesize(state: OrchestraState) -> dict:
     """Phase 4b — un agent produit la synthèse finale."""
     affaire_uuid = UUID(state["affaire_id"])
     user_uuid = UUID(state["user_id"]) if state.get("user_id") else None
+    thread_id = state.get("thread_id", "")
 
     synthesis_agent = state.get("synthesis_agent", "mnemosyne")
     results_text = "\n\n".join(
@@ -51,6 +52,7 @@ async def synthesize(state: OrchestraState) -> dict:
         instruction=synthesis_instruction,
         affaire_id=affaire_uuid,
         user_id=user_uuid,
+        thread_id=thread_id,
     )
     agent_run_ids = list(state["agent_run_ids"]) + [run_id]
     return {"final_answer": final_answer, "agent_run_ids": agent_run_ids}

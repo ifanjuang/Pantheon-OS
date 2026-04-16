@@ -340,6 +340,75 @@ async def consolidate_memories(
     return total_consolidated
 
 
+async def _get_agence_memories(
+    db: AsyncSession,
+    limit: int = 3,
+) -> list[str]:
+    """Patterns agence globaux (scope='agence', toutes affaires) — leçons Mnémosyne réutilisables."""
+    try:
+        stmt = (
+            select(AgentMemory.lesson)
+            .where(
+                AgentMemory.scope == "agence",
+                AgentMemory.valid_until.is_(None),
+            )
+            .order_by(AgentMemory.created_at.desc())
+            .limit(limit)
+        )
+        result = await db.execute(stmt)
+        lessons = [row[0] for row in result.all()]
+        return list(reversed(lessons))  # chronologique
+    except Exception as exc:
+        log.warning("agent.memory.agence_get_failed", error=str(exc))
+        return []
+
+
+async def _get_session_context(thread_id: str) -> dict:
+    """Retourne le contexte session pertinent depuis Redis (last_verdict, phase, domaine...)."""
+    if not thread_id:
+        return {}
+    try:
+        from modules.memory.service import FunctionalMemoryService
+        ctx = await FunctionalMemoryService.get_context(thread_id)
+        relevant = {"last_verdict", "last_answer_excerpt", "phase_projet", "domaine"}
+        return {k: v for k, v in ctx.items() if k in relevant}
+    except Exception as exc:
+        log.debug("agent.memory.session_get_failed", error=str(exc))
+        return {}
+
+
+async def get_unified_memory(
+    db: AsyncSession,
+    agent_name: str,
+    affaire_id: UUID | None,
+    thread_id: str = "",
+    limit_projet: int = 6,
+    limit_agence: int = 3,
+) -> dict[str, list | dict]:
+    """Contexte mémoire unifié depuis les 3 couches (C5).
+
+    Couche projet  : leçons agent_memory scope='projet' pour cet agent + affaire
+    Couche agence  : patterns Mnémosyne scope='agence' (réutilisables toutes affaires)
+    Couche session : contexte Redis TTL du thread (last_verdict, phase, domaine)
+
+    Retourne :
+      {"projet": [...], "agence": [...], "session": {...}}
+
+    Chaque couche est best-effort — une erreur n'empêche pas les autres.
+    """
+    projet = await get_agent_memories(db, agent_name, affaire_id, limit=limit_projet)
+    agence = await _get_agence_memories(db, limit=limit_agence)
+    session = await _get_session_context(thread_id)
+    log.debug(
+        "agent.memory.unified",
+        agent=agent_name,
+        projet=len(projet),
+        agence=len(agence),
+        session_keys=list(session.keys()),
+    )
+    return {"projet": projet, "agence": agence, "session": session}
+
+
 async def invalidate_memory(
     db: AsyncSession,
     memory_id: UUID,

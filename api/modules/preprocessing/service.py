@@ -121,9 +121,28 @@ class PreprocessingService:
     ) -> PreprocessedInput:
         """Normalise une demande brute via LLM + Instructor.
 
-        Fallback silencieux : en cas d'erreur LLM, retourne la demande
-        brute avec confidence=0.3 pour ne pas bloquer le graphe Zeus.
+        O4 — Cache sémantique : si affaire_hint fourni, on embed le message
+        et on cherche un résultat récent avec similarité cosine ≥ 0.92 dans
+        Redis. Sur cache hit, 0 appel LLM. Sur miss, LLM Instructor + store.
+
+        Fallback silencieux : en cas d'erreur LLM ou Redis, retourne la
+        demande brute avec confidence=0.3 pour ne pas bloquer le graphe Zeus.
         """
+        from modules.preprocessing.cache import SemanticPreprocessCache
+        from core.services.rag_service import RagService
+
+        # ── O4 : tentative cache sémantique ──────────────────────────────
+        embedding: list[float] | None = None
+        if affaire_hint:
+            try:
+                embedding = await RagService.embed(message[:512])
+                cached = await SemanticPreprocessCache.get(affaire_hint, embedding)
+                if cached is not None:
+                    return PreprocessedInput(**cached)
+            except Exception as exc:
+                log.debug("preprocessing.cache_skip", error=str(exc))
+
+        # ── Appel LLM Instructor ──────────────────────────────────────────
         prompt = _PREPROCESS_PROMPT.format(
             message=message[:4000],
             affaire=affaire_hint or "—",
@@ -143,6 +162,15 @@ class PreprocessingService:
                 confidence=round(result.confidence, 2),
                 missing=len(result.missing_information),
             )
+            # ── O4 : store dans le cache ──────────────────────────────────
+            if affaire_hint and embedding is not None:
+                try:
+                    await SemanticPreprocessCache.set(
+                        affaire_hint, embedding, result.model_dump()
+                    )
+                except Exception as exc:
+                    log.debug("preprocessing.cache_store_skip", error=str(exc))
+
             return result
         except Exception as exc:
             log.warning("preprocessing.failed", error=str(exc))

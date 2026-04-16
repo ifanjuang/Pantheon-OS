@@ -24,7 +24,8 @@ from core.services.llm_service import LlmService
 from core.settings import settings
 from database import AsyncSessionLocal
 from modules.agent.models import AgentRun
-from modules.agent.tools import DEFINITIONS, execute_tool
+from modules.agent.memory import extract_and_store_memories, get_agent_memories, get_unified_memory
+from modules.agent.tools import DEFINITIONS, execute_tool, _DB_TOOLS
 
 log = get_logger("agent.service")
 
@@ -122,10 +123,9 @@ async def run_agent(
     user_id: UUID | None,
     agent_name: str = "athena",
     max_iterations: int = 10,
+    thread_id: str = "",
 ) -> AgentRun:
     """Exécute la boucle agentique et persiste le résultat."""
-    from modules.agent.memory import extract_and_store_memories, get_agent_memories
-
     t_start = time.monotonic()
 
     # Construire le system prompt
@@ -136,11 +136,28 @@ async def run_agent(
     if affaire_context:
         system_prompt += f"\n\n## Contexte projet\n{affaire_context}"
 
-    # Injecter la mémoire dynamique (leçons apprises sur cette affaire)
-    memories = await get_agent_memories(db, agent_name, affaire_id)
-    if memories:
-        memories_text = "\n".join(f"- {m}" for m in memories)
-        system_prompt += f"\n\n## Mémoire dynamique — ce que tu as appris sur cette affaire\n{memories_text}"
+    # C5 — mémoire unifiée : projet + agence + session
+    mem = await get_unified_memory(db, agent_name, affaire_id, thread_id=thread_id)
+    if mem["projet"]:
+        system_prompt += (
+            "\n\n## Mémoire projet — leçons apprises sur cette affaire\n"
+            + "\n".join(f"- {m}" for m in mem["projet"])
+        )
+    if mem["agence"]:
+        system_prompt += (
+            "\n\n## Patterns agence — bonnes pratiques réutilisables\n"
+            + "\n".join(f"- {m}" for m in mem["agence"])
+        )
+    if mem["session"]:
+        bits = []
+        if mem["session"].get("last_answer_excerpt"):
+            bits.append(f"Dernière réponse : {mem['session']['last_answer_excerpt'][:200]}")
+        if mem["session"].get("phase_projet"):
+            bits.append(f"Phase projet : {mem['session']['phase_projet']}")
+        if mem["session"].get("domaine"):
+            bits.append(f"Domaine : {mem['session']['domaine']}")
+        if bits:
+            system_prompt += "\n\n## Contexte session\n" + "\n".join(bits)
 
     run = AgentRun(
         affaire_id=affaire_id,
@@ -213,26 +230,37 @@ async def run_agent(
                 final_answer = msg.content or ""
                 break
 
-            # Exécuter tous les appels d'outils demandés
-            for tc in msg.tool_calls:
+            # Exécuter les appels d'outils en parallèle (asyncio.gather).
+            # Les tools DB utilisent une session isolée quand le batch en contient
+            # plusieurs, pour éviter les accès concurrents sur la même AsyncSession.
+            async def _call_tool(tc) -> tuple:
                 t_tool = time.monotonic()
-                tool_name = tc.function.name
-                tool_args = json.loads(tc.function.arguments or "{}")
-
+                t_name = tc.function.name
+                t_args = json.loads(tc.function.arguments or "{}")
                 log.info(
                     "agent.tool_call",
                     run_id=str(run.id),
                     iteration=iteration,
-                    tool=tool_name,
-                    args=tool_args,
+                    tool=t_name,
+                    parallel=len(msg.tool_calls) > 1,
                 )
+                if t_name in _DB_TOOLS and len(msg.tool_calls) > 1:
+                    async with AsyncSessionLocal() as _iso_db:
+                        out, srcs = await execute_tool(t_name, t_args, affaire_id, _iso_db)
+                else:
+                    out, srcs = await execute_tool(t_name, t_args, affaire_id, db)
+                return tc, t_name, t_args, out, srcs, int((time.monotonic() - t_tool) * 1000)
 
-                tool_output, tool_sources = await execute_tool(
-                    name=tool_name,
-                    args=tool_args,
-                    affaire_id=affaire_id,
-                    db=db,
-                )
+            t_batch = time.monotonic()
+            batch_results = await asyncio.gather(
+                *[_call_tool(tc) for tc in msg.tool_calls], return_exceptions=True
+            )
+
+            for br in batch_results:
+                if isinstance(br, Exception):
+                    log.error("agent.tool_failed", error=str(br))
+                    continue
+                tc_r, tool_name, tool_args, tool_output, tool_sources, dur_ms = br
 
                 # Dédupliquer les sources par chunk_id
                 seen_chunks = {s["chunk_id"] for s in all_sources}
@@ -241,21 +269,25 @@ async def run_agent(
                         all_sources.append(src)
                         seen_chunks.add(src["chunk_id"])
 
-                duration_tool = int((time.monotonic() - t_tool) * 1000)
                 steps.append({
                     "tool": tool_name,
                     "args": tool_args,
-                    "output": tool_output[:1000],  # tronqué pour le stockage
+                    "output": tool_output[:1000],
                     "sources_count": len(tool_sources),
-                    "duration_ms": duration_tool,
+                    "duration_ms": dur_ms,
                 })
-
-                # Réinjecter le résultat dans les messages
                 messages.append({
                     "role": "tool",
-                    "tool_call_id": tc.id,
+                    "tool_call_id": tc_r.id,
                     "content": tool_output,
                 })
+
+            if len(msg.tool_calls) > 1:
+                log.info(
+                    "agent.tools_parallel_done",
+                    count=len(msg.tool_calls),
+                    batch_ms=int((time.monotonic() - t_batch) * 1000),
+                )
 
         else:
             # max_iterations atteint sans réponse finale

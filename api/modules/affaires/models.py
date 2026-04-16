@@ -46,6 +46,12 @@ class Affaire(Base):
     zone_risque: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     # {inondation: bool, sismique: str, archeo: bool, bruit: str, retrait_gonflement: str}
 
+    # Classification ERP — migration 0020
+    erp_type: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    # J L M N O P R S T U V W X Y PA CTS SG OA GA EF REF — NULL si non-ERP
+    erp_categorie: Mapped[str | None] = mapped_column(String(2), nullable=True)
+    # 1 (>1500) | 2 (701-1500) | 3 (301-700) | 4 (≤300) | 5 (seuil réduit) — NULL si non-ERP
+
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )

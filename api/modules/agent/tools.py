@@ -151,6 +151,11 @@ DEFINITIONS = [
 ]
 
 
+# Tools qui nécessitent une session DB — utilisé par la boucle ReAct pour
+# choisir entre session partagée (appel unique) et session isolée (batch parallèle).
+_DB_TOOLS: frozenset[str] = frozenset({"rag_search", "list_documents", "get_affaire_info"})
+
+
 # ── Exécution des outils ─────────────────────────────────────────────────────
 
 async def execute_tool(
