@@ -233,6 +233,20 @@ async def memory_consolidation_job(ctx):
     log.info(f"[memory_consolidation_job] done consolidated={total}")
 
 
+async def ingest_courrier_job(ctx, courrier_id: str):
+    """
+    Indexe le contenu textuel d'un courrier dans le RAG (source_type='courrier').
+    Enfilé automatiquement à la création/mise à jour d'un courrier avec résumé.
+    Idempotent : réindexe complètement si appelé plusieurs fois.
+    """
+    from modules.communications.service import ingest_courrier
+
+    log.info(f"[ingest_courrier_job] start courrier_id={courrier_id}")
+    async with AsyncSessionLocal() as db:
+        count = await ingest_courrier(db=db, courrier_id=UUID(courrier_id))
+    log.info(f"[ingest_courrier_job] done courrier_id={courrier_id} chunks={count}")
+
+
 async def draft_courrier_job(ctx, courrier_id: str):
     """
     Rédige un brouillon de réponse à un courrier entrant avec l'agent Iris.
@@ -386,7 +400,7 @@ class WorkerSettings:
         orchestra_job, agent_job, memory_job, telegram_message_job,
         capture_job, memory_consolidation_job,
         analyze_chantier_obs_job, qualify_nc_job,
-        draft_courrier_job,
+        ingest_courrier_job, draft_courrier_job,
         daily_alerts_job, weekly_summary_job,
     ]
     cron_jobs = [

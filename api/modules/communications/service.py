@@ -129,6 +129,58 @@ async def process_draft_response(db: AsyncSession, courrier_id: UUID) -> None:
 
 
 # ══════════════════════════════════════════════════════════════════════
+# PIPELINE RAG — INDEXATION COURRIERS
+# ══════════════════════════════════════════════════════════════════════
+
+async def ingest_courrier(db: AsyncSession, courrier_id: UUID) -> int:
+    """
+    Indexe le contenu textuel d'un courrier dans le RAG.
+
+    Concatène objet + résumé + corps (si disponibles) et appelle
+    RagService.ingest_text_direct() avec source_type="courrier".
+    Idempotent : une réindexation supprime d'abord les chunks existants.
+
+    Retourne le nombre de chunks créés (0 si aucun texte disponible).
+    """
+    from core.services.rag_service import RagService  # late import
+
+    courrier = await get_courrier(db, courrier_id)
+    if not courrier:
+        return 0
+
+    parts: list[str] = []
+    if courrier.objet:
+        parts.append(f"Objet : {courrier.objet}")
+    if courrier.emetteur:
+        parts.append(f"De : {courrier.emetteur}")
+    if courrier.destinataire:
+        parts.append(f"À : {courrier.destinataire}")
+    if courrier.date_reception:
+        parts.append(f"Date : {courrier.date_reception}")
+    if courrier.resume:
+        parts.append(f"\nRésumé :\n{courrier.resume}")
+
+    if not parts:
+        return 0
+
+    text_content = "\n".join(parts)
+    extra_meta = {
+        "type_doc": courrier.type_doc,
+        "sens": courrier.sens,
+        "reference": courrier.reference or "",
+    }
+
+    return await RagService.ingest_text_direct(
+        db=db,
+        text_content=text_content,
+        affaire_id=courrier.affaire_id,
+        source_type="courrier",
+        source_id=courrier_id,
+        extra_meta=extra_meta,
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════
 # DASHBOARD
 # ══════════════════════════════════════════════════════════════════════
 

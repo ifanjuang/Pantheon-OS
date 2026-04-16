@@ -93,10 +93,10 @@ def _build_chunk_table():
             id: Mapped[uuid.UUID] = mapped_column(
                 UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
             )
-            document_id: Mapped[uuid.UUID] = mapped_column(
+            document_id: Mapped[uuid.UUID | None] = mapped_column(
                 UUID(as_uuid=True),
                 ForeignKey("documents.id", ondelete="CASCADE"),
-                nullable=False,
+                nullable=True,
                 index=True,
             )
             affaire_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -105,6 +105,8 @@ def _build_chunk_table():
                 nullable=True,
                 index=True,
             )
+            source_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+            source_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
             contenu: Mapped[str] = mapped_column(Text, nullable=False)
             embedding: Mapped[list[float]] = mapped_column(
                 V(settings.EMBEDDING_DIM), nullable=True
@@ -115,10 +117,10 @@ def _build_chunk_table():
                 DateTime(timezone=True), nullable=False, default=_now
             )
 
-            document: Mapped["Document"] = relationship(back_populates="chunks")
+            document: Mapped["Document | None"] = relationship(back_populates="chunks")
 
             def __repr__(self) -> str:
-                return f"<Chunk doc={self.document_id} idx={self.chunk_index}>"
+                return f"<Chunk doc={self.document_id} src={self.source_type}:{self.source_id} idx={self.chunk_index}>"
 
     else:
         class Chunk(Base):  # type: ignore[no-redef]
@@ -127,10 +129,10 @@ def _build_chunk_table():
             id: Mapped[uuid.UUID] = mapped_column(
                 UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
             )
-            document_id: Mapped[uuid.UUID] = mapped_column(
+            document_id: Mapped[uuid.UUID | None] = mapped_column(
                 UUID(as_uuid=True),
                 ForeignKey("documents.id", ondelete="CASCADE"),
-                nullable=False,
+                nullable=True,
                 index=True,
             )
             affaire_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -139,6 +141,8 @@ def _build_chunk_table():
                 nullable=True,
                 index=True,
             )
+            source_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+            source_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
             contenu: Mapped[str] = mapped_column(Text, nullable=False)
             chunk_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
             meta: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
@@ -146,10 +150,10 @@ def _build_chunk_table():
                 DateTime(timezone=True), nullable=False, default=_now
             )
 
-            document: Mapped["Document"] = relationship(back_populates="chunks")
+            document: Mapped["Document | None"] = relationship(back_populates="chunks")
 
             def __repr__(self) -> str:
-                return f"<Chunk doc={self.document_id} idx={self.chunk_index}>"
+                return f"<Chunk doc={self.document_id} src={self.source_type}:{self.source_id} idx={self.chunk_index}>"
 
     return Chunk
 

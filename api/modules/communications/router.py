@@ -73,6 +73,10 @@ def get_router(config: dict) -> APIRouter:
                 courrier_id=str(courrier.id),
                 affaire_id=str(affaire_id),
             )
+        # Indexation RAG automatique si du texte est disponible
+        if courrier.objet or courrier.resume:
+            queue = await get_queue()
+            await queue.enqueue_job("ingest_courrier_job", str(courrier.id))
         return courrier
 
     @router.get("/{affaire_id}/courriers", response_model=list[CourrierResponse])
@@ -112,9 +116,14 @@ def get_router(config: dict) -> APIRouter:
         courrier = await get_courrier(db, courrier_id)
         if not courrier:
             raise HTTPException(404, "Courrier introuvable")
-        courrier = await update_courrier(db, courrier, payload.model_dump(exclude_none=True))
+        updated_data = payload.model_dump(exclude_none=True)
+        courrier = await update_courrier(db, courrier, updated_data)
         await db.commit()
         await db.refresh(courrier)
+        # Réindexation RAG si objet ou résumé mis à jour
+        if "objet" in updated_data or "resume" in updated_data:
+            queue = await get_queue()
+            await queue.enqueue_job("ingest_courrier_job", str(courrier_id))
         return courrier
 
     @router.delete("/courriers/{courrier_id}", status_code=204)

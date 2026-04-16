@@ -549,6 +549,120 @@ class RagService:
             return []
 
     @classmethod
+    async def ingest_text_direct(
+        cls,
+        db: AsyncSession,
+        text_content: str,
+        affaire_id: UUID,
+        source_type: str,
+        source_id: UUID,
+        extra_meta: Optional[dict] = None,
+    ) -> int:
+        """
+        Ingère du texte brut sans fichier source (courrier, observation, note, etc.).
+
+        Découpe le texte en chunks via SentenceSplitter, calcule les embeddings
+        et insère dans `chunks` avec source_type/source_id au lieu de document_id.
+
+        Les chunks existants pour ce (source_type, source_id) sont supprimés
+        au préalable pour garantir l'idempotence (réindexation à la mise à jour).
+
+        Retourne le nombre de chunks créés.
+        """
+        from llama_index.core.node_parser import SentenceSplitter
+
+        t0 = time.monotonic()
+        extra_meta = extra_meta or {}
+
+        if not text_content or not text_content.strip():
+            log.warning(
+                "rag.ingest_text_direct_empty",
+                source_type=source_type,
+                source_id=str(source_id),
+            )
+            return 0
+
+        # Supprimer les chunks existants pour cet objet (idempotence)
+        await db.execute(
+            text(
+                "DELETE FROM chunks WHERE source_type = :st AND source_id = :sid"
+            ),
+            {"st": source_type, "sid": str(source_id)},
+        )
+
+        chunk_cfg = CHUNK_CONFIG.get(source_type, DEFAULT_CHUNK)
+        splitter = SentenceSplitter(
+            chunk_size=chunk_cfg["chunk_size"],
+            chunk_overlap=chunk_cfg["chunk_overlap"],
+        )
+
+        from llama_index.core import Document as LIDocument
+        li_doc = LIDocument(text=text_content)
+        nodes = splitter.get_nodes_from_documents([li_doc])
+
+        if not nodes:
+            return 0
+
+        texts = [node.get_content() for node in nodes]
+        embeddings = await cls._get_embed_model().aget_text_embedding_batch(texts)
+
+        rows = []
+        for idx, (node, embedding) in enumerate(zip(nodes, embeddings)):
+            meta = {
+                "source_type": source_type,
+                "source_id": str(source_id),
+                **extra_meta,
+            }
+            rows.append({
+                "src_type": source_type,
+                "src_id": str(source_id),
+                "aff_id": str(affaire_id),
+                "contenu": node.get_content(),
+                "embedding": str(embedding),
+                "idx": idx,
+                "meta": json.dumps(meta),
+            })
+
+        await db.execute(
+            text("""
+                INSERT INTO chunks
+                    (id, source_type, source_id, affaire_id, contenu, embedding,
+                     chunk_index, meta, created_at)
+                VALUES
+                    (uuid_generate_v4(), :src_type, :src_id::uuid, :aff_id,
+                     :contenu, :embedding::vector, :idx, :meta, now())
+            """),
+            rows,
+        )
+        await db.commit()
+        log.info(
+            "rag.ingest_text_direct",
+            source_type=source_type,
+            source_id=str(source_id),
+            affaire_id=str(affaire_id),
+            chunks=len(rows),
+            duration_ms=int((time.monotonic() - t0) * 1000),
+        )
+        return len(rows)
+
+    @classmethod
+    async def delete_source(cls, db: AsyncSession, source_type: str, source_id: UUID) -> int:
+        """Supprime tous les chunks liés à une source générique. Retourne le nombre supprimé."""
+        result = await db.execute(
+            text("DELETE FROM chunks WHERE source_type = :st AND source_id = :sid"),
+            {"st": source_type, "sid": str(source_id)},
+        )
+        await db.commit()
+        deleted = result.rowcount
+        log.info(
+            "rag.delete_source",
+            source_type=source_type,
+            source_id=str(source_id),
+            chunks_deleted=deleted,
+        )
+        return deleted
+
+    @classmethod
     async def delete_document(cls, db: AsyncSession, document_id: UUID) -> int:
         """Supprime tous les chunks liés à un document. Retourne le nombre supprimé."""
         result = await db.execute(
