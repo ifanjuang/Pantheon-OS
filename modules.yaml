@@ -58,7 +58,7 @@ modules:
     enabled: true
 
   - name: chantier
-    enabled: false
+    enabled: true
 
   - name: planning
     enabled: true

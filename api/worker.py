@@ -233,6 +233,34 @@ async def memory_consolidation_job(ctx):
     log.info(f"[memory_consolidation_job] done consolidated={total}")
 
 
+async def analyze_chantier_obs_job(ctx, obs_id: str):
+    """
+    Analyse une observation chantier avec l'agent Argos.
+    Enfilé par POST /chantier/observations/{id}/analyze.
+    """
+    from modules.chantier.service import process_observation_analysis
+
+    log.info(f"[analyze_chantier_obs_job] start obs_id={obs_id}")
+    async with AsyncSessionLocal() as db:
+        await process_observation_analysis(db=db, obs_id=UUID(obs_id))
+        await db.commit()
+    log.info(f"[analyze_chantier_obs_job] done obs_id={obs_id}")
+
+
+async def qualify_nc_job(ctx, nc_id: str):
+    """
+    Qualifie une non-conformité chantier avec l'agent Héphaïstos.
+    Enfilé par POST /chantier/nonconformites/{id}/qualify.
+    """
+    from modules.chantier.service import process_nc_qualification
+
+    log.info(f"[qualify_nc_job] start nc_id={nc_id}")
+    async with AsyncSessionLocal() as db:
+        await process_nc_qualification(db=db, nc_id=UUID(nc_id))
+        await db.commit()
+    log.info(f"[qualify_nc_job] done nc_id={nc_id}")
+
+
 async def capture_job(
     ctx,
     capture_id: str,
@@ -263,6 +291,7 @@ class WorkerSettings:
     functions = [
         orchestra_job, agent_job, memory_job, telegram_message_job,
         capture_job, memory_consolidation_job,
+        analyze_chantier_obs_job, qualify_nc_job,
     ]
     cron_jobs = [
         # Consolidation mémoire : 1x/jour à 03:00 UTC
