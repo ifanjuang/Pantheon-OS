@@ -233,6 +233,20 @@ async def memory_consolidation_job(ctx):
     log.info(f"[memory_consolidation_job] done consolidated={total}")
 
 
+async def draft_courrier_job(ctx, courrier_id: str):
+    """
+    Rédige un brouillon de réponse à un courrier entrant avec l'agent Iris.
+    Enfilé par POST /communications/courriers/{id}/draft-response.
+    """
+    from modules.communications.service import process_draft_response
+
+    log.info(f"[draft_courrier_job] start courrier_id={courrier_id}")
+    async with AsyncSessionLocal() as db:
+        await process_draft_response(db=db, courrier_id=UUID(courrier_id))
+        await db.commit()
+    log.info(f"[draft_courrier_job] done courrier_id={courrier_id}")
+
+
 async def analyze_chantier_obs_job(ctx, obs_id: str):
     """
     Analyse une observation chantier avec l'agent Argos.
@@ -292,6 +306,7 @@ class WorkerSettings:
         orchestra_job, agent_job, memory_job, telegram_message_job,
         capture_job, memory_consolidation_job,
         analyze_chantier_obs_job, qualify_nc_job,
+        draft_courrier_job,
     ]
     cron_jobs = [
         # Consolidation mémoire : 1x/jour à 03:00 UTC

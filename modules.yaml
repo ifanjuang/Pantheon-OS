@@ -76,7 +76,7 @@ modules:
     enabled: false
 
   - name: communications
-    enabled: false
+    enabled: true
 
   - name: notifications
     enabled: false

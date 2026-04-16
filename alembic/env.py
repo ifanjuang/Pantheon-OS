@@ -26,6 +26,7 @@ from modules.scoring.models import DecisionScore                             # n
 from modules.decisions.models import ProjectDecision, ProjectTask, ProjectObservation  # noqa: F401
 from modules.planning.models import Lot, Tache, Jalon, LienDependance                # noqa: F401
 from modules.chantier.models import ObservationChantier, NonConformite               # noqa: F401
+from modules.communications.models import Courrier                                    # noqa: F401
 
 config = context.config
 
