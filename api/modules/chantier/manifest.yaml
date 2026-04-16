@@ -1,0 +1,8 @@
+name: chantier
+version: "0.1.0"
+description: "Observations terrain et non-conformités — pipeline photo→Argos→Héphaïstos, suivi corrections, dashboard qualité chantier"
+prefix: /chantier
+depends_on:
+  - affaires
+  - planning
+  - decisions

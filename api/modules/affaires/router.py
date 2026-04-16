@@ -6,6 +6,7 @@ POST   /affaires/              → créer une affaire (admin, moe)
 GET    /affaires/{id}          → détail
 PATCH  /affaires/{id}          → modifier
 DELETE /affaires/{id}          → supprimer (admin uniquement)
+GET    /affaires/{id}/cockpit  → tableau de bord transversal (planning + chantier + comms + finance + alertes)
 """
 import uuid
 
@@ -15,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.auth import get_current_user, require_role
 from core.logging import get_logger
 from database import get_db
+from modules.affaires.cockpit import get_cockpit
 from modules.affaires.schemas import AffaireCreate, AffaireResponse, AffaireUpdate
 from modules.affaires.service import (
     create_affaire,
@@ -109,5 +111,21 @@ def get_router(config: dict) -> APIRouter:
         await delete_affaire(db, affaire)
         await db.commit()
         log.info("affaires.deleted", id=str(affaire_id))
+
+    @router.get("/{affaire_id}/cockpit")
+    async def cockpit(
+        affaire_id: uuid.UUID,
+        db: AsyncSession = Depends(get_db),
+        _user=Depends(get_current_user),
+    ):
+        """
+        Tableau de bord transversal — agrège planning, chantier, communications,
+        finance et décisions en un seul appel. Retourne aussi une liste d'alertes
+        triées par criticité (critical > warning > info).
+        """
+        affaire = await get_affaire(db, affaire_id)
+        if not affaire:
+            raise HTTPException(status_code=404, detail="Affaire introuvable")
+        return await get_cockpit(db, affaire_id)
 
     return router

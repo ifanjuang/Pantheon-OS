@@ -1,0 +1,6 @@
+name: planning
+version: "0.1.0"
+description: "Moteur de planification — lots, tâches, jalons, liens de dépendance, chemin critique (CPM), propagation de décalages"
+prefix: /planning
+depends_on:
+  - affaires

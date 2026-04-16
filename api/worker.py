@@ -233,6 +233,48 @@ async def memory_consolidation_job(ctx):
     log.info(f"[memory_consolidation_job] done consolidated={total}")
 
 
+async def draft_courrier_job(ctx, courrier_id: str):
+    """
+    Rédige un brouillon de réponse à un courrier entrant avec l'agent Iris.
+    Enfilé par POST /communications/courriers/{id}/draft-response.
+    """
+    from modules.communications.service import process_draft_response
+
+    log.info(f"[draft_courrier_job] start courrier_id={courrier_id}")
+    async with AsyncSessionLocal() as db:
+        await process_draft_response(db=db, courrier_id=UUID(courrier_id))
+        await db.commit()
+    log.info(f"[draft_courrier_job] done courrier_id={courrier_id}")
+
+
+async def analyze_chantier_obs_job(ctx, obs_id: str):
+    """
+    Analyse une observation chantier avec l'agent Argos.
+    Enfilé par POST /chantier/observations/{id}/analyze.
+    """
+    from modules.chantier.service import process_observation_analysis
+
+    log.info(f"[analyze_chantier_obs_job] start obs_id={obs_id}")
+    async with AsyncSessionLocal() as db:
+        await process_observation_analysis(db=db, obs_id=UUID(obs_id))
+        await db.commit()
+    log.info(f"[analyze_chantier_obs_job] done obs_id={obs_id}")
+
+
+async def qualify_nc_job(ctx, nc_id: str):
+    """
+    Qualifie une non-conformité chantier avec l'agent Héphaïstos.
+    Enfilé par POST /chantier/nonconformites/{id}/qualify.
+    """
+    from modules.chantier.service import process_nc_qualification
+
+    log.info(f"[qualify_nc_job] start nc_id={nc_id}")
+    async with AsyncSessionLocal() as db:
+        await process_nc_qualification(db=db, nc_id=UUID(nc_id))
+        await db.commit()
+    log.info(f"[qualify_nc_job] done nc_id={nc_id}")
+
+
 async def capture_job(
     ctx,
     capture_id: str,
@@ -257,16 +299,103 @@ async def capture_job(
     log.info(f"[capture_job] done capture_id={capture_id}")
 
 
+async def daily_alerts_job(ctx):
+    """
+    Parcourt toutes les affaires actives, détecte les alertes métier critiques
+    et les logge en WARNING pour les remonter dans les outils d'observabilité.
+
+    Cron : 1x/jour à 06:00 UTC (avant la journée de travail).
+    """
+    from modules.affaires.service import list_affaires
+    from modules.affaires.cockpit import get_alertes
+
+    log.info("[daily_alerts_job] start")
+    nb_affaires = 0
+    nb_critical = 0
+
+    async with AsyncSessionLocal() as db:
+        affaires = await list_affaires(db, statut="actif", limit=500, offset=0)
+        nb_affaires = len(affaires)
+        for affaire in affaires:
+            try:
+                alertes = await get_alertes(db, affaire.id)
+                for alerte in alertes:
+                    if alerte["niveau"] == "critical":
+                        log.warning(
+                            "[daily_alerts] alerte_critique",
+                            affaire=affaire.code,
+                            module=alerte["module"],
+                            message=alerte["message"],
+                        )
+                        nb_critical += 1
+                    elif alerte["niveau"] == "warning":
+                        log.info(
+                            "[daily_alerts] alerte_warning",
+                            affaire=affaire.code,
+                            module=alerte["module"],
+                            message=alerte["message"],
+                        )
+            except Exception as exc:
+                log.error(f"[daily_alerts_job] failed affaire={affaire.code} error={exc}")
+
+    log.info(f"[daily_alerts_job] done affaires={nb_affaires} critical={nb_critical}")
+
+
+async def weekly_summary_job(ctx):
+    """
+    Génère un résumé hebdomadaire de chaque affaire active via l'agent Hestia.
+    Hestia capitalise les points clés : décisions récentes, avancement planning,
+    NC ouvertes, courriers en attente, situation financière.
+
+    Cron : 1x/semaine le lundi à 07:00 UTC.
+    """
+    from modules.affaires.service import list_affaires
+    from modules.agent.service import run_agent
+
+    log.info("[weekly_summary_job] start")
+    async with AsyncSessionLocal() as db:
+        affaires = await list_affaires(db, statut="actif", limit=500, offset=0)
+        for affaire in affaires:
+            instruction = (
+                f"Génère le résumé hebdomadaire de l'affaire {affaire.code} — {affaire.nom}.\n"
+                "Synthétise : décisions D2/D3 ouvertes, avancement planning (jalons, tâches critiques), "
+                "non-conformités chantier ouvertes, courriers en attente de réponse, "
+                "situation financière (avenants, situations à valider, dérive budgétaire). "
+                "Formule en 5 à 10 points clés actionnables pour l'équipe MOE."
+            )
+            try:
+                await run_agent(
+                    db=db,
+                    instruction=instruction,
+                    affaire_id=affaire.id,
+                    user_id=None,
+                    agent_name="hestia",
+                    max_iterations=5,
+                )
+                log.info(f"[weekly_summary_job] done affaire={affaire.code}")
+            except Exception as exc:
+                log.error(f"[weekly_summary_job] failed affaire={affaire.code} error={exc}")
+
+    log.info("[weekly_summary_job] done")
+
+
 # ── Configuration worker ──────────────────────────────────────────────────────
 
 class WorkerSettings:
     functions = [
         orchestra_job, agent_job, memory_job, telegram_message_job,
         capture_job, memory_consolidation_job,
+        analyze_chantier_obs_job, qualify_nc_job,
+        draft_courrier_job,
+        daily_alerts_job, weekly_summary_job,
     ]
     cron_jobs = [
         # Consolidation mémoire : 1x/jour à 03:00 UTC
         cron(memory_consolidation_job, hour=3, minute=0, run_at_startup=False),
+        # Alertes métier : 1x/jour à 06:00 UTC
+        cron(daily_alerts_job, hour=6, minute=0, run_at_startup=False),
+        # Résumé hebdo Hestia : lundi à 07:00 UTC
+        cron(weekly_summary_job, weekday=0, hour=7, minute=0, run_at_startup=False),
     ]
     redis_settings = RedisSettings.from_dsn(settings.REDIS_URL)
     max_jobs = 10

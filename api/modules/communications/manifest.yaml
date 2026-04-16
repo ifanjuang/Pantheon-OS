@@ -1,0 +1,9 @@
+name: communications
+version: "0.1.0"
+description: "Registre probatoire — courriers entrants/sortants, suivi délais, pipeline Iris pour rédaction de réponses"
+prefix: /communications
+depends_on:
+  - affaires
+  - planning
+  - decisions
+  - chantier
