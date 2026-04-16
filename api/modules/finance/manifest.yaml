@@ -1,0 +1,8 @@
+name: finance
+version: "0.1.0"
+description: "Suivi financier chantier — avenants, situations de travaux, écarts budgétaires, prévisions de dérive"
+prefix: /finance
+depends_on:
+  - affaires
+  - planning
+  - decisions

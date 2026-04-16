@@ -73,7 +73,7 @@ modules:
     enabled: false
 
   - name: finance
-    enabled: false
+    enabled: true
 
   - name: communications
     enabled: true
