@@ -31,6 +31,8 @@ pour ne pas bloquer l'orchestration.
 """
 from typing import Any, Optional
 
+from pydantic import BaseModel, Field
+
 from core.logging import get_logger
 from core.services.llm_service import LlmService
 from modules.guards.schemas import (
@@ -85,6 +87,44 @@ _INTENT_C4 = {"decision_engageante"}
 _INTENT_C3 = {"decision_locale"}
 _INTENT_C2 = {"question", "alerte"}
 
+
+# ── Modèle Instructor (usage interne) ────────────────────────────────
+
+class _CriticalityAI(BaseModel):
+    """Réponse Instructor pour la couche AI du criticality_guard_hybrid."""
+    criticite: str = Field(..., pattern=r"^C[1-5]$")
+    reasoning: str = Field(..., description="Justification courte (1-2 phrases)")
+
+
+# ── Gamme ambiguë — l'AI n'intervient que si la règle retombe dedans ─
+
+_CRITICALITY_AMBIGUOUS = {"C2", "C3", "C4"}
+
+# ── Prompt couche AI criticality_guard_hybrid ─────────────────────────
+
+_CRITICALITY_HYBRID_PROMPT = """\
+Tu es Thémis (réglementation MOE, contrat, déontologie) et Héphaïstos (technique, DTU, faisabilité).
+
+Les règles déterministes ont évalué cette situation et proposent : {current_level}
+Raisons identifiées par les règles : {triggers}
+
+Situation MOE décrite par l'utilisateur :
+{context}
+
+Ta mission : valider ou remonter la criticité C1-C5. Tu ne peux PAS descendre.
+
+Remonte à C4 si tu détectes :
+- Engagement contractuel ou financier non anticipé par les règles
+- Avenant requis, responsabilité MOE engagée, délai légal imminente
+- Décision difficile à annuler, impact tiers (entreprise, MOA, sous-traitant)
+
+Remonte à C5 si tu détectes :
+- Sécurité des personnes (risque physique, péril structurel)
+- Litige probable, contentieux, mise en demeure potentielle
+- Hors mission MOE évidente, non-conformité DTU grave, infaisabilité technique
+
+En cas de doute → maintiens {current_level}, n'invente pas de risque.
+"""
 
 # ── Prompts LLM ──────────────────────────────────────────────────────
 
@@ -239,6 +279,76 @@ class GuardsService:
             triggers=verdict.triggers,
         )
         return verdict
+
+    # ── criticality_guard_hybrid (règles + AI pour cas ambigus) ────────
+    @classmethod
+    async def criticality_guard_hybrid(
+        cls,
+        impacts: CriticalityImpacts,
+        *,
+        context: str = "",
+    ) -> CriticalityVerdict:
+        """Dérive C1-C5 en deux couches.
+
+        Couche 0+1 (déterministe, 0 token) : règles pures sur coût/délai/
+        sévérité/intent. Couvre les cas extrêmes (C1 évident, C5 certain).
+
+        Couche 2 (Thémis + Héphaïstos via Instructor) : activée uniquement
+        si la couche règles retourne C2/C3/C4 ET qu'un contexte textuel est
+        fourni. L'AI peut seulement maintenir ou monter la criticité — jamais
+        descendre.
+
+        Fallback : en cas d'erreur LLM la couche règles fait foi.
+        """
+        # Couche 0+1 : règles déterministes (toujours exécutées)
+        rules_verdict = cls.criticality_guard(impacts)
+
+        # Pas de contexte ou cas extrêmes → les règles suffisent
+        if not context.strip() or rules_verdict.criticite not in _CRITICALITY_AMBIGUOUS:
+            return rules_verdict
+
+        # Couche 2 : AI pour les cas ambigus (C2 / C3 / C4)
+        prompt = _CRITICALITY_HYBRID_PROMPT.format(
+            current_level=rules_verdict.criticite,
+            triggers=", ".join(rules_verdict.triggers) or "aucune règle déclenchée",
+            context=context[:4000],
+        )
+        try:
+            ai: _CriticalityAI = await LlmService.extract(
+                messages=[{"role": "user", "content": prompt}],
+                response_model=_CriticalityAI,
+                temperature=0.1,
+            )
+
+            # Sécurité : on ne descend jamais en dessous des règles
+            rule_level = int(rules_verdict.criticite[1])
+            ai_level = int(ai.criticite[1])
+            final_level = max(rule_level, ai_level)
+            final_criticite = f"C{final_level}"
+
+            upgraded = final_level > rule_level
+            triggers = list(rules_verdict.triggers)
+            if upgraded:
+                triggers.append(f"ai_upgrade:{rules_verdict.criticite}→{final_criticite}")
+
+            verdict = CriticalityVerdict(
+                criticite=final_criticite,
+                triggers=triggers,
+                ai_reasoning=ai.reasoning,
+                source="hybrid",
+            )
+            log.info(
+                "guards.criticality.hybrid",
+                rules=rules_verdict.criticite,
+                ai=ai.criticite,
+                final=final_criticite,
+                upgraded=upgraded,
+            )
+            return verdict
+
+        except Exception as exc:
+            log.warning("guards.criticality_hybrid_failed", error=str(exc))
+            return rules_verdict
 
     # ── reversibility_guard (LLM) ───────────────────────────────────
     @classmethod

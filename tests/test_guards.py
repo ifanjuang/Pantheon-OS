@@ -1,11 +1,15 @@
 """
-Tests modules/guards — guards purs (criticality, loop) + veto séquentiel.
+Tests modules/guards — guards purs (criticality, loop) + veto séquentiel
++ criticality_guard_hybrid (couche AI).
 
 Les fonctions pures (criticality_guard, loop_guard) sont testées sans DB ni LLM.
-Les tests de veto utilisent des mocks LLM pour tester la logique de routing.
+Les tests hybrid et veto utilisent des mocks LLM pour tester la logique de routing.
 """
+import json
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
-from modules.guards.schemas import CriticalityImpacts
+from modules.guards.schemas import CriticalityImpacts, CriticalityVerdict
 from modules.guards.service import GuardsService, MAX_COMPLEMENTS_BY_CRITICITE
 
 
@@ -92,6 +96,117 @@ class TestCriticalityGuard:
             CriticalityImpacts(intent="question")
         )
         assert verdict.criticite == "C2"
+
+    def test_verdict_source_is_rules_by_default(self):
+        verdict = GuardsService.criticality_guard(CriticalityImpacts(impact_cout=3_000))
+        assert verdict.source == "rules"
+        assert verdict.ai_reasoning == ""
+
+
+# ── criticality_guard_hybrid (couche 0+1 règles + couche 2 AI) ───────────────
+
+@pytest.mark.asyncio
+class TestCriticalityGuardHybrid:
+    """La couche AI ne s'active que sur les cas ambigus (C2/C3/C4) + contexte."""
+
+    async def test_c5_from_rules_skips_ai(self):
+        """C5 déterministe → pas d'appel LLM, source=rules."""
+        impacts = CriticalityImpacts(impact_cout=60_000)
+        with patch("modules.guards.service.LlmService.extract") as mock_extract:
+            verdict = await GuardsService.criticality_guard_hybrid(impacts, context="quelque chose")
+        mock_extract.assert_not_called()
+        assert verdict.criticite == "C5"
+        assert verdict.source == "rules"
+
+    async def test_no_context_skips_ai(self):
+        """Sans contexte → pas d'appel LLM même si c'est C3."""
+        impacts = CriticalityImpacts(impact_cout=3_000)
+        with patch("modules.guards.service.LlmService.extract") as mock_extract:
+            verdict = await GuardsService.criticality_guard_hybrid(impacts, context="")
+        mock_extract.assert_not_called()
+        assert verdict.criticite == "C3"
+        assert verdict.source == "rules"
+
+    async def test_c1_no_context_skips_ai(self):
+        """C1 sans contexte → source=rules."""
+        impacts = CriticalityImpacts()
+        with patch("modules.guards.service.LlmService.extract") as mock_extract:
+            verdict = await GuardsService.criticality_guard_hybrid(impacts)
+        mock_extract.assert_not_called()
+        assert verdict.criticite == "C1"
+
+    async def test_ai_upgrades_c3_to_c4(self):
+        """Règles donnent C3, AI détecte litige → upgrade C4."""
+        impacts = CriticalityImpacts(impact_cout=3_000)
+
+        mock_ai = MagicMock()
+        mock_ai.criticite = "C4"
+        mock_ai.reasoning = "Risque de litige contractuel non capturé par les règles financières."
+
+        with patch("modules.guards.service.LlmService.extract", new_callable=AsyncMock) as mock_extract:
+            mock_extract.return_value = mock_ai
+            verdict = await GuardsService.criticality_guard_hybrid(
+                impacts,
+                context="L'entreprise refuse de signer le PV de réception. Le MOA menace d'un litige.",
+            )
+
+        assert verdict.criticite == "C4"
+        assert verdict.source == "hybrid"
+        assert "ai_upgrade:C3→C4" in verdict.triggers
+        assert verdict.ai_reasoning != ""
+
+    async def test_ai_never_downgrades(self):
+        """AI propose C2 mais règles donnent C3 → on garde C3."""
+        impacts = CriticalityImpacts(impact_cout=3_000)
+
+        mock_ai = MagicMock()
+        mock_ai.criticite = "C2"
+        mock_ai.reasoning = "Situation banale."
+
+        with patch("modules.guards.service.LlmService.extract", new_callable=AsyncMock) as mock_extract:
+            mock_extract.return_value = mock_ai
+            verdict = await GuardsService.criticality_guard_hybrid(
+                impacts,
+                context="Situation standard de chantier.",
+            )
+
+        assert verdict.criticite == "C3"
+        assert "ai_upgrade" not in " ".join(verdict.triggers)
+
+    async def test_ai_failure_falls_back_to_rules(self):
+        """Erreur LLM → fallback sur résultat des règles, pas d'exception."""
+        impacts = CriticalityImpacts(impact_delai=15)  # C4 par les règles
+
+        with patch(
+            "modules.guards.service.LlmService.extract",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("LLM timeout"),
+        ):
+            verdict = await GuardsService.criticality_guard_hybrid(
+                impacts,
+                context="Contexte complexe avec retard critique.",
+            )
+
+        assert verdict.criticite == "C4"
+        assert verdict.source == "rules"
+
+    async def test_ai_upgrades_c2_to_c5_on_safety(self):
+        """Règles donnent C2, AI détecte danger structurel → C5."""
+        impacts = CriticalityImpacts(intent="question")
+
+        mock_ai = MagicMock()
+        mock_ai.criticite = "C5"
+        mock_ai.reasoning = "Danger structurel identifié : ferraillage non conforme sous charge."
+
+        with patch("modules.guards.service.LlmService.extract", new_callable=AsyncMock) as mock_extract:
+            mock_extract.return_value = mock_ai
+            verdict = await GuardsService.criticality_guard_hybrid(
+                impacts,
+                context="Le BE structure signale un risque d'effondrement sur le lot charpente.",
+            )
+
+        assert verdict.criticite == "C5"
+        assert verdict.source == "hybrid"
 
 
 # ── loop_guard (règle pure, 0 LLM) ──────────────────────────────────────────

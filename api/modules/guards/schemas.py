@@ -21,7 +21,7 @@ Schémas guards — quatre gardes-fous explicites.
 """
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 # ── criticality_guard ────────────────────────────────────────────────
@@ -51,12 +51,26 @@ class CriticalityImpacts(BaseModel):
 
 
 class CriticalityVerdict(BaseModel):
-    """Sortie du criticality_guard."""
+    """Sortie du criticality_guard / criticality_guard_hybrid."""
     criticite: str = Field(..., pattern=r"^C[1-5]$")
     triggers: list[str] = Field(
         default_factory=list,
         description="Raisons qui ont poussé à ce niveau (audit)",
     )
+    ai_reasoning: str = Field(
+        "",
+        description="Raisonnement de la couche AI (vide si couche règles suffit)",
+    )
+    source: Literal["rules", "hybrid"] = Field(
+        "rules",
+        description="'rules' = décision purement déterministe | 'hybrid' = AI a confirmé ou upgradé",
+    )
+
+    @model_validator(mode="after")
+    def _ai_reasoning_requires_hybrid(self) -> "CriticalityVerdict":
+        if self.ai_reasoning and self.source == "rules":
+            self.source = "hybrid"
+        return self
 
 
 # ── reversibility_guard ─────────────────────────────────────────────
