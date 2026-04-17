@@ -13,6 +13,7 @@ from ._shared import (
     _llm_call,
     _parse_json_response,
     _zeus_system,
+    _get_soul,
     log,
 )
 
@@ -43,6 +44,93 @@ Ou si des compléments sont nécessaires (une seule fois !) :
   ]
 }}
 """
+
+
+# ── Veto séquentiel C4/C5 — prompt + helper ──────────────────────────
+
+_SEQUENTIAL_VETO_PROMPT = """\
+Une décision de criticité {criticite} est en cours d'arbitrage.
+Examine les analyses ci-dessous depuis ton expertise exclusive et émets un veto
+FORMEL si tu identifies un blocage relevant de ta compétence.
+
+## Demande originale
+{instruction}
+
+## Résultats des agents
+{results}
+
+Réponds UNIQUEMENT en JSON strict :
+{{
+  "veto": true ou false,
+  "severity": "bloquant" | "reserve" | "information",
+  "motif": "<1-2 phrases si veto=true, sinon chaîne vide>",
+  "condition_levee": "<ce qu'il faut produire/valider pour lever le veto>"
+}}
+
+Règles :
+- Émet un veto "bloquant" uniquement si tu identifies un risque réel relevant de ton domaine
+- "reserve" si une précaution s'impose mais ne bloque pas
+- "information" si tout est conforme dans ton domaine
+- Tout veto "bloquant" DOIT avoir une condition_levee concrète
+"""
+
+
+async def _call_veto_explicit(
+    agent_name: str,
+    instruction: str,
+    results_text: str,
+    criticite: str,
+):
+    """Appel LLM dédié pour un agent veto (pas run_agent — 0 DB, 0 mémoire).
+
+    Utilisé pour la chaîne séquencée C4/C5 : force Thémis et Héphaïstos à
+    examiner la décision même s'ils n'étaient pas dans la liste initiale Zeus.
+    """
+    from modules.guards.schemas import VetoDecision
+    from modules.guards.veto_patterns import fast_veto_check
+
+    soul = _get_soul(agent_name)
+    prompt = _SEQUENTIAL_VETO_PROMPT.format(
+        criticite=criticite,
+        instruction=instruction[:2000],
+        results=results_text[:4000],
+    )
+
+    try:
+        raw = await _llm_call(soul, prompt)
+    except Exception as exc:
+        log.warning("orchestra.sequential_veto_llm_failed", agent=agent_name, error=str(exc))
+        return VetoDecision(
+            veto=False, agent=agent_name,
+            severity="information", motif="", condition_levee="",
+        )
+
+    # Couche 0 : fast patterns sur la sortie LLM
+    fast = fast_veto_check(agent_name, raw)
+    if fast is not None:
+        fast.agent = agent_name
+        log.info("orchestra.sequential_veto_fast", agent=agent_name, severity=fast.severity)
+        return fast
+
+    # Couche 1 : parse JSON
+    parsed = _parse_json_response(raw)
+    veto = bool(parsed.get("veto", False))
+    severity = parsed.get("severity", "information")
+    if severity not in ("bloquant", "reserve", "information"):
+        severity = "information"
+
+    decision = VetoDecision(
+        veto=veto,
+        agent=agent_name,
+        severity=severity if veto else "information",
+        motif=parsed.get("motif", ""),
+        condition_levee=parsed.get("condition_levee", ""),
+    )
+    log.info(
+        "orchestra.sequential_veto_done",
+        agent=agent_name, veto=veto, severity=decision.severity,
+    )
+    return decision
 
 
 # ── Nœuds LangGraph ──────────────────────────────────────────────────
@@ -89,15 +177,17 @@ async def zeus_judge(state: OrchestraState) -> dict:
 
 
 async def veto_check(state: OrchestraState) -> dict:
-    """Nœud veto — délègue à GuardsService.structured_veto (M2).
+    """Nœud veto — chaîne séquencée Thémis → Héphaïstos (+ Apollon si présent).
 
-    Analyse LLM (Instructor) des sorties Thémis / Héphaïstos / Apollon
-    pour détecter un veto structuré (vs détection keyword fragile).
-    Retourne le veto le plus sévère (bloquant > reserve > information).
-
-    Si veto.severity == "bloquant" ET criticité C4/C5 → interrupt HITL.
-    Pour C3, on trace le veto mais on continue (décision réversible).
+    C1/C2 : skip.
+    C3    : post-analyse des sorties agents existantes via structured_veto.
+    C4/C5 : chaîne séquencée explicite — Thémis et Héphaïstos sont appelés
+            directement même s'ils n'étaient pas dans la liste initiale Zeus.
+            Apollon est ensuite analysé si présent dans agent_results.
+            Le veto le plus sévère (bloquant > reserve) déclenche un interrupt
+            HITL pour C4/C5.
     """
+    import asyncio
     from langgraph.types import interrupt
     from modules.guards.service import GuardsService
 
@@ -105,37 +195,59 @@ async def veto_check(state: OrchestraState) -> dict:
     routing = CRITICITE_ROUTING.get(criticite, CRITICITE_ROUTING["C2"])
     if not routing.get("veto_check"):
         log.info("orchestra.veto_skipped", criticite=criticite)
-        return {
-            "veto_agent": "",
-            "veto_motif": "",
-            "veto_severity": "",
-            "veto_condition_levee": "",
-        }
+        return {"veto_agent": "", "veto_motif": "", "veto_severity": "", "veto_condition_levee": ""}
 
     results = state.get("agent_results", {})
-    # Ordre d'évaluation : Thémis (juridique) > Héphaïstos (technique) > Apollon (normatif)
-    candidates = [a for a in ("themis", "hephaistos", "apollon") if results.get(a)]
+    instruction = state["instruction"]
+    results_text = "\n\n".join(f"### {a}\n{r}" for a, r in results.items())
 
+    all_verdicts = []
+
+    if criticite in ("C4", "C5"):
+        # ── Chaîne séquencée : Thémis puis Héphaïstos en parallèle ──────
+        # Appels LLM directs (pas run_agent) — 0 DB, 0 mémoire, ~1 LLM call chacun.
+        # Garantit que ces gardiens examinent TOUJOURS les décisions C4/C5.
+        themis_task   = _call_veto_explicit("themis",    instruction, results_text, criticite)
+        hephaistos_task = _call_veto_explicit("hephaistos", instruction, results_text, criticite)
+        themis_d, hephaistos_d = await asyncio.gather(themis_task, hephaistos_task)
+
+        # Ordre de priorité : Thémis d'abord (juridique > technique)
+        for d in (themis_d, hephaistos_d):
+            if d.veto:
+                all_verdicts.append(d)
+
+        # Apollon (normatif) — uniquement si présent dans les résultats existants
+        if results.get("apollon"):
+            apollon_d = await GuardsService.structured_veto(
+                agent="apollon",
+                agent_output=results["apollon"],
+                criticite=criticite,
+            )
+            if apollon_d.veto:
+                all_verdicts.append(apollon_d)
+
+    else:
+        # C3 — post-analyse des sorties existantes uniquement
+        for agent_name in [a for a in ("themis", "hephaistos", "apollon") if results.get(a)]:
+            d = await GuardsService.structured_veto(
+                agent=agent_name,
+                agent_output=results[agent_name],
+                criticite=criticite,
+            )
+            if d.veto:
+                all_verdicts.append(d)
+
+    # Sélection du veto le plus sévère : bloquant > reserve
     worst_veto = None
-    for agent_name in candidates:
-        decision = await GuardsService.structured_veto(
-            agent=agent_name,
-            agent_output=results.get(agent_name, ""),
-            criticite=criticite,
-        )
-        if decision.veto and decision.severity == "bloquant":
-            worst_veto = decision
-            break  # priorité Thémis > Héphaïstos > Apollon
-        if decision.veto and decision.severity == "reserve" and worst_veto is None:
-            worst_veto = decision
+    for v in all_verdicts:
+        if v.severity == "bloquant":
+            worst_veto = v
+            break
+        if v.severity == "reserve" and worst_veto is None:
+            worst_veto = v
 
     if worst_veto is None:
-        return {
-            "veto_agent": "",
-            "veto_motif": "",
-            "veto_severity": "",
-            "veto_condition_levee": "",
-        }
+        return {"veto_agent": "", "veto_motif": "", "veto_severity": "", "veto_condition_levee": ""}
 
     update = {
         "veto_agent": worst_veto.agent,
@@ -144,13 +256,12 @@ async def veto_check(state: OrchestraState) -> dict:
         "veto_condition_levee": worst_veto.condition_levee,
     }
 
-    # Interrupt HITL uniquement si veto bloquant ET criticité engageante
     if worst_veto.severity == "bloquant" and criticite in ("C4", "C5"):
         log.warning(
             "orchestra.veto_blocking",
             agent=worst_veto.agent,
             criticite=criticite,
-            condition_levee=worst_veto.condition_levee[:120],
+            condition_levee=(worst_veto.condition_levee or "")[:120],
         )
         interrupt({
             "veto_agent": worst_veto.agent,

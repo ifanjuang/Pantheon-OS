@@ -6,11 +6,51 @@ Orchestra — nœuds de synthèse et mémoire (M4).
 """
 from uuid import UUID
 
+from uuid import UUID
+
 from ._shared import (
     OrchestraState,
+    _llm_call,
+    _parse_json_response,
+    _zeus_system,
     _run_agent_isolated,
     log,
 )
+
+# ── Prompt extraction décisions (Hestia post-orchestration) ──────────
+
+_DECISION_EXTRACT_PROMPT = """\
+Tu analyses la réponse finale d'une orchestration ARCEUS de criticité {criticite}.
+Identifie les décisions concrètes formulées (C3 et au-dessus uniquement).
+Ne pas inclure les observations ou informations sans décision claire.
+
+## Instruction originale
+{instruction}
+
+## Réponse finale
+{final_answer}
+
+Retourne un JSON strict (array vide si aucune décision) :
+{{
+  "decisions": [
+    {{
+      "objet": "<titre court, max 200 caractères>",
+      "criticite": "<C3|C4|C5>",
+      "dette": "<D0=résolu|D1=suspendu|D2=bloquant|D3=critique>",
+      "impacts": "<impacts coût/délai/qualité en 1 phrase>",
+      "lot": null,
+      "responsable": null,
+      "reversible": true
+    }}
+  ]
+}}
+
+Règles :
+- Maximum 5 décisions par orchestration
+- dette=D3 uniquement si retard critique signalé explicitement
+- Si aucune décision C3+ : {{"decisions": []}}
+"""
+
 
 # ── Prompt synthèse ──────────────────────────────────────────────────
 
@@ -140,7 +180,60 @@ async def write_memories(state: OrchestraState) -> dict:
         except Exception as exc:
             log.error("orchestra.wiki_promote_failed", error=str(exc))
 
-    # ── 3. Mémoire fonctionnelle (M3) ─────────────────────────────────
+    # ── 3. Auto-capitalisation des décisions (C3/C4/C5) ──────────────
+    # Hestia extrait les décisions structurées de la synthèse finale et les
+    # persiste dans project_decisions liées à l'orchestra_run en cours.
+    orchestra_run_id_str = state.get("orchestra_run_id", "")
+    decisions_created = 0
+    if criticite in ("C3", "C4", "C5") and affaire_id_val and len(final_answer.strip()) >= 80:
+        try:
+            prompt = _DECISION_EXTRACT_PROMPT.format(
+                criticite=criticite,
+                instruction=state["instruction"][:1000],
+                final_answer=final_answer[:4000],
+            )
+            raw = await _llm_call(_zeus_system(), prompt)
+            parsed = _parse_json_response(raw)
+            decisions_raw = parsed.get("decisions", [])
+            if decisions_raw:
+                from modules.decisions.models import ProjectDecision
+
+                async with AsyncSessionLocal() as db:
+                    for d in decisions_raw[:5]:
+                        objet = str(d.get("objet", ""))[:200]
+                        if not objet:
+                            continue
+                        crit = d.get("criticite", criticite)
+                        if crit not in ("C1", "C2", "C3", "C4", "C5"):
+                            crit = criticite
+                        dette = d.get("dette", "D1")
+                        if dette not in ("D0", "D1", "D2", "D3"):
+                            dette = "D1"
+                        proj_decision = ProjectDecision(
+                            affaire_id=affaire_id_val,
+                            run_id=UUID(orchestra_run_id_str) if orchestra_run_id_str else None,
+                            objet=objet,
+                            analyse=final_answer[:2000],
+                            impacts=str(d.get("impacts", ""))[:500] or None,
+                            criticite=crit,
+                            dette=dette,
+                            statut="ouvert",
+                            agent_source="hestia",
+                            lot=str(d.get("lot", ""))[:64] if d.get("lot") else None,
+                            responsable=str(d.get("responsable", ""))[:128] if d.get("responsable") else None,
+                            reversible=bool(d.get("reversible", True)),
+                            agents_impliques=list(state.get("agent_results", {}).keys()),
+                        )
+                        db.add(proj_decision)
+                        decisions_created += 1
+                    await db.commit()
+        except Exception as exc:
+            log.warning("orchestra.decisions_extract_failed", error=str(exc))
+
+    if decisions_created:
+        log.info("orchestra.decisions_created", count=decisions_created, criticite=criticite)
+
+    # ── 5. Mémoire fonctionnelle (M3) ─────────────────────────────────
     thread_id = state.get("thread_id") or ""
     if thread_id:
         try:

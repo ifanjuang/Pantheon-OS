@@ -130,8 +130,21 @@ class OrchestraState(TypedDict):
     # Mémoire fonctionnelle (M3) — Redis TTL, session
     thread_id: str              # clé de session (checkpoint_thread_id ou externe)
 
+    # Identifiant de l'OrchestraRun en cours (disponible dès le début, passé depuis service.py)
+    orchestra_run_id: str       # UUID de l'OrchestraRun — utilisé par write_memories pour lier les décisions
+
 
 # ── Helpers LLM ────────────────────────────────────────────────────
+
+@functools.lru_cache(maxsize=16)
+def _get_soul(agent_name: str) -> str:
+    """Charge le SOUL.md d'un agent (LRU, process lifetime). Max 3000 chars."""
+    soul_path = AGENTS_DIR / agent_name.lower() / "SOUL.md"
+    if soul_path.exists():
+        content = soul_path.read_text(encoding="utf-8")
+        return content[:3000] if len(content) > 3000 else content
+    return f"Tu es {agent_name}, expert ARCEUS. Réponds toujours en JSON strict."
+
 
 @functools.lru_cache(maxsize=1)
 def _zeus_system() -> str:

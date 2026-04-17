@@ -127,6 +127,7 @@ def _build_initial_state(
     criticite: str = "C2",
     hitl_enabled: bool = False,
     thread_id: str = "",
+    orchestra_run_id: str = "",
 ) -> OrchestraState:
     """Construit l'état initial du graphe Zeus. Factorisé entre les 3 entry points."""
     return {
@@ -162,6 +163,7 @@ def _build_initial_state(
         "precheck_verdict": "",
         "precheck_reasoning": "",
         "thread_id": thread_id,
+        "orchestra_run_id": orchestra_run_id,
     }
 
 
@@ -240,6 +242,7 @@ async def run_orchestra(
         graph = build_graph(affaire_id, user_id)
         initial_state = _build_initial_state(
             instruction, affaire_id, user_id, initial_agents, criticite, routing["hitl"],
+            orchestra_run_id=str(run.id),
         )
         final_state = await graph.ainvoke(initial_state)
         _persist_run_state(run, final_state)
@@ -302,6 +305,7 @@ async def run_orchestra_from_run_id(
         initial_state = _build_initial_state(
             instruction, affaire_id, user_id, initial_agents,
             effective_criticite, routing["hitl"],
+            orchestra_run_id=str(run.id),
         )
         final_state = await graph.ainvoke(initial_state)
         _persist_run_state(run, final_state)
@@ -356,6 +360,7 @@ async def run_orchestra_hitl(
     initial_state = _build_initial_state(
         instruction, affaire_id, user_id, initial_agents,
         effective_criticite, hitl_enabled=True, thread_id=thread_id,
+        orchestra_run_id=str(run.id),
     )
     config = {"configurable": {"thread_id": thread_id}}
 
@@ -508,6 +513,7 @@ async def stream_orchestra(
     initial_state = _build_initial_state(
         instruction, affaire_id, user_id, initial_agents, effective_criticite,
         thread_id=str(run_id),
+        orchestra_run_id=str(run_id),
     )
     final_state: OrchestraState = initial_state.copy()
 

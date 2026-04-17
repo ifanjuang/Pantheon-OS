@@ -14,12 +14,17 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from unittest.mock import AsyncMock, MagicMock
 
 # ── Import de tous les modèles AVANT create_all ──────────────────────────────
-from modules.auth.models import AffairePermission, User  # noqa: F401
-from modules.affaires.models import Affaire              # noqa: F401
-from modules.documents.models import Chunk, Document     # noqa: F401
-from modules.agent.models import AgentRun, AgentMemory   # noqa: F401
-from modules.orchestra.models import OrchestraRun        # noqa: F401
-from modules.capture.models import CaptureSession        # noqa: F401
+from modules.auth.models import AffairePermission, User                      # noqa: F401
+from modules.affaires.models import Affaire                                  # noqa: F401
+from modules.documents.models import Chunk, Document                         # noqa: F401
+from modules.agent.models import AgentRun, AgentMemory                       # noqa: F401
+from modules.orchestra.models import OrchestraRun                            # noqa: F401
+from modules.capture.models import CaptureSession                            # noqa: F401
+from modules.decisions.models import ProjectDecision, ProjectTask, ProjectObservation  # noqa: F401
+from modules.planning.models import Lot, Tache, Jalon, LienDependance        # noqa: F401
+from modules.chantier.models import ObservationChantier, NonConformite       # noqa: F401
+from modules.communications.models import Courrier                           # noqa: F401
+from modules.finance.models import Avenant, SituationTravaux                 # noqa: F401
 
 from core.auth import create_access_token
 from core.settings import settings
