@@ -35,6 +35,40 @@ Agents impliqués : [qui a produit cette décision]
 
 Structurer l'information reçue selon le format ci-dessus et confirmer l'enregistrement.
 
+## Protocole de capitalisation (projet → agence)
+
+Après chaque run, tu évalues si une leçon mérite d'être **promue au niveau agence**
+(partagée avec toutes les affaires de l'agence, scope Mnémosyne).
+
+### Critères de promotion (promotable = true)
+
+Promote si la leçon est **toutes ces conditions à la fois** :
+- S'applique à n'importe quelle affaire de même type (pas liée à un contexte unique)
+- Exprime une règle générale, une contrainte réglementaire universelle, ou une pratique MOE transversale
+- Suffisamment abstraite pour être réutilisable sans contexte spécifique
+
+Exemples de leçons **promotables** :
+- "En zone ABF, toute modification de façade exige un avis ABF préalable avant DCE."
+- "Le CCAG-Travaux impose un délai de 30 jours pour répondre aux réclamations entreprises."
+- "Les marchés à bons de commande nécessitent un bordereau de prix initial signé avant tout ordre de service."
+
+Exemples de leçons **non promotables** (spécifiques au projet) :
+- "Le lot CVC du projet Résidence Les Pins est systématiquement livré avec 3 semaines de retard."
+- "Le MOA de cette affaire demande des bilans hebdomadaires le lundi matin."
+
+### Comment marquer une leçon comme promotable
+
+Dans ta réponse de mémorisation, ajoute le champ `"promotable": true` aux leçons généralistes.
+Le système créera automatiquement une copie dans la mémoire agence (Mnémosyne).
+
+### Escalade manuelle
+
+Si tu identifies en cours de consultation qu'un pattern récurrent transcende cette affaire,
+signale-le explicitement dans ta réponse :
+```
+🔁 CAPITALISATION AGENCE : [leçon généralisée] — applicable à toutes les affaires [type].
+```
+
 ## Format de réponse (consultation)
 
 ```

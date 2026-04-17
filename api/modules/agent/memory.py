@@ -35,20 +35,17 @@ Résultat produit : {result}
 Extrait 1 à 3 leçons CONCRÈTES et RÉUTILISABLES pour de futurs runs du même agent
 sur la même affaire. Chaque leçon doit être une phrase courte et actionnable.
 
-Pour chaque leçon, indique sa catégorie :
-- "technique"    : matériaux, DTU, faisabilité, détails constructifs
-- "planning"     : délais, retards, jalons, ordonnancement
-- "budget"       : coûts, dépassements, honoraires, situations
-- "contractuel"  : obligations MOE, loi MOP, CCAG, marchés, ABF
-- "general"      : tout le reste
+Pour chaque leçon, indique :
+- sa catégorie parmi : "technique", "planning", "budget", "contractuel", "general"
+- si elle est `promotable` (true/false) — true si la leçon s'applique à n'importe
+  quelle affaire de ce type (règle générale, contrainte réglementaire universelle,
+  pratique MOE transversale) ; false si elle est spécifique à cette affaire.
 
-Exemples de bonnes leçons :
-- {{"lesson": "Le lot gros œuvre est systématiquement en retard de 3 semaines.", "category": "planning"}}
-- {{"lesson": "Les documents CCTP sont fragmentés — chercher aussi dans le lot VRD.", "category": "technique"}}
-- {{"lesson": "Le maître d'ouvrage demande des bilans hebdomadaires chaque lundi.", "category": "contractuel"}}
+Exemples promotable=true : "En zone ABF, tout changement de façade exige un avis préalable."
+Exemples promotable=false : "Le lot CVC de cette affaire est livré avec 3 semaines de retard."
 
 Réponds en JSON strict :
-{{"lessons": [{{"lesson": "...", "category": "..."}}]}}
+{{"lessons": [{{"lesson": "...", "category": "...", "promotable": false}}]}}
 
 Si le run ne contient aucune leçon réutilisable, réponds :
 {{"lessons": []}}
@@ -62,6 +59,7 @@ async def extract_and_store_memories(
     affaire_id: UUID | None,
     run_id: UUID,
     db: AsyncSession,
+    scope: str = "projet",
 ) -> int:
     """
     Appelle le LLM pour extraire des leçons du run et les stocke en DB.
@@ -106,12 +104,16 @@ async def extract_and_store_memories(
         lessons: list[dict] = []
         for item in raw_lessons[:3]:
             if isinstance(item, str):
-                lessons.append({"lesson": item.strip(), "category": "general"})
+                lessons.append({"lesson": item.strip(), "category": "general", "promotable": False})
             elif isinstance(item, dict) and item.get("lesson"):
                 cat = item.get("category", "general")
                 if cat not in MEMORY_CATEGORIES:
                     cat = "general"
-                lessons.append({"lesson": item["lesson"].strip(), "category": cat})
+                lessons.append({
+                    "lesson": item["lesson"].strip(),
+                    "category": cat,
+                    "promotable": bool(item.get("promotable", False)),
+                })
 
         # Charger les leçons existantes valides pour dédoublonnage
         existing_rows: list[AgentMemory] = []
@@ -131,16 +133,39 @@ async def extract_and_store_memories(
             text = item["lesson"]
             if len(text) < 10 or text.lower() in existing_texts:
                 continue
+
+            # Leçon de portée projet (ou agence si scope explicitement fourni)
+            effective_scope = scope if not affaire_id else "projet"
             new_memory = AgentMemory(
                 agent_name=agent_name,
                 affaire_id=affaire_id,
                 source_run_id=run_id,
                 lesson=text,
                 category=item["category"],
+                scope=effective_scope,
             )
             db.add(new_memory)
             existing_texts.add(text.lower())
             count += 1
+
+            # Promotion automatique vers agence si la leçon est généraliste
+            if item.get("promotable") and affaire_id:
+                agence_text = f"[Pattern {agent_name}] {text}"
+                if agence_text.lower() not in existing_texts:
+                    agence_mem = AgentMemory(
+                        agent_name="mnemosyne",
+                        affaire_id=None,
+                        source_run_id=run_id,
+                        lesson=agence_text[:500],
+                        category=item["category"],
+                        scope="agence",
+                    )
+                    db.add(agence_mem)
+                    log.info(
+                        "agent.memory.promoted_agence",
+                        agent=agent_name,
+                        lesson=text[:80],
+                    )
 
         if count:
             await db.commit()
