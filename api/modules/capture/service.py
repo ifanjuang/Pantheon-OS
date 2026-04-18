@@ -9,6 +9,7 @@ Structuration :
   - La transcription est envoyée à l'agent Hermès (routage) qui la structure
     via le pipeline agent standard (run_agent).
 """
+
 import uuid
 
 import httpx

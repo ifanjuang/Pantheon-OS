@@ -11,6 +11,7 @@ Principes :
   - Pas de side-effect mémoire (affaire_id par défaut = UUID zéro pour
     ne pas polluer Hestia/Mnémosyne avec des cas de test).
 """
+
 from __future__ import annotations
 
 import time
@@ -43,6 +44,7 @@ _DATASETS_DIR = Path(__file__).parent / "datasets"
 
 # ── Chargement datasets ──────────────────────────────────────────────
 
+
 def _datasets_dir() -> Path:
     return _DATASETS_DIR
 
@@ -69,6 +71,7 @@ def load_dataset(dataset_id: str) -> EvalDataset:
 
 
 # ── Exécution d'un cas ───────────────────────────────────────────────
+
 
 def _trace_from_run(run, preprocessed_input: dict) -> dict[str, Any]:
     """Construit la trace utilisée par scoring.score_case().
@@ -139,6 +142,7 @@ async def _run_case(
 
 
 # ── API publique ─────────────────────────────────────────────────────
+
 
 async def run_eval(
     db: AsyncSession,

@@ -15,6 +15,7 @@ Auth :
   - Open WebUI envoie JWT_SECRET_KEY comme Bearer token (cf. docker-compose)
   - La dépendance _check_api_key valide ce token
 """
+
 import json
 import time
 import uuid
@@ -39,13 +40,14 @@ bearer = HTTPBearer(auto_error=False)
 
 # ── Schémas OpenAI ───────────────────────────────────────────────────────────
 
+
 class ChatMessage(BaseModel):
     role: str
     content: str
 
 
 class ChatCompletionRequest(BaseModel):
-    model: str           # UUID de l'affaire ou "arceus"
+    model: str  # UUID de l'affaire ou "arceus"
     messages: list[ChatMessage]
     stream: bool = True
     temperature: float = 0.3
@@ -53,6 +55,7 @@ class ChatCompletionRequest(BaseModel):
 
 
 # ── Auth interne ─────────────────────────────────────────────────────────────
+
 
 async def _check_api_key(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
@@ -68,6 +71,7 @@ async def _check_api_key(
 
 
 # ── Helpers streaming ────────────────────────────────────────────────────────
+
 
 def _chunk(run_id: str, model_id: str, content: str) -> str:
     data = {
@@ -125,9 +129,7 @@ async def _stream_rag_response(
         for i, r in enumerate(rag_results, 1):
             score_pct = int(r["score"] * 100)
             source = r["meta"].get("filename", "document")
-            context_parts.append(
-                f"[Source {i} — {source}, pertinence {score_pct}%]\n{r['contenu'][:600]}"
-            )
+            context_parts.append(f"[Source {i} — {source}, pertinence {score_pct}%]\n{r['contenu'][:600]}")
         context_block = "\n\n---\n\n".join(context_parts)
         context_section = f"\n\n## Extraits documentaires pertinents\n\n{context_block}"
     else:
@@ -204,6 +206,7 @@ async def _full_rag_response(
 
 # ── Router ───────────────────────────────────────────────────────────────────
 
+
 def get_router(config: dict) -> APIRouter:
     router = APIRouter()
 
@@ -216,11 +219,7 @@ def get_router(config: dict) -> APIRouter:
         Retourne les affaires actives comme modèles disponibles.
         Open WebUI les affiche dans le dropdown de sélection de modèle.
         """
-        result = await db.execute(
-            select(Affaire)
-            .where(Affaire.statut == "actif")
-            .order_by(Affaire.nom)
-        )
+        result = await db.execute(select(Affaire).where(Affaire.statut == "actif").order_by(Affaire.nom))
         affaires = result.scalars().all()
 
         models = [
@@ -236,13 +235,15 @@ def get_router(config: dict) -> APIRouter:
 
         # Modèle générique si aucune affaire
         if not models:
-            models.append({
-                "id": "arceus",
-                "object": "model",
-                "created": int(time.time()),
-                "owned_by": "arceus",
-                "display_name": "ARCEUS — Copilote MOE",
-            })
+            models.append(
+                {
+                    "id": "arceus",
+                    "object": "model",
+                    "created": int(time.time()),
+                    "owned_by": "arceus",
+                    "display_name": "ARCEUS — Copilote MOE",
+                }
+            )
 
         return {"object": "list", "data": models}
 

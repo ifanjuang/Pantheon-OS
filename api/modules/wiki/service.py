@@ -13,6 +13,7 @@ Responsabilités :
   - check_precedents           : wrap find_similar + calcul bonus scoring
   - render_markdown            : export pour mode AUDIT
 """
+
 import re
 import unicodedata
 from datetime import datetime, timezone
@@ -55,18 +56,12 @@ class WikiService:
         return slug[:max_length] or "page"
 
     @classmethod
-    async def _unique_slug(
-        cls, db: AsyncSession, scope: str, base_slug: str
-    ) -> str:
+    async def _unique_slug(cls, db: AsyncSession, scope: str, base_slug: str) -> str:
         """Ajoute un suffixe -2, -3, ... si (scope, slug) existe déjà."""
         candidate = base_slug
         suffix = 2
         while True:
-            result = await db.execute(
-                select(WikiPage.id).where(
-                    WikiPage.scope == scope, WikiPage.slug == candidate
-                )
-            )
+            result = await db.execute(select(WikiPage.id).where(WikiPage.scope == scope, WikiPage.slug == candidate))
             if result.scalar_one_or_none() is None:
                 return candidate
             candidate = f"{base_slug}-{suffix}"
@@ -160,19 +155,23 @@ class WikiService:
         et crée une page wiki correspondante.
         """
         row = (
-            await db.execute(
-                text(
-                    """
+            (
+                await db.execute(
+                    text(
+                        """
                     SELECT id, affaire_id, run_id, objet, contexte, constat,
                            analyse, impacts, options, criticite, dette, statut,
                            agent_source
                     FROM project_decisions
                     WHERE id = :id
                     """
-                ),
-                {"id": str(decision_id)},
+                    ),
+                    {"id": str(decision_id)},
+                )
             )
-        ).mappings().first()
+            .mappings()
+            .first()
+        )
 
         if row is None:
             raise ValueError(f"project_decision {decision_id} introuvable")
@@ -228,6 +227,7 @@ class WikiService:
             lines.append("")
             if isinstance(body, (list, dict)):
                 import json as _json
+
                 lines.append("```json")
                 lines.append(_json.dumps(body, ensure_ascii=False, indent=2))
                 lines.append("```")
@@ -330,9 +330,7 @@ class WikiService:
         Pour éviter de "gonfler" le score sur des correspondances faibles,
         PRECEDENT_MIN_SCORE est appliqué comme seuil cosine.
         """
-        hits = await cls.find_similar(
-            db, query=sujet, affaire_id=affaire_id, top_k=top_k
-        )
+        hits = await cls.find_similar(db, query=sujet, affaire_id=affaire_id, top_k=top_k)
 
         # On privilégie les précédents agence (pattern Mnémosyne) au-dessus
         # du seuil minimal et réellement validés (validated_at non null).
@@ -353,9 +351,7 @@ class WikiService:
 
         if increment_reuse and qualifying_ids:
             await db.execute(
-                update(WikiPage)
-                .where(WikiPage.id.in_(qualifying_ids))
-                .values(reuse_count=WikiPage.reuse_count + 1)
+                update(WikiPage).where(WikiPage.id.in_(qualifying_ids)).values(reuse_count=WikiPage.reuse_count + 1)
             )
             await db.commit()
 
@@ -395,8 +391,6 @@ class WikiService:
         if page.score is not None:
             lines.append(f"*Score : {page.score}/100*")
         if page.validated_at:
-            lines.append(
-                f"*Validé le {page.validated_at.strftime('%Y-%m-%d')}*"
-            )
+            lines.append(f"*Validé le {page.validated_at.strftime('%Y-%m-%d')}*")
         lines.append(f"*Réutilisé : {page.reuse_count}×*")
         return "\n".join(lines) + "\n"

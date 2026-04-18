@@ -7,6 +7,7 @@ et de le reprendre après validation humaine.
 Les tables LangGraph (checkpoints, checkpoint_blobs, checkpoint_migrations,
 checkpoint_writes) sont créées automatiquement par checkpointer.setup().
 """
+
 from contextlib import asynccontextmanager
 
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -23,9 +24,7 @@ async def get_checkpointer():
         async with get_checkpointer() as cp:
             graph = build_graph(...).compile(checkpointer=cp)
     """
-    async with await AsyncPostgresSaver.from_conn_string(
-        settings.DATABASE_URL_SYNC
-    ) as checkpointer:
+    async with await AsyncPostgresSaver.from_conn_string(settings.DATABASE_URL_SYNC) as checkpointer:
         yield checkpointer
 
 

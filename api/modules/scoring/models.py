@@ -18,6 +18,7 @@ Bonus/malus appliqués automatiquement par ScoringService :
   -10 si dette = D3
   -5  si certitude < 0.5
 """
+
 import uuid
 from datetime import datetime, timezone
 
@@ -39,9 +40,7 @@ MODES = ("manuel", "auto_llm", "hybride")
 class DecisionScore(Base):
     __tablename__ = "decision_scores"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     decision_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("project_decisions.id", ondelete="CASCADE"),
@@ -96,9 +95,7 @@ class DecisionScore(Base):
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
     )
-    computed_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now
-    )
+    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
 
     def __repr__(self) -> str:
         return f"<DecisionScore {self.total_final}/100 ({self.verdict})>"

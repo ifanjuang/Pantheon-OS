@@ -7,6 +7,7 @@ GET  /control/runs/{id}/trace   → timeline d'un run reconstruite depuis les do
 GET  /control/errors            → runs échoués + vetos bloquants
 WS   /control/stream            → push temps réel (snapshot + delta toutes 2s)
 """
+
 import asyncio
 from datetime import datetime, timezone
 from uuid import UUID
@@ -65,12 +66,14 @@ def get_router(config: dict) -> APIRouter:
         try:
             import json
             import redis.asyncio as aioredis
+
             r = await aioredis.from_url(settings.REDIS_URL, decode_responses=True)
             raw = await r.lrange("arq:dlq", 0, limit - 1)
             await r.aclose()
             return [json.loads(entry) for entry in raw]
         except Exception as exc:
             from core.logging import get_logger
+
             get_logger("control.router").warning("dlq.read_failed", error=str(exc))
             return []
 
@@ -104,12 +107,14 @@ def get_router(config: dict) -> APIRouter:
             runs = await ControlService.get_runs(db, limit=20)
             errors = await ControlService.get_errors(db, limit=20)
 
-            await websocket.send_json({
-                "type": "init",
-                "modules": [m.model_dump() for m in modules],
-                "runs": [r.model_dump(mode="json") for r in runs],
-                "errors": [e.model_dump(mode="json") for e in errors],
-            })
+            await websocket.send_json(
+                {
+                    "type": "init",
+                    "modules": [m.model_dump() for m in modules],
+                    "runs": [r.model_dump(mode="json") for r in runs],
+                    "errors": [e.model_dump(mode="json") for e in errors],
+                }
+            )
 
             for run in runs:
                 run_state[run.run_id] = run.status
@@ -123,25 +128,31 @@ def get_router(config: dict) -> APIRouter:
                 for run in fresh_runs:
                     if run_state.get(run.run_id) != run.status or run.run_id not in run_state:
                         run_state[run.run_id] = run.status
-                        await websocket.send_json({
-                            "type": "run.update",
-                            "data": run.model_dump(mode="json"),
-                        })
+                        await websocket.send_json(
+                            {
+                                "type": "run.update",
+                                "data": run.model_dump(mode="json"),
+                            }
+                        )
 
                 # Refresh errors every 10s
                 if tick % 5 == 0:
                     fresh_errors = await ControlService.get_errors(db, limit=20)
-                    await websocket.send_json({
-                        "type": "errors.refresh",
-                        "errors": [e.model_dump(mode="json") for e in fresh_errors],
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "errors.refresh",
+                            "errors": [e.model_dump(mode="json") for e in fresh_errors],
+                        }
+                    )
 
                 # Heartbeat every 20s
                 if tick % 10 == 0:
-                    await websocket.send_json({
-                        "type": "heartbeat",
-                        "ts": datetime.now(timezone.utc).isoformat(),
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "heartbeat",
+                            "ts": datetime.now(timezone.utc).isoformat(),
+                        }
+                    )
 
         except (WebSocketDisconnect, RuntimeError):
             pass

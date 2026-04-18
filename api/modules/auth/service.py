@@ -1,6 +1,7 @@
 """
 Service auth — hash, vérification, création utilisateur, seed admin.
 """
+
 from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession

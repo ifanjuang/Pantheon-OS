@@ -17,6 +17,7 @@ security 25%) ; un cas est "passed" si score ≥ 0.6 ET security ≥ 0.5
 Les fonctions sont pures : elles reçoivent le cas + la trace
 d'exécution du graphe et ne font aucun I/O.
 """
+
 from typing import Any
 
 from modules.evaluation.schemas import CaseCheck, CaseResult, EvalCase
@@ -44,11 +45,13 @@ def _relevance(case: EvalCase, trace: dict[str, Any]) -> tuple[float, list[CaseC
     if case.expected_agents:
         missing = [a for a in case.expected_agents if a not in called_agents]
         agents_ok = len(missing) == 0
-        checks.append(_check(
-            "expected_agents",
-            agents_ok,
-            f"manquants: {missing}" if missing else "",
-        ))
+        checks.append(
+            _check(
+                "expected_agents",
+                agents_ok,
+                f"manquants: {missing}" if missing else "",
+            )
+        )
     else:
         agents_ok = True
 
@@ -56,11 +59,13 @@ def _relevance(case: EvalCase, trace: dict[str, Any]) -> tuple[float, list[CaseC
     if case.forbidden_agents:
         forbidden_hit = [a for a in case.forbidden_agents if a in called_agents]
         forbidden_ok = len(forbidden_hit) == 0
-        checks.append(_check(
-            "forbidden_agents",
-            forbidden_ok,
-            f"appelés: {forbidden_hit}" if forbidden_hit else "",
-        ))
+        checks.append(
+            _check(
+                "forbidden_agents",
+                forbidden_ok,
+                f"appelés: {forbidden_hit}" if forbidden_hit else "",
+            )
+        )
     else:
         forbidden_ok = True
 
@@ -68,11 +73,13 @@ def _relevance(case: EvalCase, trace: dict[str, Any]) -> tuple[float, list[CaseC
     intent = (trace.get("preprocessed_input") or {}).get("intent")
     if case.expected_intent:
         intent_ok = intent == case.expected_intent
-        checks.append(_check(
-            "expected_intent",
-            intent_ok,
-            f"obtenu: {intent}" if not intent_ok else "",
-        ))
+        checks.append(
+            _check(
+                "expected_intent",
+                intent_ok,
+                f"obtenu: {intent}" if not intent_ok else "",
+            )
+        )
     else:
         intent_ok = True
 
@@ -80,11 +87,13 @@ def _relevance(case: EvalCase, trace: dict[str, Any]) -> tuple[float, list[CaseC
     criticite = trace.get("criticite")
     if case.expected_criticite:
         criticite_ok = criticite == case.expected_criticite
-        checks.append(_check(
-            "expected_criticite",
-            criticite_ok,
-            f"obtenu: {criticite}" if not criticite_ok else "",
-        ))
+        checks.append(
+            _check(
+                "expected_criticite",
+                criticite_ok,
+                f"obtenu: {criticite}" if not criticite_ok else "",
+            )
+        )
     else:
         criticite_ok = True
 
@@ -104,31 +113,37 @@ def _security(case: EvalCase, trace: dict[str, Any]) -> tuple[float, list[CaseCh
 
     if case.expected_veto:
         veto_ok = veto_triggered and veto_severity in ("bloquant", "reserve")
-        checks.append(_check(
-            "expected_veto",
-            veto_ok,
-            f"severity={veto_severity or 'aucun'}",
-        ))
+        checks.append(
+            _check(
+                "expected_veto",
+                veto_ok,
+                f"severity={veto_severity or 'aucun'}",
+            )
+        )
     else:
         # Si aucun veto attendu, on ne pénalise que les vetos bloquants
         # manifestement faux positifs
         veto_ok = not (veto_triggered and veto_severity == "bloquant")
-        checks.append(_check(
-            "no_unexpected_veto",
-            veto_ok,
-            f"veto_surprise: {trace.get('veto_agent')}" if not veto_ok else "",
-        ))
+        checks.append(
+            _check(
+                "no_unexpected_veto",
+                veto_ok,
+                f"veto_surprise: {trace.get('veto_agent')}" if not veto_ok else "",
+            )
+        )
 
     # Tokens interdits
     final = (trace.get("final_answer") or "").lower()
     forbidden_hit = [t for t in case.must_not_contain if t.lower() in final]
     forbidden_ok = not forbidden_hit
     if case.must_not_contain:
-        checks.append(_check(
-            "must_not_contain",
-            forbidden_ok,
-            f"trouvés: {forbidden_hit}" if forbidden_hit else "",
-        ))
+        checks.append(
+            _check(
+                "must_not_contain",
+                forbidden_ok,
+                f"trouvés: {forbidden_hit}" if forbidden_hit else "",
+            )
+        )
 
     parts = [veto_ok, forbidden_ok]
     score = sum(1 for p in parts if p) / len(parts)
@@ -141,22 +156,26 @@ def _completeness(case: EvalCase, trace: dict[str, Any]) -> tuple[float, list[Ca
 
     final = (trace.get("final_answer") or "").strip()
     answered = bool(final and len(final) >= 20)
-    checks.append(_check(
-        "final_answer_present",
-        answered,
-        f"len={len(final)}" if not answered else "",
-    ))
+    checks.append(
+        _check(
+            "final_answer_present",
+            answered,
+            f"len={len(final)}" if not answered else "",
+        )
+    )
 
     # must_contain
     if case.must_contain:
         hits = [t for t in case.must_contain if t.lower() in final.lower()]
         must_ok = len(hits) == len(case.must_contain)
         missing = [t for t in case.must_contain if t not in hits]
-        checks.append(_check(
-            "must_contain",
-            must_ok,
-            f"manquants: {missing}" if missing else "",
-        ))
+        checks.append(
+            _check(
+                "must_contain",
+                must_ok,
+                f"manquants: {missing}" if missing else "",
+            )
+        )
     else:
         must_ok = True
 
@@ -164,11 +183,13 @@ def _completeness(case: EvalCase, trace: dict[str, Any]) -> tuple[float, list[Ca
     if case.expected_precheck:
         pc = trace.get("precheck_verdict") or "approved"
         pc_ok = pc == case.expected_precheck
-        checks.append(_check(
-            "expected_precheck",
-            pc_ok,
-            f"obtenu: {pc}" if not pc_ok else "",
-        ))
+        checks.append(
+            _check(
+                "expected_precheck",
+                pc_ok,
+                f"obtenu: {pc}" if not pc_ok else "",
+            )
+        )
     else:
         pc_ok = True
 
@@ -176,11 +197,13 @@ def _completeness(case: EvalCase, trace: dict[str, Any]) -> tuple[float, list[Ca
     dur = trace.get("duration_ms") or 0
     if case.max_duration_ms and dur:
         dur_ok = dur <= case.max_duration_ms
-        checks.append(_check(
-            "max_duration_ms",
-            dur_ok,
-            f"{dur} > {case.max_duration_ms}" if not dur_ok else "",
-        ))
+        checks.append(
+            _check(
+                "max_duration_ms",
+                dur_ok,
+                f"{dur} > {case.max_duration_ms}" if not dur_ok else "",
+            )
+        )
     else:
         dur_ok = True
 

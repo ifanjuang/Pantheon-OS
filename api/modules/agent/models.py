@@ -1,6 +1,7 @@
 """
 Modèle AgentRun — historique des exécutions de l'agent copilote MOE.
 """
+
 import uuid
 from datetime import datetime, timezone
 
@@ -24,11 +25,10 @@ class AgentMemory(Base):
       - category     : catégorisation thématique pour filtrage hiérarchique
                        (technique, planning, budget, contractuel, general)
     """
+
     __tablename__ = "agent_memory"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     agent_name: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     affaire_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
@@ -47,7 +47,9 @@ class AgentMemory(Base):
     category: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     # technique | planning | budget | contractuel | general
     valid_until: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True, index=True,
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
     )
     # NULL = toujours valide ; sinon la leçon est obsolète à partir de cette date
     superseded_by: Mapped[uuid.UUID | None] = mapped_column(
@@ -55,9 +57,7 @@ class AgentMemory(Base):
         ForeignKey("agent_memory.id", ondelete="SET NULL"),
         nullable=True,
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
 
     def __repr__(self) -> str:
         return f"<AgentMemory {self.agent_name}@{self.affaire_id}>"
@@ -66,9 +66,7 @@ class AgentMemory(Base):
 class AgentRun(Base):
     __tablename__ = "agent_runs"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     affaire_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("affaires.id", ondelete="SET NULL"),
@@ -92,9 +90,7 @@ class AgentRun(Base):
     # [{chunk_id, document_name, score, excerpt}] — toutes les sources RAG citées
     iterations: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
 
     def __repr__(self) -> str:
         return f"<AgentRun {self.id} [{self.status}]>"

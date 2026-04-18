@@ -30,6 +30,7 @@ GET    /decisions/observations/{affaire_id} → lister par affaire
 PATCH  /decisions/observations/{id}       → éditer
 DELETE /decisions/observations/{id}       → supprimer
 """
+
 import uuid
 from typing import Optional
 
@@ -284,9 +285,7 @@ def get_router(config: dict) -> APIRouter:
         db: AsyncSession = Depends(get_db),
         _user=Depends(get_current_user),
     ):
-        query = select(ProjectObservation).where(
-            ProjectObservation.affaire_id == affaire_id
-        )
+        query = select(ProjectObservation).where(ProjectObservation.affaire_id == affaire_id)
         if traitement != "all":
             traitements = [t.strip() for t in traitement.split(",")]
             query = query.where(ProjectObservation.traitement.in_(traitements))

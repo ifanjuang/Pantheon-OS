@@ -12,6 +12,7 @@ Deux portées (scope) :
 L'embedding permet une recherche par similarité pour retrouver les
 précédents quand on scored une nouvelle décision.
 """
+
 import uuid
 from datetime import datetime, timezone
 
@@ -24,6 +25,7 @@ from database import Base
 
 try:
     from pgvector.sqlalchemy import Vector
+
     _VECTOR_AVAILABLE = True
 except ImportError:  # pgvector non installé en dev local
     Vector = None
@@ -59,9 +61,7 @@ def _build_wiki_page_table():
                 ),
             )
 
-            id: Mapped[uuid.UUID] = mapped_column(
-                UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-            )
+            id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
             affaire_id: Mapped[uuid.UUID | None] = mapped_column(
                 UUID(as_uuid=True),
                 ForeignKey("affaires.id", ondelete="CASCADE"),
@@ -98,9 +98,7 @@ def _build_wiki_page_table():
                 nullable=True,
             )
 
-            embedding: Mapped[list[float] | None] = mapped_column(
-                V(settings.EMBEDDING_DIM), nullable=True
-            )
+            embedding: Mapped[list[float] | None] = mapped_column(V(settings.EMBEDDING_DIM), nullable=True)
 
             citations: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
             # [{"agent": "themis", "extrait": "...", "source": "chunk:<uuid>"}]
@@ -110,15 +108,11 @@ def _build_wiki_page_table():
                 ForeignKey("users.id", ondelete="SET NULL"),
                 nullable=True,
             )
-            validated_at: Mapped[datetime | None] = mapped_column(
-                DateTime(timezone=True), nullable=True
-            )
+            validated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
             reuse_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
             # Incrémenté à chaque lookup "précédent" → alimente bonus scoring
 
-            created_at: Mapped[datetime] = mapped_column(
-                DateTime(timezone=True), nullable=False, default=_now
-            )
+            created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
             updated_at: Mapped[datetime] = mapped_column(
                 DateTime(timezone=True), nullable=False, default=_now, onupdate=_now
             )
@@ -127,15 +121,12 @@ def _build_wiki_page_table():
                 return f"<WikiPage {self.scope}:{self.slug}>"
 
     else:
+
         class WikiPage(Base):  # type: ignore[no-redef]
             __tablename__ = "wiki_pages"
-            __table_args__ = (
-                UniqueConstraint("scope", "slug", name="uq_wiki_pages_scope_slug"),
-            )
+            __table_args__ = (UniqueConstraint("scope", "slug", name="uq_wiki_pages_scope_slug"),)
 
-            id: Mapped[uuid.UUID] = mapped_column(
-                UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-            )
+            id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
             affaire_id: Mapped[uuid.UUID | None] = mapped_column(
                 UUID(as_uuid=True),
                 ForeignKey("affaires.id", ondelete="CASCADE"),
@@ -167,13 +158,9 @@ def _build_wiki_page_table():
                 ForeignKey("users.id", ondelete="SET NULL"),
                 nullable=True,
             )
-            validated_at: Mapped[datetime | None] = mapped_column(
-                DateTime(timezone=True), nullable=True
-            )
+            validated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
             reuse_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-            created_at: Mapped[datetime] = mapped_column(
-                DateTime(timezone=True), nullable=False, default=_now
-            )
+            created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
             updated_at: Mapped[datetime] = mapped_column(
                 DateTime(timezone=True), nullable=False, default=_now, onupdate=_now
             )

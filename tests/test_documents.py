@@ -2,6 +2,7 @@
 Tests module documents — upload, search, liste, suppression.
 StorageService et RagService sont mockés (pas besoin de MinIO/Ollama).
 """
+
 import pytest
 from unittest.mock import AsyncMock, patch
 from tests.conftest import auth_headers
@@ -20,7 +21,7 @@ class TestUpload:
             data={"affaire_id": str(affaire.id)},
             files={"file": ("test.pdf", pdf_bytes, "application/pdf")},
         )
-        assert r.status_code == 403
+        assert r.status_code == 401
 
     async def test_upload_success(self, client, moe_token, affaire, pdf_bytes, mocker):
         mocker.patch(
@@ -101,7 +102,7 @@ class TestSearch:
             "/documents/search",
             json={"query": "test", "affaire_id": str(affaire.id)},
         )
-        assert r.status_code == 403
+        assert r.status_code == 401
 
 
 class TestListDocuments:
@@ -116,6 +117,7 @@ class TestListDocuments:
     async def test_list_after_upload(self, client, moe_token, affaire, pdf_bytes, mocker, db):
         # Créer un document directement en DB
         from modules.documents.models import Document
+
         doc = Document(
             affaire_id=affaire.id,
             nom="cctp.pdf",
@@ -151,6 +153,7 @@ class TestDeleteDocument:
         )
 
         from modules.documents.models import Document
+
         doc = Document(
             affaire_id=affaire.id,
             nom="a_supprimer.pdf",
@@ -163,14 +166,11 @@ class TestDeleteDocument:
         db.add(doc)
         await db.commit()
 
-        r = await client.delete(
-            f"/documents/{doc.id}", headers=auth_headers(moe_token)
-        )
+        r = await client.delete(f"/documents/{doc.id}", headers=auth_headers(moe_token))
         assert r.status_code == 204
 
     async def test_delete_not_found(self, client, moe_token):
         import uuid
-        r = await client.delete(
-            f"/documents/{uuid.uuid4()}", headers=auth_headers(moe_token)
-        )
+
+        r = await client.delete(f"/documents/{uuid.uuid4()}", headers=auth_headers(moe_token))
         assert r.status_code == 404

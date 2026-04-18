@@ -5,6 +5,7 @@ LlmService — wrapper unifié Ollama / OpenAI via Instructor (§1b).
 - embed()   : vecteur d'embedding (délègue à RagService)
 - ping()    : healthcheck
 """
+
 import time
 from typing import Any, Optional, Type, TypeVar
 from pydantic import BaseModel
@@ -58,6 +59,7 @@ class LlmService:
     ) -> str:
         """Réponse texte libre. Protégé par circuit breaker."""
         from core.circuit_breaker import llm_breaker
+
         llm_breaker.check()  # fail-fast si Ollama est down
 
         t0 = time.monotonic()
@@ -75,8 +77,12 @@ class LlmService:
             raise
 
         content = response.choices[0].message.content or ""
-        log.info("llm.chat", model=model, tokens=response.usage.total_tokens if response.usage else 0,
-                 duration_ms=int((time.monotonic() - t0) * 1000))
+        log.info(
+            "llm.chat",
+            model=model,
+            tokens=response.usage.total_tokens if response.usage else 0,
+            duration_ms=int((time.monotonic() - t0) * 1000),
+        )
         return content
 
     @classmethod
@@ -101,14 +107,19 @@ class LlmService:
             temperature=temperature,
             max_retries=max_retries,
         )
-        log.info("llm.extract", model=model, response_model=response_model.__name__,
-                 duration_ms=int((time.monotonic() - t0) * 1000))
+        log.info(
+            "llm.extract",
+            model=model,
+            response_model=response_model.__name__,
+            duration_ms=int((time.monotonic() - t0) * 1000),
+        )
         return result
 
     @classmethod
     async def embed(cls, text: str) -> list[float]:
         """Délègue à RagService pour cohérence des embeddings."""
         from core.services.rag_service import RagService
+
         return await RagService.embed(text)
 
     @classmethod
@@ -117,6 +128,7 @@ class LlmService:
         try:
             await cls._get_client().models.list()
             from core.circuit_breaker import llm_breaker
+
             llm_breaker.record_success()
             return True
         except Exception as e:

@@ -2,6 +2,7 @@
 AdminEngine — lecture / écriture des fichiers YAML de configuration.
 Toutes les opérations sont restreintes à l'arborescence du projet (path traversal impossible).
 """
+
 from pathlib import Path
 import yaml
 
@@ -25,7 +26,6 @@ def _safe_path(base: Path, target: Path) -> Path:
 
 
 class AdminEngine(BaseEngine):
-
     @classmethod
     def name(cls) -> str:
         return "admin"
@@ -70,12 +70,14 @@ class AdminEngine(BaseEngine):
             if manifest_path.exists():
                 m = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
                 description = m.get("description", "")
-            result.append({
-                "name": entry["name"],
-                "enabled": entry.get("enabled", True),
-                "has_config": has_config,
-                "description": description,
-            })
+            result.append(
+                {
+                    "name": entry["name"],
+                    "enabled": entry.get("enabled", True),
+                    "has_config": has_config,
+                    "description": description,
+                }
+            )
         return result
 
     def read_module_config(self, module: str) -> str:
@@ -107,10 +109,7 @@ class AdminEngine(BaseEngine):
         if not mod_dir.exists():
             return []
         extensions = {".txt", ".md", ".j2"}
-        return [
-            f.name for f in sorted(mod_dir.iterdir())
-            if f.is_file() and f.suffix in extensions
-        ]
+        return [f.name for f in sorted(mod_dir.iterdir()) if f.is_file() and f.suffix in extensions]
 
     def read_prompt_file(self, module: str, filename: str) -> str:
         file_path = _safe_path(PROJECT_ROOT, MODULES_DIR / module / filename)

@@ -25,6 +25,7 @@ API :
 Fallback : si Redis est inaccessible, les opérations sont no-op
 (on ne bloque pas l'orchestration sur une mémoire volatile).
 """
+
 import json
 from typing import Any, Optional
 from uuid import UUID
@@ -43,7 +44,6 @@ _THREAD_INDEX = "memory:fn:threads"  # set de tous les thread_ids actifs
 
 
 class FunctionalMemoryService:
-
     _client: Optional[aioredis.Redis] = None
 
     # ── Connexion Redis (singleton lazy) ─────────────────────────────

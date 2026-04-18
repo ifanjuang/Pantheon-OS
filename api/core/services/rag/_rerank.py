@@ -7,6 +7,7 @@ Modèle par défaut : cross-encoder/ms-marco-MiniLM-L-6-v2 (~80 Mo, CPU-compatib
 Activé via RERANK_ENABLED=true dans .env.
 Fallback silencieux si le paquet n'est pas installé ou si le modèle échoue.
 """
+
 from core.logging import get_logger
 from core.settings import settings
 
@@ -26,6 +27,7 @@ class Reranker:
     def _load_model(self):
         if self._model is None:
             from sentence_transformers import CrossEncoder
+
             model_name = getattr(settings, "RERANK_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
             self._model = CrossEncoder(model_name)
             log.info("rag.rerank_model_loaded", model=model_name)

@@ -10,6 +10,7 @@ STATUTS = {"recu", "en_attente_reponse", "traite", "sans_suite", "archive"}
 
 # ── Courrier ──────────────────────────────────────────────────────────
 
+
 class CourrierCreate(BaseModel):
     sens: str
     objet: str
@@ -123,6 +124,7 @@ class CourrierResponse(BaseModel):
 
 # ── Pipeline Iris ─────────────────────────────────────────────────────
 
+
 class DraftJobResponse(BaseModel):
     job_queued: bool
     id: UUID
@@ -131,12 +133,13 @@ class DraftJobResponse(BaseModel):
 
 # ── Dashboard ─────────────────────────────────────────────────────────
 
+
 class CommunicationsDashboard(BaseModel):
     affaire_id: UUID
     total: int
     entrants: int
     sortants: int
-    en_attente_reponse: int     # statut = en_attente_reponse
-    en_retard: int              # delai_reponse < today et non traité/archivé
-    mises_en_demeure: int       # type_doc = mise_en_demeure
+    en_attente_reponse: int  # statut = en_attente_reponse
+    en_retard: int  # delai_reponse < today et non traité/archivé
+    mises_en_demeure: int  # type_doc = mise_en_demeure
     sans_suite: int

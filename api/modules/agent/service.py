@@ -8,6 +8,7 @@ Fonctionnement :
   4. Répète jusqu'à réponse finale ou max_iterations atteint
   5. Persiste l'historique complet dans agent_runs
 """
+
 import asyncio
 import functools
 import json
@@ -29,18 +30,31 @@ from modules.agent.tools import DEFINITIONS, execute_tool, _DB_TOOLS
 
 log = get_logger("agent.service")
 
-AGENTS_DIR = Path(settings.AGENTS_DIR) if hasattr(settings, "AGENTS_DIR") else Path(__file__).parent.parent.parent.parent / "agents"
+AGENTS_DIR = (
+    Path(settings.AGENTS_DIR)
+    if hasattr(settings, "AGENTS_DIR")
+    else Path(__file__).parent.parent.parent.parent / "agents"
+)
 VALID_AGENTS = {
     # Perception
-    "hermes", "argos",
+    "hermes",
+    "argos",
     # Analyse
-    "athena", "hephaistos", "promethee", "apollon", "dionysos",
+    "athena",
+    "hephaistos",
+    "promethee",
+    "apollon",
+    "dionysos",
     # Cadrage
-    "themis", "chronos", "ares",
+    "themis",
+    "chronos",
+    "ares",
     # Continuité
-    "hestia", "mnemosyne",
+    "hestia",
+    "mnemosyne",
     # Communication
-    "iris", "aphrodite",
+    "iris",
+    "aphrodite",
     # Production
     "dedale",
 }
@@ -88,6 +102,7 @@ async def _build_affaire_context(db: AsyncSession, affaire_id: UUID) -> str:
     try:
         from modules.affaires.models import Affaire
         from sqlalchemy import select
+
         result = await db.execute(select(Affaire).where(Affaire.id == affaire_id))
         affaire = result.scalar_one_or_none()
         if not affaire:
@@ -139,14 +154,12 @@ async def run_agent(
     # C5 — mémoire unifiée : projet + agence + session
     mem = await get_unified_memory(db, agent_name, affaire_id, thread_id=thread_id)
     if mem["projet"]:
-        system_prompt += (
-            "\n\n## Mémoire projet — leçons apprises sur cette affaire\n"
-            + "\n".join(f"- {m}" for m in mem["projet"])
+        system_prompt += "\n\n## Mémoire projet — leçons apprises sur cette affaire\n" + "\n".join(
+            f"- {m}" for m in mem["projet"]
         )
     if mem["agence"]:
-        system_prompt += (
-            "\n\n## Patterns agence — bonnes pratiques réutilisables\n"
-            + "\n".join(f"- {m}" for m in mem["agence"])
+        system_prompt += "\n\n## Patterns agence — bonnes pratiques réutilisables\n" + "\n".join(
+            f"- {m}" for m in mem["agence"]
         )
     if mem["session"]:
         bits = []
@@ -178,7 +191,7 @@ async def run_agent(
     ]
 
     steps: list[dict] = []
-    all_sources: list[dict] = []   # sources RAG collectées sur tous les appels d'outils
+    all_sources: list[dict] = []  # sources RAG collectées sur tous les appels d'outils
     final_answer: str | None = None
     llm_iterations: int = 0
     model = settings.effective_llm_model
@@ -193,6 +206,7 @@ async def run_agent(
     )
     async def _llm_react_call(msgs: list) -> object:
         from core.circuit_breaker import llm_breaker
+
         llm_breaker.check()  # fail-fast si Ollama est down
         try:
             result = await asyncio.wait_for(
@@ -252,9 +266,7 @@ async def run_agent(
                 return tc, t_name, t_args, out, srcs, int((time.monotonic() - t_tool) * 1000)
 
             t_batch = time.monotonic()
-            batch_results = await asyncio.gather(
-                *[_call_tool(tc) for tc in msg.tool_calls], return_exceptions=True
-            )
+            batch_results = await asyncio.gather(*[_call_tool(tc) for tc in msg.tool_calls], return_exceptions=True)
 
             for br in batch_results:
                 if isinstance(br, Exception):
@@ -269,18 +281,22 @@ async def run_agent(
                         all_sources.append(src)
                         seen_chunks.add(src["chunk_id"])
 
-                steps.append({
-                    "tool": tool_name,
-                    "args": tool_args,
-                    "output": tool_output[:1000],
-                    "sources_count": len(tool_sources),
-                    "duration_ms": dur_ms,
-                })
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tc_r.id,
-                    "content": tool_output,
-                })
+                steps.append(
+                    {
+                        "tool": tool_name,
+                        "args": tool_args,
+                        "output": tool_output[:1000],
+                        "sources_count": len(tool_sources),
+                        "duration_ms": dur_ms,
+                    }
+                )
+                messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tc_r.id,
+                        "content": tool_output,
+                    }
+                )
 
             if len(msg.tool_calls) > 1:
                 log.info(
@@ -291,9 +307,8 @@ async def run_agent(
 
         else:
             # max_iterations atteint sans réponse finale
-            final_answer = (
-                "Limite d'itérations atteinte. Voici ce que j'ai trouvé jusqu'ici :\n"
-                + (steps[-1]["output"] if steps else "Aucune information collectée.")
+            final_answer = "Limite d'itérations atteinte. Voici ce que j'ai trouvé jusqu'ici :\n" + (
+                steps[-1]["output"] if steps else "Aucune information collectée."
             )
 
         run.status = "completed"
@@ -326,6 +341,7 @@ async def run_agent(
     if run.status == "completed" and run.result:
         try:
             from core.queue import get_queue
+
             pool = await get_queue()
             await pool.enqueue_job(
                 "memory_job",
@@ -338,6 +354,7 @@ async def run_agent(
         except Exception as exc:
             # Queue indisponible → fallback tâche locale tracée
             log.warning("agent.memory.queue_failed", error=str(exc))
+
             async def _store_memories_fallback():
                 try:
                     async with AsyncSessionLocal() as bg_db:
@@ -351,6 +368,7 @@ async def run_agent(
                         )
                 except Exception as e:
                     log.error("agent.memory.fallback_failed", agent=agent_name, error=str(e))
+
             # create_task conserve une référence forte (évite le garbage-collect de ensure_future)
             task = asyncio.create_task(_store_memories_fallback())
             task.add_done_callback(lambda t: t.exception() if not t.cancelled() else None)

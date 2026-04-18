@@ -12,6 +12,7 @@ Flux Agenda :
   2. Génère un ordre du jour structuré (JSON)
   3. MeetingAgenda persisté
 """
+
 import json
 from datetime import date, datetime
 from typing import Optional
@@ -105,6 +106,7 @@ Réponds en JSON strict :
 
 # ── Helpers LLM ──────────────────────────────────────────────────────────────
 
+
 def _parse_json(content: str) -> dict:
     content = content.strip()
     start = content.find("{")
@@ -128,6 +130,7 @@ async def _llm(prompt: str) -> str:
 
 
 # ── Analyse CR ───────────────────────────────────────────────────────────────
+
 
 async def analyse_cr(db: AsyncSession, cr: MeetingCR) -> MeetingCR:
     """
@@ -208,6 +211,7 @@ async def analyse_cr(db: AsyncSession, cr: MeetingCR) -> MeetingCR:
 
 # ── Génération ordre du jour ──────────────────────────────────────────────────
 
+
 async def generate_agenda(
     db: AsyncSession,
     affaire_id: UUID,
@@ -227,10 +231,14 @@ async def generate_agenda(
     # Contexte projet
     affaire = await db.get(Affaire, affaire_id)
     affaire_info = (
-        f"Projet : {affaire.nom} ({affaire.code})\n"
-        f"Statut : {affaire.statut}\n"
-        f"Description : {affaire.description or '—'}"
-    ) if affaire else "Projet inconnu"
+        (
+            f"Projet : {affaire.nom} ({affaire.code})\n"
+            f"Statut : {affaire.statut}\n"
+            f"Description : {affaire.description or '—'}"
+        )
+        if affaire
+        else "Projet inconnu"
+    )
 
     # Actions ouvertes
     result_actions = await db.execute(
@@ -262,15 +270,15 @@ async def generate_agenda(
         .limit(3)
     )
     runs = result_runs.all()
-    contexte_agents = "\n\n---\n".join(
-        f"[{r.created_at.strftime('%d/%m/%Y')}] {(r.result or '')[:400]}"
-        for r in runs
-    ) if runs else "Aucune analyse récente."
+    contexte_agents = (
+        "\n\n---\n".join(f"[{r.created_at.strftime('%d/%m/%Y')}] {(r.result or '')[:400]}" for r in runs)
+        if runs
+        else "Aucune analyse récente."
+    )
 
     date_str = date_prevue.strftime("%d/%m/%Y") if date_prevue else "à planifier"
     instructions_sup = (
-        f"\n## Instructions supplémentaires\n{instructions_supplementaires}"
-        if instructions_supplementaires else ""
+        f"\n## Instructions supplémentaires\n{instructions_supplementaires}" if instructions_supplementaires else ""
     )
 
     prompt = _AGENDA_PROMPT.format(
@@ -312,6 +320,7 @@ async def generate_agenda(
 
 # ── Export texte ──────────────────────────────────────────────────────────────
 
+
 def agenda_to_text(agenda: MeetingAgenda) -> str:
     """Formate l'ordre du jour en texte lisible (copier-coller, email)."""
     lines = [
@@ -321,10 +330,8 @@ def agenda_to_text(agenda: MeetingAgenda) -> str:
     ]
     for item in agenda.items:
         duree = f"{item.get('duree_min', '?')} min"
-        porteur = item.get('porteur', '')
-        type_badge = {"urgence": "🔴", "suivi": "🟡", "nouveau": "🔵", "decision": "⚫"}.get(
-            item.get("type", ""), "•"
-        )
+        porteur = item.get("porteur", "")
+        type_badge = {"urgence": "🔴", "suivi": "🟡", "nouveau": "🔵", "decision": "⚫"}.get(item.get("type", ""), "•")
         lines.append(f"{item.get('ordre', '?')}. {type_badge} {item.get('sujet', '')}  ({duree})")
         if porteur:
             lines.append(f"   Porteur : {porteur}")

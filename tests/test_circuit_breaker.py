@@ -2,6 +2,7 @@
 Tests circuit breaker — pattern disjoncteur pour LLM local (Ollama).
 Tests unitaires purs, pas de dépendance externe.
 """
+
 import time
 import pytest
 from core.circuit_breaker import CircuitBreaker, CircuitOpenError
@@ -87,10 +88,12 @@ class TestCircuitBreakerHalfOpen:
 class TestCircuitBreakerGlobalInstances:
     def test_llm_breaker_exists(self):
         from core.circuit_breaker import llm_breaker
+
         assert llm_breaker._name == "llm"
         assert llm_breaker._failure_threshold == 5
 
     def test_embed_breaker_exists(self):
         from core.circuit_breaker import embed_breaker
+
         assert embed_breaker._name == "embed"
         assert embed_breaker._failure_threshold == 3

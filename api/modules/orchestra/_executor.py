@@ -11,6 +11,7 @@ Nœuds LangGraph :
   dispatch_subtasks   : niveau par niveau + pattern routing
   execute_complements : exécution des compléments demandés par zeus_judge
 """
+
 import asyncio
 from uuid import UUID
 
@@ -42,6 +43,7 @@ Structure ta réponse :
 
 
 # ── Patterns d'exécution ─────────────────────────────────────────────
+
 
 def _topological_levels(subtasks: list[dict]) -> list[list[dict]]:
     """Groupe les sous-tâches par niveau d'exécution (tri topologique BFS).
@@ -139,10 +141,7 @@ async def _exec_arena(
     if not results:
         return results, run_ids
 
-    proposals_text = "\n\n".join(
-        f"## Proposition {agent}\n{result}"
-        for agent, result in results.items()
-    )
+    proposals_text = "\n\n".join(f"## Proposition {agent}\n{result}" for agent, result in results.items())
     judge_instruction = _ARENA_JUDGE_PROMPT.format(
         n=len(results),
         instruction=instruction,
@@ -163,6 +162,7 @@ async def _exec_arena(
 
 # ── Nœuds LangGraph ──────────────────────────────────────────────────
 
+
 async def dispatch_subtasks(state: OrchestraState) -> dict:
     """Phase 3 — dispatch des sous-tâches selon leur pattern.
 
@@ -177,12 +177,9 @@ async def dispatch_subtasks(state: OrchestraState) -> dict:
 
     if not subtasks:
         # Fallback : exécution parallèle simple des assignments
-        log.info("orchestra.dispatch_fallback",
-                 agents=[a["agent"] for a in state["assignments"]])
+        log.info("orchestra.dispatch_fallback", agents=[a["agent"] for a in state["assignments"]])
         agents_instructions = {a["agent"]: a["instruction"] for a in state["assignments"]}
-        results, run_ids = await _exec_parallel(
-            agents_instructions, affaire_uuid, user_uuid, thread_id
-        )
+        results, run_ids = await _exec_parallel(agents_instructions, affaire_uuid, user_uuid, thread_id)
         return {
             "agent_results": results,
             "subtask_results": {"T1": results},
@@ -194,8 +191,7 @@ async def dispatch_subtasks(state: OrchestraState) -> dict:
     all_run_ids: list = []
 
     levels = _topological_levels(subtasks)
-    log.info("orchestra.dispatch_levels",
-             levels=[[s["id"] for s in lvl] for lvl in levels])
+    log.info("orchestra.dispatch_levels", levels=[[s["id"] for s in lvl] for lvl in levels])
 
     for level in levels:
         level_tasks = []
@@ -211,37 +207,29 @@ async def dispatch_subtasks(state: OrchestraState) -> dict:
                 deps_results.update(subtask_results.get(dep_id, {}))
             if deps_results:
                 deps_text = "\n\n".join(f"### {a}\n{r}" for a, r in deps_results.items())
-                instruction = (
-                    f"{instruction}\n\n"
-                    f"## Résultats des sous-tâches précédentes\n{deps_text}"
-                )
+                instruction = f"{instruction}\n\n## Résultats des sous-tâches précédentes\n{deps_text}"
 
             if pattern == "cascade":
-                level_tasks.append((st["id"], _exec_cascade(
-                    agents, instruction, affaire_uuid, user_uuid, thread_id
-                )))
+                level_tasks.append((st["id"], _exec_cascade(agents, instruction, affaire_uuid, user_uuid, thread_id)))
             elif pattern == "arena":
                 eff_judge = judge if judge in VALID_AGENTS else "apollon"
-                level_tasks.append((st["id"], _exec_arena(
-                    agents, eff_judge, instruction, affaire_uuid, user_uuid, thread_id
-                )))
+                level_tasks.append(
+                    (st["id"], _exec_arena(agents, eff_judge, instruction, affaire_uuid, user_uuid, thread_id))
+                )
             elif pattern == "exploration":
                 exploration_agents = ["dionysos", "promethee", "apollon"]
                 if len(agents) >= 2:
                     exploration_agents = agents
-                level_tasks.append((st["id"], _exec_cascade(
-                    exploration_agents, instruction, affaire_uuid, user_uuid, thread_id
-                )))
+                level_tasks.append(
+                    (st["id"], _exec_cascade(exploration_agents, instruction, affaire_uuid, user_uuid, thread_id))
+                )
             elif pattern == "solo":
-                level_tasks.append((st["id"], _exec_parallel(
-                    {agents[0]: instruction}, affaire_uuid, user_uuid, thread_id
-                )))
+                level_tasks.append(
+                    (st["id"], _exec_parallel({agents[0]: instruction}, affaire_uuid, user_uuid, thread_id))
+                )
             else:  # parallel (default)
-                agent_instrs = st.get("_agent_instructions",
-                                      {a: instruction for a in agents})
-                level_tasks.append((st["id"], _exec_parallel(
-                    agent_instrs, affaire_uuid, user_uuid, thread_id
-                )))
+                agent_instrs = st.get("_agent_instructions", {a: instruction for a in agents})
+                level_tasks.append((st["id"], _exec_parallel(agent_instrs, affaire_uuid, user_uuid, thread_id)))
 
         level_coros = [coro for _, coro in level_tasks]
         level_ids = [tid for tid, _ in level_tasks]

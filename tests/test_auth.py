@@ -1,30 +1,25 @@
 """
 Tests module auth — login, register, me, users
 """
+
 import pytest
 from tests.conftest import auth_headers
 
 
 class TestLogin:
     async def test_login_success(self, client, admin_user):
-        r = await client.post("/auth/login", json={
-            "email": "admin@test.fr", "password": "password123"
-        })
+        r = await client.post("/auth/login", json={"email": "admin@test.fr", "password": "password123"})
         assert r.status_code == 200
         data = r.json()
         assert "access_token" in data
         assert data["token_type"] == "bearer"
 
     async def test_login_wrong_password(self, client, admin_user):
-        r = await client.post("/auth/login", json={
-            "email": "admin@test.fr", "password": "mauvais"
-        })
+        r = await client.post("/auth/login", json={"email": "admin@test.fr", "password": "mauvais"})
         assert r.status_code == 401
 
     async def test_login_unknown_email(self, client):
-        r = await client.post("/auth/login", json={
-            "email": "inconnu@test.fr", "password": "password123"
-        })
+        r = await client.post("/auth/login", json={"email": "inconnu@test.fr", "password": "password123"})
         assert r.status_code == 401
 
 
@@ -69,7 +64,7 @@ class TestRegister:
             "/auth/register",
             json={"email": "x@test.fr", "password": "pass123"},
         )
-        assert r.status_code == 403
+        assert r.status_code == 401
 
 
 class TestMe:
@@ -82,7 +77,7 @@ class TestMe:
 
     async def test_me_without_token(self, client):
         r = await client.get("/auth/me")
-        assert r.status_code == 403
+        assert r.status_code == 401
 
 
 class TestListUsers:

@@ -8,6 +8,7 @@ Les deux endpoints sont stateless (pas de persistence). Ils servent
 principalement à tester les prompts avant de lancer une orchestration
 complète.
 """
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from core.auth import get_current_user

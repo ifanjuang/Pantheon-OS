@@ -11,6 +11,7 @@ Regroupe 4 familles de KPIs :
 MonitoringSnapshot agrège les 4 sur une fenêtre temporelle donnée
 (7 jours par défaut).
 """
+
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -22,6 +23,7 @@ Window = Literal["24h", "7d", "30d", "90d"]
 
 
 # ── KPIs orchestra ───────────────────────────────────────────────────
+
 
 class OrchestraKPIs(BaseModel):
     runs_total: int = 0
@@ -47,6 +49,7 @@ class OrchestraKPIs(BaseModel):
 
 # ── KPIs agent ───────────────────────────────────────────────────────
 
+
 class AgentKPIs(BaseModel):
     runs_total: int = 0
     runs_ok: int = 0
@@ -62,6 +65,7 @@ class AgentKPIs(BaseModel):
 
 # ── KPIs scoring ─────────────────────────────────────────────────────
 
+
 class ScoringKPIs(BaseModel):
     scored_total: int = 0
     verdicts: dict[str, int] = Field(
@@ -76,6 +80,7 @@ class ScoringKPIs(BaseModel):
 
 # ── KPIs guards (M2) ─────────────────────────────────────────────────
 
+
 class GuardsKPIs(BaseModel):
     veto_total: int = 0
     veto_bloquant: int = 0
@@ -89,6 +94,7 @@ class GuardsKPIs(BaseModel):
 
 
 # ── Snapshot agrégé ──────────────────────────────────────────────────
+
 
 class MonitoringSnapshot(BaseModel):
     window: Window = "7d"

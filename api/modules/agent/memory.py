@@ -9,6 +9,7 @@ Avant chaque run :
   get_agent_memories() retourne les N dernières leçons pour injecter
   dans le system prompt.
 """
+
 import asyncio
 import json
 from uuid import UUID
@@ -94,7 +95,7 @@ async def extract_and_store_memories(
                 depth -= 1
                 if depth == 0:
                     try:
-                        parsed = json.loads(content[start:i + 1])
+                        parsed = json.loads(content[start : i + 1])
                     except json.JSONDecodeError:
                         start = None
                     break
@@ -109,11 +110,13 @@ async def extract_and_store_memories(
                 cat = item.get("category", "general")
                 if cat not in MEMORY_CATEGORIES:
                     cat = "general"
-                lessons.append({
-                    "lesson": item["lesson"].strip(),
-                    "category": cat,
-                    "promotable": bool(item.get("promotable", False)),
-                })
+                lessons.append(
+                    {
+                        "lesson": item["lesson"].strip(),
+                        "category": cat,
+                        "promotable": bool(item.get("promotable", False)),
+                    }
+                )
 
         # Charger les leçons existantes valides pour dédoublonnage
         existing_rows: list[AgentMemory] = []
@@ -304,7 +307,7 @@ async def consolidate_memories(
                     depth -= 1
                     if depth == 0:
                         try:
-                            parsed = json.loads(content[start:i + 1])
+                            parsed = json.loads(content[start : i + 1])
                         except json.JSONDecodeError:
                             start = None
                         break
@@ -315,6 +318,7 @@ async def consolidate_memories(
 
             # Créer les nouveaux patterns et marquer les anciens
             from datetime import datetime, timezone
+
             now = datetime.now(timezone.utc)
 
             for pattern_data in patterns[:2]:
@@ -394,6 +398,7 @@ async def _get_session_context(thread_id: str) -> dict:
         return {}
     try:
         from modules.memory.service import FunctionalMemoryService
+
         ctx = await FunctionalMemoryService.get_context(thread_id)
         relevant = {"last_verdict", "last_answer_excerpt", "phase_projet", "domaine"}
         return {k: v for k, v in ctx.items() if k in relevant}
@@ -444,6 +449,7 @@ async def invalidate_memory(
     Si superseded_by_id est fourni, crée le lien vers la leçon de remplacement.
     """
     from datetime import datetime, timezone
+
     memory = await db.get(AgentMemory, memory_id)
     if not memory or memory.valid_until is not None:
         return False

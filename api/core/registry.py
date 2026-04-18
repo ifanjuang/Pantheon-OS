@@ -2,6 +2,7 @@
 ModuleRegistry — auto-discovery et chargement des modules (§1b).
 main.py ne connaît aucun module : tout passe par registry.load_all().
 """
+
 import importlib
 import yaml
 from pathlib import Path
@@ -57,8 +58,7 @@ class ModuleRegistry:
         for dep in manifest.get("depends_on", []):
             if dep not in self._modules:
                 raise RuntimeError(
-                    f"Module '{name}' requiert '{dep}' qui n'est pas encore chargé. "
-                    f"Vérifier l'ordre dans modules.yaml."
+                    f"Module '{name}' requiert '{dep}' qui n'est pas encore chargé. Vérifier l'ordre dans modules.yaml."
                 )
 
         # Charger le router du module

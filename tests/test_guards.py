@@ -5,6 +5,7 @@ Tests modules/guards — guards purs (criticality, loop) + veto séquentiel
 Les fonctions pures (criticality_guard, loop_guard) sont testées sans DB ni LLM.
 Les tests hybrid et veto utilisent des mocks LLM pour tester la logique de routing.
 """
+
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -15,6 +16,7 @@ from modules.guards.service import GuardsService, MAX_COMPLEMENTS_BY_CRITICITE
 
 # ── criticality_guard (règle pure, 0 LLM) ───────────────────────────────────
 
+
 class TestCriticalityGuard:
     def test_default_no_impact_returns_c1(self):
         verdict = GuardsService.criticality_guard(CriticalityImpacts())
@@ -22,79 +24,55 @@ class TestCriticalityGuard:
         assert "default=C1" in verdict.triggers
 
     def test_cost_above_50k_returns_c5(self):
-        verdict = GuardsService.criticality_guard(
-            CriticalityImpacts(impact_cout=60_000)
-        )
+        verdict = GuardsService.criticality_guard(CriticalityImpacts(impact_cout=60_000))
         assert verdict.criticite == "C5"
         assert any("cout>" in t for t in verdict.triggers)
 
     def test_cost_above_10k_returns_c4(self):
-        verdict = GuardsService.criticality_guard(
-            CriticalityImpacts(impact_cout=15_000)
-        )
+        verdict = GuardsService.criticality_guard(CriticalityImpacts(impact_cout=15_000))
         assert verdict.criticite == "C4"
 
     def test_cost_above_2k_returns_c3(self):
-        verdict = GuardsService.criticality_guard(
-            CriticalityImpacts(impact_cout=3_000)
-        )
+        verdict = GuardsService.criticality_guard(CriticalityImpacts(impact_cout=3_000))
         assert verdict.criticite == "C3"
 
     def test_delay_above_30j_returns_c5(self):
-        verdict = GuardsService.criticality_guard(
-            CriticalityImpacts(impact_delai=45)
-        )
+        verdict = GuardsService.criticality_guard(CriticalityImpacts(impact_delai=45))
         assert verdict.criticite == "C5"
 
     def test_delay_above_10j_returns_c4(self):
-        verdict = GuardsService.criticality_guard(
-            CriticalityImpacts(impact_delai=15)
-        )
+        verdict = GuardsService.criticality_guard(CriticalityImpacts(impact_delai=15))
         assert verdict.criticite == "C4"
 
     def test_delay_above_3j_returns_c3(self):
-        verdict = GuardsService.criticality_guard(
-            CriticalityImpacts(impact_delai=5)
-        )
+        verdict = GuardsService.criticality_guard(CriticalityImpacts(impact_delai=5))
         assert verdict.criticite == "C3"
 
     def test_severity_litige_returns_c5(self):
-        verdict = GuardsService.criticality_guard(
-            CriticalityImpacts(severity="litige")
-        )
+        verdict = GuardsService.criticality_guard(CriticalityImpacts(severity="litige"))
         assert verdict.criticite == "C5"
 
     def test_severity_contrat_returns_c4(self):
-        verdict = GuardsService.criticality_guard(
-            CriticalityImpacts(severity="contrat")
-        )
+        verdict = GuardsService.criticality_guard(CriticalityImpacts(severity="contrat"))
         assert verdict.criticite == "C4"
 
     def test_irreversible_forces_min_c4(self):
         # Impact faible mais irréversible → au moins C4
-        verdict = GuardsService.criticality_guard(
-            CriticalityImpacts(impact_cout=500, reversible=False)
-        )
+        verdict = GuardsService.criticality_guard(CriticalityImpacts(impact_cout=500, reversible=False))
         assert verdict.criticite in ("C4", "C5")
         assert "irreversible" in verdict.triggers
 
     def test_max_rule_wins(self):
         # Coût C3 mais délai C5 → C5
-        verdict = GuardsService.criticality_guard(
-            CriticalityImpacts(impact_cout=3_000, impact_delai=45)
-        )
+        verdict = GuardsService.criticality_guard(CriticalityImpacts(impact_cout=3_000, impact_delai=45))
         assert verdict.criticite == "C5"
 
     def test_intent_decision_engageante_returns_c4(self):
-        verdict = GuardsService.criticality_guard(
-            CriticalityImpacts(intent="decision_engageante")
-        )
+        verdict = GuardsService.criticality_guard(CriticalityImpacts(intent="decision_engageante"))
         assert verdict.criticite == "C4"
 
     def test_intent_question_returns_c2(self):
-        verdict = GuardsService.criticality_guard(
-            CriticalityImpacts(intent="question")
-        )
+        verdict = GuardsService.criticality_guard(CriticalityImpacts(intent="question"))
         assert verdict.criticite == "C2"
 
     def test_verdict_source_is_rules_by_default(self):
@@ -104,6 +82,7 @@ class TestCriticalityGuard:
 
 
 # ── criticality_guard_hybrid (couche 0+1 règles + couche 2 AI) ───────────────
+
 
 @pytest.mark.asyncio
 class TestCriticalityGuardHybrid:
@@ -211,6 +190,7 @@ class TestCriticalityGuardHybrid:
 
 # ── loop_guard (règle pure, 0 LLM) ──────────────────────────────────────────
 
+
 class TestLoopGuard:
     def test_first_iteration_should_continue(self):
         verdict = GuardsService.loop_guard({}, max_complements=1)
@@ -236,6 +216,7 @@ class TestLoopGuard:
 
 # ── MAX_COMPLEMENTS_BY_CRITICITE ─────────────────────────────────────────────
 
+
 class TestMaxComplements:
     def test_c1_c2_zero(self):
         assert MAX_COMPLEMENTS_BY_CRITICITE["C1"] == 0
@@ -253,9 +234,11 @@ class TestMaxComplements:
 
 # ── veto_patterns (couche 0 — regex, 0 LLM) ─────────────────────────────────
 
+
 class TestVetoPatterns:
     def test_themis_hors_mission_detected(self):
         from modules.guards.veto_patterns import fast_veto_check
+
         output = "Cette demande est clairement hors mission MOE. Je m'oppose formellement."
         result = fast_veto_check("themis", output)
         assert result is not None
@@ -264,6 +247,7 @@ class TestVetoPatterns:
 
     def test_hephaistos_infaisable_detected(self):
         from modules.guards.veto_patterns import fast_veto_check
+
         output = "Ce montage est techniquement infaisable selon les DTU en vigueur."
         result = fast_veto_check("hephaistos", output)
         assert result is not None
@@ -271,51 +255,55 @@ class TestVetoPatterns:
 
     def test_no_veto_returns_none(self):
         from modules.guards.veto_patterns import fast_veto_check
+
         output = "L'analyse indique quelques points d'attention mais rien de bloquant."
         result = fast_veto_check("themis", output)
         assert result is None
 
     def test_short_output_returns_none(self):
         from modules.guards.veto_patterns import fast_veto_check
+
         result = fast_veto_check("themis", "ok")
         assert result is None
 
 
 # ── extract_and_store_memories — scope + promotable ──────────────────────────
 
+
 class TestMemoryPromotion:
     async def test_promotable_lesson_creates_agence_memory(self, db, affaire):
         """Une leçon promotable crée aussi une entrée scope=agence pour Mnémosyne."""
-        import uuid, json
+        import uuid
         from unittest.mock import AsyncMock, MagicMock, patch
         from modules.agent.models import AgentMemory
         from sqlalchemy import select
 
-        llm_response = json.dumps({
-            "lessons": [
-                {
-                    "lesson": "En zone ABF, tout changement de façade exige un avis préalable.",
-                    "category": "contractuel",
-                    "promotable": True,
-                },
-                {
-                    "lesson": "Le lot CVC de ce projet est livré en retard.",
-                    "category": "planning",
-                    "promotable": False,
-                },
-            ]
-        })
+        llm_response = json.dumps(
+            {
+                "lessons": [
+                    {
+                        "lesson": "En zone ABF, tout changement de façade exige un avis préalable.",
+                        "category": "contractuel",
+                        "promotable": True,
+                    },
+                    {
+                        "lesson": "Le lot CVC de ce projet est livré en retard.",
+                        "category": "planning",
+                        "promotable": False,
+                    },
+                ]
+            }
+        )
 
         with patch("modules.agent.memory.LlmService") as MockLlm:
             mock_client = MagicMock()
             mock_client.chat.completions.create = AsyncMock(
-                return_value=MagicMock(
-                    choices=[MagicMock(message=MagicMock(content=llm_response))]
-                )
+                return_value=MagicMock(choices=[MagicMock(message=MagicMock(content=llm_response))])
             )
             MockLlm._get_client.return_value = mock_client
 
             from modules.agent.memory import extract_and_store_memories
+
             run_id = uuid.uuid4()
             await extract_and_store_memories(
                 agent_name="themis",
@@ -350,31 +338,32 @@ class TestMemoryPromotion:
 
     async def test_non_promotable_lesson_no_agence_memory(self, db, affaire):
         """Une leçon non-promotable ne crée pas d'entrée agence."""
-        import uuid, json
+        import uuid
         from unittest.mock import AsyncMock, MagicMock, patch
         from modules.agent.models import AgentMemory
         from sqlalchemy import select
 
-        llm_response = json.dumps({
-            "lessons": [
-                {
-                    "lesson": "Le MOA appelle tous les vendredis pour un point.",
-                    "category": "general",
-                    "promotable": False,
-                }
-            ]
-        })
+        llm_response = json.dumps(
+            {
+                "lessons": [
+                    {
+                        "lesson": "Le MOA appelle tous les vendredis pour un point.",
+                        "category": "general",
+                        "promotable": False,
+                    }
+                ]
+            }
+        )
 
         with patch("modules.agent.memory.LlmService") as MockLlm:
             mock_client = MagicMock()
             mock_client.chat.completions.create = AsyncMock(
-                return_value=MagicMock(
-                    choices=[MagicMock(message=MagicMock(content=llm_response))]
-                )
+                return_value=MagicMock(choices=[MagicMock(message=MagicMock(content=llm_response))])
             )
             MockLlm._get_client.return_value = mock_client
 
             from modules.agent.memory import extract_and_store_memories
+
             run_id = uuid.uuid4()
             await extract_and_store_memories(
                 agent_name="hestia",

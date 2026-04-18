@@ -9,6 +9,7 @@ STATUTS_SITUATION = {"soumise", "en_revision", "validee", "payee", "contestee"}
 
 # ── Avenants ─────────────────────────────────────────────────────────
 
+
 class AvenantCreate(BaseModel):
     numero: str
     objet: str
@@ -69,6 +70,7 @@ class AvenantResponse(BaseModel):
 
 
 # ── Situations de travaux ─────────────────────────────────────────────
+
 
 class SituationCreate(BaseModel):
     entreprise: str
@@ -139,31 +141,32 @@ class SituationResponse(BaseModel):
 
 # ── Dashboard financier ───────────────────────────────────────────────
 
+
 class FinanceDashboard(BaseModel):
     affaire_id: UUID
 
     # Enveloppe MOA
-    budget_moa: float | None           # affaire.budget_moa
-    honoraires_moe: float | None       # affaire.honoraires
+    budget_moa: float | None  # affaire.budget_moa
+    honoraires_moe: float | None  # affaire.honoraires
 
     # Marchés de travaux (somme planning_lots.montant_marche)
-    montant_marches_initial: float     # base contractuelle brute
+    montant_marches_initial: float  # base contractuelle brute
 
     # Avenants
-    avenants_acceptes_ht: float        # somme avenants acceptés
-    avenants_en_attente_ht: float      # soumis + en_preparation
+    avenants_acceptes_ht: float  # somme avenants acceptés
+    avenants_en_attente_ht: float  # soumis + en_preparation
     nb_avenants_en_attente: int
 
     # Montant contractuel total = initial + acceptés
     montant_contractuel_ht: float
 
     # Situations
-    montant_reclame_ht: float          # somme demandes soumises+en_revision+validees+payees
-    montant_valide_ht: float           # somme validées + payées
-    montant_paye_ht: float             # somme payées uniquement
-    nb_situations_en_attente: int      # soumises + en_revision
+    montant_reclame_ht: float  # somme demandes soumises+en_revision+validees+payees
+    montant_valide_ht: float  # somme validées + payées
+    montant_paye_ht: float  # somme payées uniquement
+    nb_situations_en_attente: int  # soumises + en_revision
 
     # Ratios et dérives
-    taux_engagement: float | None      # contractuel / budget_moa * 100
-    taux_realisation: float | None     # valide / contractuel * 100
-    derive_ht: float | None            # contractuel - budget_moa (positif = dépassement)
+    taux_engagement: float | None  # contractuel / budget_moa * 100
+    taux_realisation: float | None  # valide / contractuel * 100
+    derive_ht: float | None  # contractuel - budget_moa (positif = dépassement)

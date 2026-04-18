@@ -6,6 +6,7 @@ POST /documents/search          → recherche sémantique (tous rôles)
 GET  /documents/                → liste documents d'une affaire
 DELETE /documents/{document_id} → supprime document + chunks + fichier MinIO (admin/moe)
 """
+
 import uuid
 from typing import Annotated
 
@@ -108,6 +109,7 @@ def get_router(config: dict) -> APIRouter:
         async def _run_themis():
             from database import AsyncSessionLocal
             from modules.agent.service import run_agent
+
             async with AsyncSessionLocal() as bg_db:
                 await run_agent(
                     db=bg_db,
@@ -148,9 +150,7 @@ def get_router(config: dict) -> APIRouter:
         _user=Depends(get_current_user),
     ):
         result = await db.execute(
-            select(Document)
-            .where(Document.affaire_id == affaire_id)
-            .order_by(Document.created_at.desc())
+            select(Document).where(Document.affaire_id == affaire_id).order_by(Document.created_at.desc())
         )
         return result.scalars().all()
 
@@ -167,6 +167,7 @@ def get_router(config: dict) -> APIRouter:
         # Vérifier l'accès à l'affaire du document (admin = accès total, moe = vérif par affaire)
         if doc.affaire_id and current_user.role != "admin":
             from core.auth import require_affaire_access
+
             await require_affaire_access(
                 affaire_id=doc.affaire_id,
                 min_role="moe",

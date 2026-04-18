@@ -19,7 +19,6 @@ _MANIFESTS_DIR = Path(__file__).parents[2]
 
 
 class ControlService:
-
     @staticmethod
     def get_modules() -> list[ModuleStatus]:
         try:
@@ -46,14 +45,16 @@ class ControlService:
                 except Exception:
                     pass
 
-            result.append(ModuleStatus(
-                name=name,
-                status="loaded" if enabled else "disabled",
-                version=str(version),
-                prefix=prefix,
-                description=description,
-                depends_on=depends_on,
-            ))
+            result.append(
+                ModuleStatus(
+                    name=name,
+                    status="loaded" if enabled else "disabled",
+                    version=str(version),
+                    prefix=prefix,
+                    description=description,
+                    depends_on=depends_on,
+                )
+            )
         return result
 
     @staticmethod
@@ -77,18 +78,20 @@ class ControlService:
                 agents = list(run.agent_results.keys())[:6]
             elif run.assignments:
                 agents = [a.get("agent", "") for a in run.assignments if a.get("agent")][:6]
-            result.append(RunSummary(
-                run_id=str(run.id),
-                criticite=run.criticite or "C1",
-                status=run.status,
-                instruction_excerpt=(run.instruction or "")[:80],
-                agents_involved=agents,
-                started_at=run.created_at,
-                duration_ms=run.duration_ms,
-                veto_severity=run.veto_severity,
-                affaire_id=str(run.affaire_id) if run.affaire_id else None,
-                error_message=run.error_message,
-            ))
+            result.append(
+                RunSummary(
+                    run_id=str(run.id),
+                    criticite=run.criticite or "C1",
+                    status=run.status,
+                    instruction_excerpt=(run.instruction or "")[:80],
+                    agents_involved=agents,
+                    started_at=run.created_at,
+                    duration_ms=run.duration_ms,
+                    veto_severity=run.veto_severity,
+                    affaire_id=str(run.affaire_id) if run.affaire_id else None,
+                    error_message=run.error_message,
+                )
+            )
         return result
 
     @staticmethod
@@ -101,37 +104,43 @@ class ControlService:
         t0 = run.created_at
         dur = run.duration_ms or 5000
 
-        events.append(TraceEvent(
-            type="orchestra.started",
-            run_id=str(run_id),
-            timestamp=t0,
-            agent="orchestra",
-            payload={"criticite": run.criticite, "instruction": (run.instruction or "")[:100]},
-        ))
+        events.append(
+            TraceEvent(
+                type="orchestra.started",
+                run_id=str(run_id),
+                timestamp=t0,
+                agent="orchestra",
+                payload={"criticite": run.criticite, "instruction": (run.instruction or "")[:100]},
+            )
+        )
 
         if run.preprocessed_input:
-            events.append(TraceEvent(
-                type="hermes.classified",
-                run_id=str(run_id),
-                timestamp=t0 + timedelta(milliseconds=300),
-                agent="hermes",
-                payload={
-                    "criticite": run.preprocessed_input.get("suggested_criticite", run.criticite),
-                    "intent": run.preprocessed_input.get("intent", ""),
-                    "precheck": run.precheck_verdict or "approved",
-                },
-            ))
+            events.append(
+                TraceEvent(
+                    type="hermes.classified",
+                    run_id=str(run_id),
+                    timestamp=t0 + timedelta(milliseconds=300),
+                    agent="hermes",
+                    payload={
+                        "criticite": run.preprocessed_input.get("suggested_criticite", run.criticite),
+                        "intent": run.preprocessed_input.get("intent", ""),
+                        "precheck": run.precheck_verdict or "approved",
+                    },
+                )
+            )
 
         assigned_agents: list[str] = []
         if run.assignments:
             assigned_agents = [a.get("agent", "") for a in run.assignments if a.get("agent")]
-            events.append(TraceEvent(
-                type="zeus.routing_completed",
-                run_id=str(run_id),
-                timestamp=t0 + timedelta(milliseconds=800),
-                agent="zeus",
-                payload={"agents": assigned_agents, "count": len(assigned_agents)},
-            ))
+            events.append(
+                TraceEvent(
+                    type="zeus.routing_completed",
+                    run_id=str(run_id),
+                    timestamp=t0 + timedelta(milliseconds=800),
+                    agent="zeus",
+                    payload={"agents": assigned_agents, "count": len(assigned_agents)},
+                )
+            )
 
         # Per-agent results (timestamps approximés depuis les durations)
         n = len(assigned_agents) or 1
@@ -141,49 +150,57 @@ class ControlService:
             excerpt = ""
             if run.agent_results:
                 excerpt = str(run.agent_results.get(agent_name, ""))[:80]
-            events.append(TraceEvent(
-                type=f"{agent_name}.run_completed",
-                run_id=str(run_id),
-                timestamp=agent_t,
-                agent=agent_name,
-                payload={"excerpt": excerpt},
-            ))
+            events.append(
+                TraceEvent(
+                    type=f"{agent_name}.run_completed",
+                    run_id=str(run_id),
+                    timestamp=agent_t,
+                    agent=agent_name,
+                    payload={"excerpt": excerpt},
+                )
+            )
 
         if run.veto_agent:
-            events.append(TraceEvent(
-                type="veto.raised",
-                run_id=str(run_id),
-                timestamp=t0 + timedelta(milliseconds=dur * 0.75),
-                agent=run.veto_agent,
-                payload={
-                    "severity": run.veto_severity,
-                    "motif": (run.veto_motif or "")[:120],
-                },
-            ))
+            events.append(
+                TraceEvent(
+                    type="veto.raised",
+                    run_id=str(run_id),
+                    timestamp=t0 + timedelta(milliseconds=dur * 0.75),
+                    agent=run.veto_agent,
+                    payload={
+                        "severity": run.veto_severity,
+                        "motif": (run.veto_motif or "")[:120],
+                    },
+                )
+            )
 
         if run.hitl_enabled and run.hitl_payload:
-            events.append(TraceEvent(
-                type="hitl.awaiting_approval",
-                run_id=str(run_id),
-                timestamp=t0 + timedelta(milliseconds=dur * 0.85),
-                agent="zeus",
-                payload={"message": (run.hitl_payload.get("message") or "")[:100]},
-            ))
+            events.append(
+                TraceEvent(
+                    type="hitl.awaiting_approval",
+                    run_id=str(run_id),
+                    timestamp=t0 + timedelta(milliseconds=dur * 0.85),
+                    agent="zeus",
+                    payload={"message": (run.hitl_payload.get("message") or "")[:100]},
+                )
+            )
 
         if run.status in ("completed", "failed", "awaiting_approval") or run.final_answer:
-            events.append(TraceEvent(
-                type=f"orchestra.{run.status}",
-                run_id=str(run_id),
-                timestamp=t0 + timedelta(milliseconds=dur),
-                agent=run.synthesis_agent or "zeus",
-                payload={
-                    "status": run.status,
-                    "duration_ms": run.duration_ms,
-                    "has_veto": run.veto_agent is not None,
-                    "memories_written": run.memories_written,
-                    "score_verdict": run.score_verdict,
-                },
-            ))
+            events.append(
+                TraceEvent(
+                    type=f"orchestra.{run.status}",
+                    run_id=str(run_id),
+                    timestamp=t0 + timedelta(milliseconds=dur),
+                    agent=run.synthesis_agent or "zeus",
+                    payload={
+                        "status": run.status,
+                        "duration_ms": run.duration_ms,
+                        "has_veto": run.veto_agent is not None,
+                        "memories_written": run.memories_written,
+                        "score_verdict": run.score_verdict,
+                    },
+                )
+            )
 
         events.sort(key=lambda e: e.timestamp)
         return events
@@ -199,40 +216,43 @@ class ControlService:
         orch_rows = (await db.execute(stmt_orch)).scalars().all()
 
         stmt_agent = (
-            select(AgentRun)
-            .where(AgentRun.status == "failed")
-            .order_by(desc(AgentRun.created_at))
-            .limit(limit // 2)
+            select(AgentRun).where(AgentRun.status == "failed").order_by(desc(AgentRun.created_at)).limit(limit // 2)
         )
         agent_rows = (await db.execute(stmt_agent)).scalars().all()
 
         errors: list[ErrorEntry] = []
 
         for run in orch_rows:
-            errors.append(ErrorEntry(
-                severity="error",
-                source="orchestra",
-                message=run.error_message or "Orchestra run failed",
-                run_id=str(run.id),
-                timestamp=run.created_at,
-            ))
-            if run.veto_agent and run.veto_severity == "bloquant":
-                errors.append(ErrorEntry(
-                    severity="warning",
-                    source=run.veto_agent,
-                    message=f"Veto bloquant : {(run.veto_motif or '')[:80]}",
+            errors.append(
+                ErrorEntry(
+                    severity="error",
+                    source="orchestra",
+                    message=run.error_message or "Orchestra run failed",
                     run_id=str(run.id),
                     timestamp=run.created_at,
-                ))
+                )
+            )
+            if run.veto_agent and run.veto_severity == "bloquant":
+                errors.append(
+                    ErrorEntry(
+                        severity="warning",
+                        source=run.veto_agent,
+                        message=f"Veto bloquant : {(run.veto_motif or '')[:80]}",
+                        run_id=str(run.id),
+                        timestamp=run.created_at,
+                    )
+                )
 
         for run in agent_rows:
-            errors.append(ErrorEntry(
-                severity="error",
-                source="agent",
-                message=run.error_message or "Agent run failed",
-                run_id=None,
-                timestamp=run.created_at,
-            ))
+            errors.append(
+                ErrorEntry(
+                    severity="error",
+                    source="agent",
+                    message=run.error_message or "Agent run failed",
+                    run_id=None,
+                    timestamp=run.created_at,
+                )
+            )
 
         errors.sort(key=lambda e: e.timestamp, reverse=True)
         return errors[:limit]

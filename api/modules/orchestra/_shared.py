@@ -10,6 +10,7 @@ Ce module contient ce qui est commun à tous les nœuds LangGraph :
 
 Importé par _planner, _executor, _evaluator, _synthesizer et service.
 """
+
 import asyncio
 import functools
 import json
@@ -44,27 +45,37 @@ DEFAULT_AGENTS = ["themis", "athena", "chronos"]
 CRITICITE_ROUTING = {
     "C1": {"hitl": False, "zeus": False, "veto_check": False},
     "C2": {"hitl": False, "zeus": False, "veto_check": False},
-    "C3": {"hitl": False, "zeus": True,  "veto_check": True},
-    "C4": {"hitl": True,  "zeus": True,  "veto_check": True},
-    "C5": {"hitl": True,  "zeus": True,  "veto_check": True},
+    "C3": {"hitl": False, "zeus": True, "veto_check": True},
+    "C4": {"hitl": True, "zeus": True, "veto_check": True},
+    "C5": {"hitl": True, "zeus": True, "veto_check": True},
 }
 VALID_AGENTS = {
     # Perception
-    "hermes", "argos",
+    "hermes",
+    "argos",
     # Analyse
-    "athena", "hephaistos", "promethee", "apollon", "dionysos",
+    "athena",
+    "hephaistos",
+    "promethee",
+    "apollon",
+    "dionysos",
     # Cadrage
-    "themis", "chronos", "ares",
+    "themis",
+    "chronos",
+    "ares",
     # Continuité
-    "hestia", "mnemosyne",
+    "hestia",
+    "mnemosyne",
     # Communication
-    "iris", "aphrodite",
+    "iris",
+    "aphrodite",
     # Production
     "dedale",
 }
 
 
 # ── OrchestraState ──────────────────────────────────────────────────
+
 
 class OrchestraState(TypedDict):
     instruction: str
@@ -73,21 +84,21 @@ class OrchestraState(TypedDict):
     initial_agents: list[str]
 
     # Phase 1 (legacy — plus écrit par le graphe, conservé pour la compatibilité DB)
-    agent_plans: dict           # toujours {} depuis la suppression du nœud plan_agents
+    agent_plans: dict  # toujours {} depuis la suppression du nœud plan_agents
 
     # Résumés statiques des agents (depuis SOUL.md, 0 appel LLM)
-    agent_summaries: dict       # {agent_name: "titre — description courte"}
+    agent_summaries: dict  # {agent_name: "titre — description courte"}
 
     # Phase 2 — Zeus plan
     zeus_reasoning: str
-    subtasks: list              # [{id, pattern, agents, judge?, instruction, depends_on}]
-    assignments: list           # [{agent, instruction, priority}] — compat + complements
+    subtasks: list  # [{id, pattern, agents, judge?, instruction, depends_on}]
+    assignments: list  # [{agent, instruction, priority}] — compat + complements
     synthesis_agent: str
 
     # Phase 3 — exécution
-    agent_results: dict         # {agent_name: result_text} — vue plate pour veto/synthèse
-    subtask_results: dict       # {task_id: {agent_name: result_text}} — vue structurée
-    agent_run_ids: list         # UUIDs des AgentRun créés
+    agent_results: dict  # {agent_name: result_text} — vue plate pour veto/synthèse
+    subtask_results: dict  # {task_id: {agent_name: result_text}} — vue structurée
+    agent_run_ids: list  # UUIDs des AgentRun créés
 
     # Phase 3b — compléments (optionnel, une fois)
     complement_done: bool
@@ -96,10 +107,10 @@ class OrchestraState(TypedDict):
     final_answer: str
 
     # Routing interne Zeus
-    verdict: str                # "complete" | "needs_complement" | "veto"
+    verdict: str  # "complete" | "needs_complement" | "veto"
 
     # Criticité C1-C5
-    criticite: str              # "C1" | "C2" | "C3" | "C4" | "C5"
+    criticite: str  # "C1" | "C2" | "C3" | "C4" | "C5"
 
     # Veto (Thémis / Héphaïstos) — structured_veto via GuardsService
     veto_agent: str
@@ -109,32 +120,33 @@ class OrchestraState(TypedDict):
 
     # Human-in-the-loop
     hitl_enabled: bool
-    hitl_approval: dict         # {approved, feedback, modified_assignments}
+    hitl_approval: dict  # {approved, feedback, modified_assignments}
 
     # Scoring décisionnel (C4/C5)
-    score_id: str               # UUID du DecisionScore créé
-    score_verdict: str          # "robuste" | "acceptable" | "fragile" | "dangereux"
-    score_total: int            # total_final /100
+    score_id: str  # UUID du DecisionScore créé
+    score_verdict: str  # "robuste" | "acceptable" | "fragile" | "dangereux"
+    score_total: int  # total_final /100
 
     # Mémoires écrites
     memories_written: int
-    wiki_page_id: str           # UUID de la page wiki promue (C4/C5)
+    wiki_page_id: str  # UUID de la page wiki promue (C4/C5)
 
     # Preprocessing Hermès (nœud preprocess)
-    preprocessed_input: dict    # PreprocessedInput.model_dump()
+    preprocessed_input: dict  # PreprocessedInput.model_dump()
 
     # Gate Precheck (nœud workflow_precheck)
-    precheck_verdict: str       # approved | trim | upgrade | clarification | blocked
+    precheck_verdict: str  # approved | trim | upgrade | clarification | blocked
     precheck_reasoning: str
 
     # Mémoire fonctionnelle (M3) — Redis TTL, session
-    thread_id: str              # clé de session (checkpoint_thread_id ou externe)
+    thread_id: str  # clé de session (checkpoint_thread_id ou externe)
 
     # Identifiant de l'OrchestraRun en cours (disponible dès le début, passé depuis service.py)
-    orchestra_run_id: str       # UUID de l'OrchestraRun — utilisé par write_memories pour lier les décisions
+    orchestra_run_id: str  # UUID de l'OrchestraRun — utilisé par write_memories pour lier les décisions
 
 
 # ── Helpers LLM ────────────────────────────────────────────────────
+
 
 @functools.lru_cache(maxsize=16)
 def _get_soul(agent_name: str) -> str:
@@ -150,8 +162,11 @@ def _get_soul(agent_name: str) -> str:
 def _zeus_system() -> str:
     """Charge SOUL.md de Zeus. Mis en cache (process lifetime)."""
     soul_path = AGENTS_DIR / "zeus" / "SOUL.md"
-    return soul_path.read_text(encoding="utf-8") if soul_path.exists() else \
-        "Tu es Zeus, orchestrateur. Réponds toujours en JSON strict."
+    return (
+        soul_path.read_text(encoding="utf-8")
+        if soul_path.exists()
+        else "Tu es Zeus, orchestrateur. Réponds toujours en JSON strict."
+    )
 
 
 def _parse_json_response(content: str) -> dict:
@@ -174,7 +189,7 @@ def _parse_json_response(content: str) -> dict:
             depth -= 1
             if depth == 0:
                 try:
-                    return json.loads(content[start:i + 1])
+                    return json.loads(content[start : i + 1])
                 except json.JSONDecodeError:
                     start = None
 
@@ -189,6 +204,7 @@ def _parse_json_response(content: str) -> dict:
 )
 async def _llm_call(system: str, user: str) -> str:
     from core.circuit_breaker import llm_breaker
+
     llm_breaker.check()
 
     try:

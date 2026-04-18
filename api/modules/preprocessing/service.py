@@ -25,6 +25,7 @@ Usage orchestra :
                                                  ▼                    ▼
                                         dispatch_subtasks            END
 """
+
 from typing import Optional
 
 from core.logging import get_logger
@@ -109,7 +110,6 @@ reasoning : 1-2 phrases en français.
 
 
 class PreprocessingService:
-
     @classmethod
     async def preprocess(
         cls,
@@ -165,9 +165,7 @@ class PreprocessingService:
             # ── O4 : store dans le cache ──────────────────────────────────
             if affaire_hint and embedding is not None:
                 try:
-                    await SemanticPreprocessCache.set(
-                        affaire_hint, embedding, result.model_dump()
-                    )
+                    await SemanticPreprocessCache.set(affaire_hint, embedding, result.model_dump())
                 except Exception as exc:
                     log.debug("preprocessing.cache_store_skip", error=str(exc))
 
@@ -213,9 +211,7 @@ class PreprocessingService:
             instruction=instruction[:2000],
             criticite=criticite,
             subtasks_text=subtasks_text,
-            confidence=(
-                f"{preprocessed.confidence:.2f}" if preprocessed else "1.00"
-            ),
+            confidence=(f"{preprocessed.confidence:.2f}" if preprocessed else "1.00"),
             missing=(
                 ", ".join(preprocessed.missing_information)
                 if preprocessed and preprocessed.missing_information
@@ -238,8 +234,5 @@ class PreprocessingService:
             log.warning("preprocessing.precheck_failed", error=str(exc))
             return PrecheckDecision(
                 verdict="approved",
-                reasoning=(
-                    f"Precheck LLM indisponible — approuvé par défaut. "
-                    f"Erreur : {exc}"
-                ),
+                reasoning=(f"Precheck LLM indisponible — approuvé par défaut. Erreur : {exc}"),
             )

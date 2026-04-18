@@ -6,6 +6,7 @@ Usage :
   pool = await get_queue()
   await pool.enqueue_job("orchestra_job", ...)
 """
+
 from arq.connections import ArqRedis, RedisSettings, create_pool as _create_pool
 
 from core.settings import settings

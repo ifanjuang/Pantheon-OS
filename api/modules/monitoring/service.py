@@ -10,6 +10,7 @@ Les requêtes utilisent des window functions PostgreSQL pour les
 percentiles et évitent les N+1 queries. Tous les agrégats sont filtrés
 par la fenêtre temporelle (24h / 7d / 30d / 90d).
 """
+
 from datetime import datetime, timezone
 from typing import Literal
 
@@ -30,7 +31,7 @@ log = get_logger("monitoring.service")
 
 _WINDOW_SECONDS: dict[str, int] = {
     "24h": 86_400,
-    "7d":  7 * 86_400,
+    "7d": 7 * 86_400,
     "30d": 30 * 86_400,
     "90d": 90 * 86_400,
 }
@@ -39,7 +40,6 @@ Window = Literal["24h", "7d", "30d", "90d"]
 
 
 class MonitoringService:
-
     @classmethod
     async def snapshot(
         cls,
@@ -69,9 +69,7 @@ class MonitoringService:
     # ── orchestra + guards (même source table) ──────────────────────
 
     @classmethod
-    async def _orchestra_and_guards(
-        cls, db: AsyncSession, seconds: int
-    ) -> tuple[OrchestraKPIs, GuardsKPIs]:
+    async def _orchestra_and_guards(cls, db: AsyncSession, seconds: int) -> tuple[OrchestraKPIs, GuardsKPIs]:
         sql = """
             WITH win AS (
                 SELECT *
@@ -146,15 +144,13 @@ class MonitoringService:
             veto_bloquant=int(row.veto_bloquant or 0),
             veto_reserve=int(row.veto_reserve or 0),
             precheck_verdicts={
-                "approved":      int(row.pc_approved or 0),
-                "trim":          int(row.pc_trim or 0),
-                "upgrade":       int(row.pc_upgrade or 0),
+                "approved": int(row.pc_approved or 0),
+                "trim": int(row.pc_trim or 0),
+                "upgrade": int(row.pc_upgrade or 0),
                 "clarification": int(row.pc_clari or 0),
-                "blocked":       int(row.pc_blocked or 0),
+                "blocked": int(row.pc_blocked or 0),
             },
-            precheck_shortcircuit_rate=(
-                round(pc_shortcircuit / total, 3) if total else 0.0
-            ),
+            precheck_shortcircuit_rate=(round(pc_shortcircuit / total, 3) if total else 0.0),
         )
         return orchestra, guards
 
@@ -197,11 +193,13 @@ class MonitoringService:
         for r in top_rows:
             n = int(r.runs or 0)
             e = int(r.errs or 0)
-            top_agents.append({
-                "agent": r.agent_name,
-                "runs": n,
-                "error_rate": round(e / n, 3) if n else 0.0,
-            })
+            top_agents.append(
+                {
+                    "agent": r.agent_name,
+                    "runs": n,
+                    "error_rate": round(e / n, 3) if n else 0.0,
+                }
+            )
 
         return AgentKPIs(
             runs_total=total,
@@ -263,19 +261,15 @@ class MonitoringService:
                     continue
                 axes_sum[axe] = axes_sum.get(axe, 0.0) + note_f
                 axes_count[axe] = axes_count.get(axe, 0) + 1
-        axes_mean = {
-            axe: round(axes_sum[axe] / axes_count[axe], 2)
-            for axe in axes_sum
-            if axes_count[axe]
-        }
+        axes_mean = {axe: round(axes_sum[axe] / axes_count[axe], 2) for axe in axes_sum if axes_count[axe]}
 
         return ScoringKPIs(
             scored_total=int(row.scored_total or 0),
             verdicts={
-                "robuste":    int(row.v_rob or 0),
+                "robuste": int(row.v_rob or 0),
                 "acceptable": int(row.v_acc or 0),
-                "fragile":    int(row.v_fra or 0),
-                "dangereux":  int(row.v_dan or 0),
+                "fragile": int(row.v_fra or 0),
+                "dangereux": int(row.v_dan or 0),
             },
             score_mean=round(float(row.score_mean or 0), 2),
             score_p50=int(row.score_p50 or 0),

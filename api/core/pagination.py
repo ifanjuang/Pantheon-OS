@@ -27,6 +27,7 @@ Usage :
             next_cursor=str(rows[p["limit"] - 1].id) if has_more else None,
         )
 """
+
 from typing import TypeVar, Generic, Optional
 from pydantic import BaseModel
 from fastapi import Query

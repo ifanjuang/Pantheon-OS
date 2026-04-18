@@ -5,6 +5,7 @@ MeetingCR     → un compte rendu de réunion uploadé ou saisi
 MeetingAction → une action extraite d'un CR (ou saisie manuellement)
 MeetingAgenda → un ordre du jour généré pour une prochaine réunion
 """
+
 import uuid
 from datetime import date, datetime, timezone
 
@@ -21,6 +22,7 @@ def _now() -> datetime:
 
 class MeetingCR(Base):
     """Compte rendu de réunion."""
+
     __tablename__ = "meeting_crs"
 
     id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -55,6 +57,7 @@ class MeetingCR(Base):
 
 class MeetingAction(Base):
     """Action décidée en réunion, extraite d'un CR ou saisie manuellement."""
+
     __tablename__ = "meeting_actions"
 
     id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -78,13 +81,12 @@ class MeetingAction(Base):
     # Phrase du CR source qui justifie l'action
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now, onupdate=_now
-    )
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now, onupdate=_now)
 
 
 class MeetingAgenda(Base):
     """Ordre du jour généré par Athéna pour une prochaine réunion."""
+
     __tablename__ = "meeting_agendas"
 
     id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

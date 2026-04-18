@@ -29,6 +29,7 @@ Chaque LLM guard inclut un fallback silencieux : en cas d'échec, on
 renvoie une décision permissive (pas de veto, réversible par défaut)
 pour ne pas bloquer l'orchestration.
 """
+
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
@@ -63,24 +64,38 @@ MAX_COMPLEMENTS_BY_CRITICITE: dict[str, int] = {
 
 # ── Seuils criticality_guard (règles pures) ──────────────────────────
 
-_COST_C5 = 50_000.0   # > 50 k€ → C5
-_COST_C4 = 10_000.0   # > 10 k€ → C4
-_COST_C3 = 2_000.0    # > 2 k€ → C3
+_COST_C5 = 50_000.0  # > 50 k€ → C5
+_COST_C4 = 10_000.0  # > 10 k€ → C4
+_COST_C3 = 2_000.0  # > 2 k€ → C3
 
-_DELAY_C5 = 30        # > 30 jours → C5
-_DELAY_C4 = 10        # > 10 jours → C4
-_DELAY_C3 = 3         # > 3 jours → C3
+_DELAY_C5 = 30  # > 30 jours → C5
+_DELAY_C4 = 10  # > 10 jours → C4
+_DELAY_C3 = 3  # > 3 jours → C3
 
 _SEVERITY_C5 = {
-    "risque_majeur", "risque majeur", "securite", "sécurité",
-    "litige", "peril", "péril", "contentieux", "urgence_vitale",
+    "risque_majeur",
+    "risque majeur",
+    "securite",
+    "sécurité",
+    "litige",
+    "peril",
+    "péril",
+    "contentieux",
+    "urgence_vitale",
 }
 _SEVERITY_C4 = {
-    "decision_engageante", "décision_engageante", "engagement",
-    "contrat", "signature", "engageant",
+    "decision_engageante",
+    "décision_engageante",
+    "engagement",
+    "contrat",
+    "signature",
+    "engageant",
 }
 _SEVERITY_C3 = {
-    "decision_locale", "décision_locale", "reversible", "réversible",
+    "decision_locale",
+    "décision_locale",
+    "reversible",
+    "réversible",
 }
 
 _INTENT_C4 = {"decision_engageante"}
@@ -90,8 +105,10 @@ _INTENT_C2 = {"question", "alerte"}
 
 # ── Modèle Instructor (usage interne) ────────────────────────────────
 
+
 class _CriticalityAI(BaseModel):
     """Réponse Instructor pour la couche AI du criticality_guard_hybrid."""
+
     criticite: str = Field(..., pattern=r"^C[1-5]$")
     reasoning: str = Field(..., description="Justification courte (1-2 phrases)")
 
@@ -200,8 +217,8 @@ Règles :
 
 # ── GuardsService ────────────────────────────────────────────────────
 
-class GuardsService:
 
+class GuardsService:
     # ── criticality_guard (règle pure) ──────────────────────────────
     @classmethod
     def criticality_guard(cls, impacts: CriticalityImpacts) -> CriticalityVerdict:

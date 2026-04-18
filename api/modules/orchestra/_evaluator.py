@@ -5,6 +5,7 @@ Orchestra — nœuds d'évaluation (M2).
   veto_check   : veto structuré Thémis/Héphaïstos/Apollon (layer 0 regex + LLM Instructor)
   score_decision : scoring décisionnel 100pts/5axes pour C4/C5
 """
+
 from uuid import UUID
 
 from ._shared import (
@@ -101,8 +102,11 @@ async def _call_veto_explicit(
     except Exception as exc:
         log.warning("orchestra.sequential_veto_llm_failed", agent=agent_name, error=str(exc))
         return VetoDecision(
-            veto=False, agent=agent_name,
-            severity="information", motif="", condition_levee="",
+            veto=False,
+            agent=agent_name,
+            severity="information",
+            motif="",
+            condition_levee="",
         )
 
     # Couche 0 : fast patterns sur la sortie LLM
@@ -128,19 +132,19 @@ async def _call_veto_explicit(
     )
     log.info(
         "orchestra.sequential_veto_done",
-        agent=agent_name, veto=veto, severity=decision.severity,
+        agent=agent_name,
+        veto=veto,
+        severity=decision.severity,
     )
     return decision
 
 
 # ── Nœuds LangGraph ──────────────────────────────────────────────────
 
+
 async def zeus_judge(state: OrchestraState) -> dict:
     """Phase 4a — Zeus juge si les résultats sont complets."""
-    results_text = "\n\n".join(
-        f"### {agent}\n{result}"
-        for agent, result in state["agent_results"].items()
-    )
+    results_text = "\n\n".join(f"### {agent}\n{result}" for agent, result in state["agent_results"].items())
     prompt = _ZEUS_JUDGE_PROMPT.format(
         instruction=state["instruction"],
         results=results_text,
@@ -156,6 +160,7 @@ async def zeus_judge(state: OrchestraState) -> dict:
     # d'enrichissement infinies. Le seuil max_complements dépend de la
     # criticité : C1/C2 = 0, C3 = 1, C4 = 2, C5 = 3.
     from modules.guards.service import GuardsService, MAX_COMPLEMENTS_BY_CRITICITE
+
     _criticite = state.get("criticite", "C3")
     _max = MAX_COMPLEMENTS_BY_CRITICITE.get(_criticite, 1)
     loop_verdict = GuardsService.loop_guard(state, max_complements=_max)
@@ -207,7 +212,7 @@ async def veto_check(state: OrchestraState) -> dict:
         # ── Chaîne séquencée : Thémis puis Héphaïstos en parallèle ──────
         # Appels LLM directs (pas run_agent) — 0 DB, 0 mémoire, ~1 LLM call chacun.
         # Garantit que ces gardiens examinent TOUJOURS les décisions C4/C5.
-        themis_task   = _call_veto_explicit("themis",    instruction, results_text, criticite)
+        themis_task = _call_veto_explicit("themis", instruction, results_text, criticite)
         hephaistos_task = _call_veto_explicit("hephaistos", instruction, results_text, criticite)
         themis_d, hephaistos_d = await asyncio.gather(themis_task, hephaistos_task)
 
@@ -263,19 +268,21 @@ async def veto_check(state: OrchestraState) -> dict:
             criticite=criticite,
             condition_levee=(worst_veto.condition_levee or "")[:120],
         )
-        interrupt({
-            "veto_agent": worst_veto.agent,
-            "veto_motif": worst_veto.motif,
-            "veto_severity": worst_veto.severity,
-            "veto_condition_levee": worst_veto.condition_levee,
-            "message": (
-                f"⚠️ Veto bloquant émis par {worst_veto.agent.upper()} — "
-                f"validation humaine requise.\n"
-                f"Motif : {worst_veto.motif}\n"
-                f"Condition de levée : {worst_veto.condition_levee or '—'}"
-            ),
-            "assignments": state.get("assignments", []),
-        })
+        interrupt(
+            {
+                "veto_agent": worst_veto.agent,
+                "veto_motif": worst_veto.motif,
+                "veto_severity": worst_veto.severity,
+                "veto_condition_levee": worst_veto.condition_levee,
+                "message": (
+                    f"⚠️ Veto bloquant émis par {worst_veto.agent.upper()} — "
+                    f"validation humaine requise.\n"
+                    f"Motif : {worst_veto.motif}\n"
+                    f"Condition de levée : {worst_veto.condition_levee or '—'}"
+                ),
+                "assignments": state.get("assignments", []),
+            }
+        )
     else:
         log.info(
             "orchestra.veto_traced",
@@ -299,10 +306,7 @@ async def score_decision(state: OrchestraState) -> dict:
     from database import AsyncSessionLocal
 
     sujet = state["instruction"][:512]
-    contexte = "\n\n".join(
-        f"### {agent}\n{result}"
-        for agent, result in state.get("agent_results", {}).items()
-    )
+    contexte = "\n\n".join(f"### {agent}\n{result}" for agent, result in state.get("agent_results", {}).items())
 
     try:
         async with AsyncSessionLocal() as db:

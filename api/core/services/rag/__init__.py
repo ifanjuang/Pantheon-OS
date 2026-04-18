@@ -8,6 +8,7 @@ l'ancien rag_service.py monolithique. Les sous-modules internes sont :
   _ingest.py  : IngestPipeline (fichiers + texte brut)
   _search.py  : HybridSearcher (hybrid / semantic / fts)
 """
+
 from core.services.rag._embed import embed as _embed_fn, get_embed_model
 from core.services.rag._ingest import (
     CHUNK_CONFIG,

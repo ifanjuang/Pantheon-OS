@@ -7,6 +7,7 @@ DELETE /memory/context/{thread_id}   → purge complète d'un thread
 DELETE /memory/context/{thread_id}/{key} → purge d'une clé
 POST   /memory/promote               → promote_to_project (→ Hestia)
 """
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 

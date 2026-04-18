@@ -21,17 +21,17 @@ class Settings(BaseSettings):
     ADMIN_PASSWORD: str = "changeme"
 
     # ── LLM ──────────────────────────────────────────────────────
-    LLM_PROVIDER: str = "ollama"              # "ollama" | "openai"
+    LLM_PROVIDER: str = "ollama"  # "ollama" | "openai"
     OLLAMA_BASE_URL: str = "http://ollama:11434"
     OLLAMA_MODEL: str = "mistral:7b"
-    LLM_MODEL: Optional[str] = None           # override si openai
+    LLM_MODEL: Optional[str] = None  # override si openai
     OPENAI_API_KEY: Optional[str] = None
     OPENAI_API_BASE_URL: str = "https://api.openai.com/v1"
 
     # ── Embeddings ───────────────────────────────────────────────
     EMBEDDING_PROVIDER: str = "ollama"
     OLLAMA_EMBEDDING_MODEL: str = "nomic-embed-text"
-    EMBEDDING_MODEL: Optional[str] = None     # override si openai
+    EMBEDDING_MODEL: Optional[str] = None  # override si openai
     EMBEDDING_DIM: int = 768
 
     # ── MinIO ────────────────────────────────────────────────────
@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     SMTP_FROM: str = "ARCEUS <notifications@agence.fr>"
 
     # ── Webhooks / Paperclip ─────────────────────────────────────
-    WEBHOOK_SECRET: Optional[str] = None   # Si None → JWT_SECRET_KEY utilisé
+    WEBHOOK_SECRET: Optional[str] = None  # Si None → JWT_SECRET_KEY utilisé
 
     # ── Redis / ARQ ──────────────────────────────────────────────
     REDIS_URL: str = "redis://redis:6379/0"
@@ -73,18 +73,18 @@ class Settings(BaseSettings):
     AGENTS_DIR: str = "/agents"
 
     # ── RAG avancé ────────────────────────────────────────────────
-    CONTEXTUAL_RETRIEVAL: bool = True     # enrichissement LLM par chunk à l'ingestion
-    RERANK_ENABLED: bool = False          # cross-encoder reranking post-RRF
+    CONTEXTUAL_RETRIEVAL: bool = True  # enrichissement LLM par chunk à l'ingestion
+    RERANK_ENABLED: bool = False  # cross-encoder reranking post-RRF
     RERANK_MODEL: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
     # ── Capture / Whisper ────────────────────────────────────────
     WHISPER_ENDPOINT: Optional[str] = None  # ex: http://whisper:9000/v1/audio/transcriptions
 
     # ── OCR / GLM-4V ─────────────────────────────────────────────
-    GLM_OCR_ENDPOINT: Optional[str] = None   # ex: https://open.bigmodel.cn/api/paas/v4
-    GLM_OCR_API_KEY: Optional[str] = None    # Zhipu API key (cloud) ou vide si self-hosted
+    GLM_OCR_ENDPOINT: Optional[str] = None  # ex: https://open.bigmodel.cn/api/paas/v4
+    GLM_OCR_API_KEY: Optional[str] = None  # Zhipu API key (cloud) ou vide si self-hosted
     GLM_OCR_MODEL: str = "glm-4v"
-    GLM_OCR_MIN_CHARS: int = 100             # déclenche l'OCR si texte extrait < seuil
+    GLM_OCR_MIN_CHARS: int = 100  # déclenche l'OCR si texte extrait < seuil
 
     # ── Telegram ─────────────────────────────────────────────────
     TELEGRAM_TOKEN: Optional[str] = None

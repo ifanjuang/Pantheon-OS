@@ -14,6 +14,7 @@ Sécurité :
   TELEGRAM_ALLOWED_CHAT_IDS — seuls ces chat_id sont autorisés (vide = tous)
   X-Telegram-Bot-Api-Secret-Token — header envoyé par Telegram si WEBHOOK_SECRET défini
 """
+
 import re
 from uuid import UUID
 
@@ -30,14 +31,28 @@ log = get_logger("webhooks.telegram")
 
 # ── Agents disponibles pour @mention ────────────────────────────────────────
 MENTIONABLE_AGENTS = {
-    "hermes", "argos", "athena", "hephaistos", "promethee",
-    "apollon", "dionysos", "themis", "chronos", "ares",
-    "hestia", "mnemosyne", "iris", "aphrodite", "dedale", "zeus",
+    "hermes",
+    "argos",
+    "athena",
+    "hephaistos",
+    "promethee",
+    "apollon",
+    "dionysos",
+    "themis",
+    "chronos",
+    "ares",
+    "hestia",
+    "mnemosyne",
+    "iris",
+    "aphrodite",
+    "dedale",
+    "zeus",
 }
 
 _MENTION_RE = re.compile(r"^@(\w+)\s*", re.IGNORECASE)
 
 # ── Telegram Bot API ─────────────────────────────────────────────────────────
+
 
 def _tg_url(method: str) -> str:
     return f"https://api.telegram.org/bot{settings.TELEGRAM_TOKEN}/{method}"
@@ -95,6 +110,7 @@ async def tg_download_file(file_id: str) -> bytes | None:
 
 # ── Auth chat ────────────────────────────────────────────────────────────────
 
+
 def is_chat_allowed(chat_id: str | int) -> bool:
     """Vérifie si le chat_id est autorisé (vide = tous autorisés)."""
     allowed_raw = getattr(settings, "TELEGRAM_ALLOWED_CHAT_IDS", "") or ""
@@ -105,6 +121,7 @@ def is_chat_allowed(chat_id: str | int) -> bool:
 
 
 # ── Session ──────────────────────────────────────────────────────────────────
+
 
 async def get_or_create_session(db: AsyncSession, chat_id: str) -> WebhookSession:
     """Retourne la session existante ou en crée une nouvelle."""
@@ -123,6 +140,7 @@ async def get_or_create_session(db: AsyncSession, chat_id: str) -> WebhookSessio
 
 
 # ── Commandes ────────────────────────────────────────────────────────────────
+
 
 async def handle_command(
     db: AsyncSession,
@@ -167,9 +185,7 @@ async def handle_command(
             current = f"Affaire active : `{session.affaire_id}`" if session.affaire_id else "Aucune affaire définie."
             return f"{current}\n\nUtilise `/affaire <CODE>` pour en définir une."
 
-        result = await db.execute(
-            select(Affaire).where(Affaire.code == code)
-        )
+        result = await db.execute(select(Affaire).where(Affaire.code == code))
         affaire = result.scalar_one_or_none()
         if not affaire:
             return f"❌ Affaire `{code}` introuvable. Vérifie le code dans ARCEUS."
@@ -186,6 +202,7 @@ async def handle_command(
 
 # ── Parsing des mentions ─────────────────────────────────────────────────────
 
+
 def parse_mention(text: str) -> tuple[str | None, str]:
     """
     Extrait la mention @agent du début du message.
@@ -195,13 +212,14 @@ def parse_mention(text: str) -> tuple[str | None, str]:
     if not m:
         return None, text.strip()
     name = m.group(1).lower()
-    cleaned = text[m.end():].strip()
+    cleaned = text[m.end() :].strip()
     if name in MENTIONABLE_AGENTS:
         return name, cleaned
     return None, text.strip()
 
 
 # ── Routing message ──────────────────────────────────────────────────────────
+
 
 async def route_message(
     db: AsyncSession,
@@ -228,6 +246,7 @@ async def route_message(
 
 
 # ── Photo pipeline ───────────────────────────────────────────────────────────
+
 
 async def build_photo_instruction(caption: str | None, filename: str) -> str:
     """Construit l'instruction pour la cascade Argos → Héphaïstos."""

@@ -11,6 +11,7 @@ Usages :
 Écriture dans `stdout` : récapitulatif lisible.
 Option `--json` : sérialise le rapport complet (pour CI / archivage).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -92,9 +93,7 @@ def _cmd_list() -> int:
 
 
 def main(argv: Optional[list[str]] = None) -> int:
-    parser = argparse.ArgumentParser(
-        prog="openclaw", description="ARCEUS — OpenClaw evaluation harness"
-    )
+    parser = argparse.ArgumentParser(prog="openclaw", description="ARCEUS — OpenClaw evaluation harness")
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("list", help="Liste les datasets disponibles")

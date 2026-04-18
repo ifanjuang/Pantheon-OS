@@ -14,6 +14,7 @@ Pipeline Héphaïstos :
     stocke le diagnostic dans nc.analyse_hephaistos.
     Positionne nc.arret_chantier=True si les mots-clés critiques sont détectés.
 """
+
 from datetime import date
 from uuid import UUID
 
@@ -35,6 +36,7 @@ _ARRET_KEYWORDS = (
 # ══════════════════════════════════════════════════════════════════════
 # OBSERVATIONS
 # ══════════════════════════════════════════════════════════════════════
+
 
 async def create_observation(
     db: AsyncSession, affaire_id: UUID, auteur_id: UUID | None = None, **fields
@@ -71,9 +73,7 @@ async def list_observations(
     return result.scalars().all()
 
 
-async def update_observation(
-    db: AsyncSession, obs: ObservationChantier, data: dict
-) -> ObservationChantier:
+async def update_observation(db: AsyncSession, obs: ObservationChantier, data: dict) -> ObservationChantier:
     for k, v in data.items():
         if v is not None:
             setattr(obs, k, v)
@@ -88,6 +88,7 @@ async def delete_observation(db: AsyncSession, obs: ObservationChantier) -> None
 # ══════════════════════════════════════════════════════════════════════
 # PIPELINE ARGOS
 # ══════════════════════════════════════════════════════════════════════
+
 
 async def process_observation_analysis(db: AsyncSession, obs_id: UUID) -> None:
     """
@@ -138,9 +139,8 @@ async def process_observation_analysis(db: AsyncSession, obs_id: UUID) -> None:
 # NON-CONFORMITÉS
 # ══════════════════════════════════════════════════════════════════════
 
-async def create_nonconformite(
-    db: AsyncSession, affaire_id: UUID, **fields
-) -> NonConformite:
+
+async def create_nonconformite(db: AsyncSession, affaire_id: UUID, **fields) -> NonConformite:
     nc = NonConformite(affaire_id=affaire_id, **fields)
     # Positionner arret_chantier si gravite le demande
     if fields.get("gravite") == "arret_chantier":
@@ -179,9 +179,7 @@ async def list_nonconformites(
     return result.scalars().all()
 
 
-async def update_nonconformite(
-    db: AsyncSession, nc: NonConformite, data: dict
-) -> NonConformite:
+async def update_nonconformite(db: AsyncSession, nc: NonConformite, data: dict) -> NonConformite:
     for k, v in data.items():
         if v is not None:
             setattr(nc, k, v)
@@ -199,6 +197,7 @@ async def delete_nonconformite(db: AsyncSession, nc: NonConformite) -> None:
 # ══════════════════════════════════════════════════════════════════════
 # PIPELINE HÉPHAÏSTOS
 # ══════════════════════════════════════════════════════════════════════
+
 
 async def process_nc_qualification(db: AsyncSession, nc_id: UUID) -> None:
     """
@@ -255,6 +254,7 @@ async def process_nc_qualification(db: AsyncSession, nc_id: UUID) -> None:
 # DASHBOARD
 # ══════════════════════════════════════════════════════════════════════
 
+
 async def get_dashboard(db: AsyncSession, affaire_id: UUID) -> dict:
     today = date.today()
 
@@ -269,19 +269,11 @@ async def get_dashboard(db: AsyncSession, affaire_id: UUID) -> dict:
     nc_ouvertes = sum(1 for n in ncs if n.statut == "ouverte")
     nc_en_cours = sum(1 for n in ncs if n.statut == "en_cours")
     nc_resolues = sum(1 for n in ncs if n.statut == "resolue")
-    nc_critiques = sum(
-        1 for n in ncs
-        if n.gravite in ("critique", "arret_chantier") or n.arret_chantier
-    )
+    nc_critiques = sum(1 for n in ncs if n.gravite in ("critique", "arret_chantier") or n.arret_chantier)
     nc_en_retard = sum(
-        1 for n in ncs
-        if n.date_echeance
-        and n.date_echeance < today
-        and n.statut not in ("resolue", "contestee")
+        1 for n in ncs if n.date_echeance and n.date_echeance < today and n.statut not in ("resolue", "contestee")
     )
-    alerte_arret = any(
-        n.arret_chantier and n.statut in ("ouverte", "en_cours") for n in ncs
-    )
+    alerte_arret = any(n.arret_chantier and n.statut in ("ouverte", "en_cours") for n in ncs)
 
     return {
         "affaire_id": str(affaire_id),

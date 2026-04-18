@@ -11,6 +11,7 @@ STATUTS_NC = {"ouverte", "en_cours", "resolue", "contestee"}
 
 # ── Observations terrain ──────────────────────────────────────────────
 
+
 class ObservationCreate(BaseModel):
     source: str
     date_constat: date
@@ -82,6 +83,7 @@ class ObservationResponse(BaseModel):
 
 
 # ── Non-conformités ───────────────────────────────────────────────────
+
 
 class NonConformiteCreate(BaseModel):
     description: str
@@ -155,6 +157,7 @@ class NonConformiteResponse(BaseModel):
 
 # ── Réponses pipeline ─────────────────────────────────────────────────
 
+
 class AnalyzeJobResponse(BaseModel):
     job_queued: bool
     id: UUID
@@ -162,6 +165,7 @@ class AnalyzeJobResponse(BaseModel):
 
 
 # ── Dashboard ─────────────────────────────────────────────────────────
+
 
 class ChantierDashboard(BaseModel):
     affaire_id: UUID
@@ -174,7 +178,7 @@ class ChantierDashboard(BaseModel):
     nc_ouvertes: int
     nc_en_cours: int
     nc_resolues: int
-    nc_critiques: int           # gravite=critique ou arret_chantier
-    nc_en_retard: int           # date_echeance < today et non résolue
+    nc_critiques: int  # gravite=critique ou arret_chantier
+    nc_en_retard: int  # date_echeance < today et non résolue
     # Alertes
-    alerte_arret_chantier: bool # au moins une NC arret_chantier ouverte
+    alerte_arret_chantier: bool  # au moins une NC arret_chantier ouverte

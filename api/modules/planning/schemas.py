@@ -12,6 +12,7 @@ TYPES_LIEN = {"FS", "SS", "FF", "SF"}
 
 # ── Lots ─────────────────────────────────────────────────────────────
 
+
 class LotCreate(BaseModel):
     code: str
     nom: str
@@ -70,6 +71,7 @@ class LotResponse(BaseModel):
 
 
 # ── Tâches ───────────────────────────────────────────────────────────
+
 
 class TacheCreate(BaseModel):
     titre: str
@@ -141,6 +143,7 @@ class TacheResponse(BaseModel):
 
 # ── Jalons ───────────────────────────────────────────────────────────
 
+
 class JalonCreate(BaseModel):
     nom: str
     type: str = "technique"
@@ -203,6 +206,7 @@ class JalonResponse(BaseModel):
 
 # ── Liens de dépendance ──────────────────────────────────────────────
 
+
 class LienCreate(BaseModel):
     predecesseur_id: UUID
     successeur_id: UUID
@@ -236,6 +240,7 @@ class LienResponse(BaseModel):
 
 # ── Propagation ──────────────────────────────────────────────────────
 
+
 class PropagateRequest(BaseModel):
     delta_jours: int = Field(..., description="Décalage en jours (positif = retard, négatif = avance)")
 
@@ -246,6 +251,7 @@ class PropagationResult(BaseModel):
 
 
 # ── Vues agrégées ────────────────────────────────────────────────────
+
 
 class GanttResponse(BaseModel):
     affaire_id: UUID
@@ -258,11 +264,11 @@ class GanttResponse(BaseModel):
 class CriticalPathTaskResult(BaseModel):
     id: UUID
     titre: str
-    est: int    # Early Start (jours depuis t=0)
-    eft: int    # Early Finish
-    lst: int    # Late Start
-    lft: int    # Late Finish
-    float_jours: int   # Marge totale (0 = critique)
+    est: int  # Early Start (jours depuis t=0)
+    eft: int  # Early Finish
+    lst: int  # Late Start
+    lft: int  # Late Finish
+    float_jours: int  # Marge totale (0 = critique)
     critique: bool
 
 
@@ -282,12 +288,12 @@ class PlanningHealth(BaseModel):
     taches_en_cours: int
     taches_terminees: int
     taches_bloquees: int
-    taches_en_retard: int       # date_fin_prevue < aujourd'hui et non terminée/annulée
-    avancement_moyen: float     # moyenne sur tâches non annulées
+    taches_en_retard: int  # date_fin_prevue < aujourd'hui et non terminée/annulée
+    avancement_moyen: float  # moyenne sur tâches non annulées
     # Jalons
     total_jalons: int
     jalons_atteints: int
-    jalons_manques: int         # date_cible < aujourd'hui et statut != atteint
+    jalons_manques: int  # date_cible < aujourd'hui et statut != atteint
     jalons_a_venir: int
     # Lots
     total_lots: int

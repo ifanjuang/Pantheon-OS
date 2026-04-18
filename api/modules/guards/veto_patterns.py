@@ -36,68 +36,98 @@ _GENERIC = [
     (r"\bveto\s+formel\b", "Résoudre la réserve formelle avant de continuer"),
     (r"\brefus\s+(catégorique|formel|explicite)\b", "Traiter le motif de refus signalé"),
     (r"\bbloqu(ant|e|er)\s+(la\s+)?déci(sion|sion)", "Identifier et lever la condition bloquante"),
-    (r"\brisque\s+majeur\s+non\s+(assumé|couvert|pris\s+en\s+compte)\b",
-     "Formaliser la prise en charge du risque ou escalader à un expert"),
-    (r"\bexpert\s+externe\s+(requis|nécessaire|obligatoire)\b",
-     "Mandater l'expert externe mentionné avant de poursuivre"),
+    (
+        r"\brisque\s+majeur\s+non\s+(assumé|couvert|pris\s+en\s+compte)\b",
+        "Formaliser la prise en charge du risque ou escalader à un expert",
+    ),
+    (
+        r"\bexpert\s+externe\s+(requis|nécessaire|obligatoire)\b",
+        "Mandater l'expert externe mentionné avant de poursuivre",
+    ),
 ]
 
 _THEMIS = [
     # Hors périmètre mission
-    (r"\bhors\s+(de\s+la\s+)?mission\s+(MOE|architecte|maître\s+d'œuvre)?\b",
-     "Vérifier le périmètre contractuel, éventuellement établir un avenant"),
-    (r"\bresponsabilit[eé]\s+(de\s+la\s+)?MOE\s+(est\s+)?engag[eé]e\b",
-     "Valider avec le client/assureur avant toute action"),
-    (r"\bnon\s+couvert[e]?\s+(par\s+)?(le\s+)?contrat\b",
-     "Établir un avenant ou rediriger vers le maître d'ouvrage"),
-    (r"\bavenant\s+(contractuel\s+)?(obligatoire|requis|nécessaire)\b",
-     "Établir et faire signer l'avenant avant de continuer"),
-    (r"\blitige\s+(potentiel|imminent|en\s+cours|probable)\b",
-     "Saisir le service juridique, suspendre toute action unilatérale"),
-    (r"\bmise\s+en\s+demeure\b",
-     "Transmettre au juriste, répondre dans les délais légaux"),
-    (r"\bcontentieux\s+(juridique|contractuel|probable|imminent)\b",
-     "Consulter le service juridique avant toute décision"),
-    (r"\binfraction\s+(au\s+)?(contrat|cahier\s+des\s+charges|marché)\b",
-     "Documenter l'infraction et notifier formellement les parties"),
-    (r"\bhors\s+(p[eé]rim[eè]tre|scope)\s+(mission|contractuel)\b",
-     "Redéfinir le périmètre ou établir un avenant"),
+    (
+        r"\bhors\s+(de\s+la\s+)?mission\s+(MOE|architecte|maître\s+d'œuvre)?\b",
+        "Vérifier le périmètre contractuel, éventuellement établir un avenant",
+    ),
+    (
+        r"\bresponsabilit[eé]\s+(de\s+la\s+)?MOE\s+(est\s+)?engag[eé]e\b",
+        "Valider avec le client/assureur avant toute action",
+    ),
+    (r"\bnon\s+couvert[e]?\s+(par\s+)?(le\s+)?contrat\b", "Établir un avenant ou rediriger vers le maître d'ouvrage"),
+    (
+        r"\bavenant\s+(contractuel\s+)?(obligatoire|requis|nécessaire)\b",
+        "Établir et faire signer l'avenant avant de continuer",
+    ),
+    (
+        r"\blitige\s+(potentiel|imminent|en\s+cours|probable)\b",
+        "Saisir le service juridique, suspendre toute action unilatérale",
+    ),
+    (r"\bmise\s+en\s+demeure\b", "Transmettre au juriste, répondre dans les délais légaux"),
+    (
+        r"\bcontentieux\s+(juridique|contractuel|probable|imminent)\b",
+        "Consulter le service juridique avant toute décision",
+    ),
+    (
+        r"\binfraction\s+(au\s+)?(contrat|cahier\s+des\s+charges|marché)\b",
+        "Documenter l'infraction et notifier formellement les parties",
+    ),
+    (r"\bhors\s+(p[eé]rim[eè]tre|scope)\s+(mission|contractuel)\b", "Redéfinir le périmètre ou établir un avenant"),
 ]
 
 _HEPHAISTOS = [
     # Non-conformité technique / DTU
-    (r"\bnon[- ]conforme\s+(au[x]?\s+)?DTU\b",
-     "Obtenir un avis technique ou une dérogation auprès du bureau de contrôle"),
-    (r"\binterdit\s+(par\s+)?(le\s+)?(DTU|RE2020|ERP|règl[e]?ment)\b",
-     "Consulter un BE spécialisé pour solution alternative conforme"),
-    (r"\binfaisabl[e]\b",
-     "Proposer une alternative technique faisable, consulter un spécialiste"),
-    (r"\bimpossibl[e]\s+(techniquement|structurellement|sur\s+le\s+plan\s+technique)\b",
-     "Mandater une étude de faisabilité par un bureau d'études"),
-    (r"\bdanger\s+(structurel|de\s+stabilité|pour\s+la\s+structure)\b",
-     "Suspendre les travaux, mandater un bureau de contrôle structure"),
-    (r"\brisque\s+(structurel|d'effondrement|de\s+ruine)\b",
-     "Arrêt de chantier immédiat, expertise structure obligatoire"),
-    (r"\bs[eé]curit[eé]\s+(des\s+personnes\s+)?(en\s+)?(danger|menac[eé]e|compromise)\b",
-     "Mesures conservatoires immédiates, déclaration à l'inspection du travail"),
+    (
+        r"\bnon[- ]conforme\s+(au[x]?\s+)?DTU\b",
+        "Obtenir un avis technique ou une dérogation auprès du bureau de contrôle",
+    ),
+    (
+        r"\binterdit\s+(par\s+)?(le\s+)?(DTU|RE2020|ERP|règl[e]?ment)\b",
+        "Consulter un BE spécialisé pour solution alternative conforme",
+    ),
+    (r"\binfaisabl[e]\b", "Proposer une alternative technique faisable, consulter un spécialiste"),
+    (
+        r"\bimpossibl[e]\s+(techniquement|structurellement|sur\s+le\s+plan\s+technique)\b",
+        "Mandater une étude de faisabilité par un bureau d'études",
+    ),
+    (
+        r"\bdanger\s+(structurel|de\s+stabilité|pour\s+la\s+structure)\b",
+        "Suspendre les travaux, mandater un bureau de contrôle structure",
+    ),
+    (
+        r"\brisque\s+(structurel|d'effondrement|de\s+ruine)\b",
+        "Arrêt de chantier immédiat, expertise structure obligatoire",
+    ),
+    (
+        r"\bs[eé]curit[eé]\s+(des\s+personnes\s+)?(en\s+)?(danger|menac[eé]e|compromise)\b",
+        "Mesures conservatoires immédiates, déclaration à l'inspection du travail",
+    ),
 ]
 
 _APOLLON = [
     # Contradiction normative confirmée
-    (r"\bcontradiction\s+(normative|r[eè]glementaire)\s+(confirm[eé]e|av[eé]r[eé]e|établie)\b",
-     "Arbitrage normatif par le CSTB ou bureau de contrôle"),
-    (r"\bincoh[eé]rence\s+(majeure\s+)?(r[eè]glementaire|normative)\s+(confirm[eé]e|établie)\b",
-     "Demander une interprétation officielle à l'organisme normalisateur"),
-    (r"\bcontradiction\s+(entre|avec)\s+(l[''])?article\s+\d",
-     "Clarifier l'interprétation réglementaire applicable avec un expert"),
+    (
+        r"\bcontradiction\s+(normative|r[eè]glementaire)\s+(confirm[eé]e|av[eé]r[eé]e|établie)\b",
+        "Arbitrage normatif par le CSTB ou bureau de contrôle",
+    ),
+    (
+        r"\bincoh[eé]rence\s+(majeure\s+)?(r[eè]glementaire|normative)\s+(confirm[eé]e|établie)\b",
+        "Demander une interprétation officielle à l'organisme normalisateur",
+    ),
+    (
+        r"\bcontradiction\s+(entre|avec)\s+(l[''])?article\s+\d",
+        "Clarifier l'interprétation réglementaire applicable avec un expert",
+    ),
 ]
 
 # Compilation au chargement (LRU natif Python pour modules)
 _COMPILED: dict[str, list[tuple[re.Pattern, str]]] = {
     "_generic": [(re.compile(p, re.IGNORECASE), cond) for p, cond in _GENERIC],
-    "themis":   [(re.compile(p, re.IGNORECASE), cond) for p, cond in _THEMIS],
+    "themis": [(re.compile(p, re.IGNORECASE), cond) for p, cond in _THEMIS],
     "hephaistos": [(re.compile(p, re.IGNORECASE), cond) for p, cond in _HEPHAISTOS],
-    "apollon":  [(re.compile(p, re.IGNORECASE), cond) for p, cond in _APOLLON],
+    "apollon": [(re.compile(p, re.IGNORECASE), cond) for p, cond in _APOLLON],
 }
 
 

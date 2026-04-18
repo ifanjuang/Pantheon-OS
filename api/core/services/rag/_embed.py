@@ -4,6 +4,7 @@ Embedding model — singleton lazy-loaded.
 Supporte Ollama (via l'API OpenAI-compat) et OpenAI.
 Le modèle est initialisé au premier appel et réutilisé pour tout le process.
 """
+
 from core.settings import settings
 
 _embed_model = None

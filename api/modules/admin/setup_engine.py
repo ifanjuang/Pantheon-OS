@@ -2,6 +2,7 @@
 SetupEngine — assistant d'installation.
 Diagnostic des services, lecture/écriture du .env, tests de connexion en live.
 """
+
 import os
 import re
 import asyncio
@@ -33,30 +34,63 @@ ENV_SCHEMA: list[dict] = [
             {"key": "JWT_SECRET_KEY", "label": "Secret JWT (min 32 car.)", "type": "password", "required": True},
             {"key": "JWT_EXPIRE_MINUTES", "label": "Expiration du token (minutes)", "type": "number"},
             {"key": "ADMIN_EMAIL", "label": "Email administrateur", "type": "email", "required": True},
-            {"key": "ADMIN_PASSWORD", "label": "Mot de passe admin (1er démarrage)", "type": "password", "required": True},
+            {
+                "key": "ADMIN_PASSWORD",
+                "label": "Mot de passe admin (1er démarrage)",
+                "type": "password",
+                "required": True,
+            },
         ],
     },
     {
         "group": "Fournisseur IA",
         "icon": "🤖",
         "fields": [
-            {"key": "LLM_PROVIDER", "label": "Provider LLM", "type": "select",
-             "options": ["ollama", "openai"], "required": True},
-            {"key": "OLLAMA_BASE_URL", "label": "URL Ollama (ex: http://192.168.1.50:11434)",
-             "type": "url", "show_if": {"LLM_PROVIDER": "ollama"}},
-            {"key": "OLLAMA_MODEL", "label": "Modèle Ollama", "type": "ollama_model",
-             "show_if": {"LLM_PROVIDER": "ollama"}},
-            {"key": "EMBEDDING_PROVIDER", "label": "Provider embeddings", "type": "select",
-             "options": ["ollama", "openai"]},
-            {"key": "OLLAMA_EMBEDDING_MODEL", "label": "Modèle embeddings Ollama",
-             "type": "text", "show_if": {"EMBEDDING_PROVIDER": "ollama"}},
+            {
+                "key": "LLM_PROVIDER",
+                "label": "Provider LLM",
+                "type": "select",
+                "options": ["ollama", "openai"],
+                "required": True,
+            },
+            {
+                "key": "OLLAMA_BASE_URL",
+                "label": "URL Ollama (ex: http://192.168.1.50:11434)",
+                "type": "url",
+                "show_if": {"LLM_PROVIDER": "ollama"},
+            },
+            {
+                "key": "OLLAMA_MODEL",
+                "label": "Modèle Ollama",
+                "type": "ollama_model",
+                "show_if": {"LLM_PROVIDER": "ollama"},
+            },
+            {
+                "key": "EMBEDDING_PROVIDER",
+                "label": "Provider embeddings",
+                "type": "select",
+                "options": ["ollama", "openai"],
+            },
+            {
+                "key": "OLLAMA_EMBEDDING_MODEL",
+                "label": "Modèle embeddings Ollama",
+                "type": "text",
+                "show_if": {"EMBEDDING_PROVIDER": "ollama"},
+            },
             {"key": "EMBEDDING_DIM", "label": "Dimension embeddings", "type": "number"},
-            {"key": "OPENAI_API_KEY", "label": "Clé API OpenAI", "type": "password",
-             "show_if": {"LLM_PROVIDER": "openai"}},
-            {"key": "OPENAI_API_BASE_URL", "label": "URL base OpenAI", "type": "url",
-             "show_if": {"LLM_PROVIDER": "openai"}},
-            {"key": "LLM_MODEL", "label": "Modèle (ex: gpt-4o)", "type": "text",
-             "show_if": {"LLM_PROVIDER": "openai"}},
+            {
+                "key": "OPENAI_API_KEY",
+                "label": "Clé API OpenAI",
+                "type": "password",
+                "show_if": {"LLM_PROVIDER": "openai"},
+            },
+            {
+                "key": "OPENAI_API_BASE_URL",
+                "label": "URL base OpenAI",
+                "type": "url",
+                "show_if": {"LLM_PROVIDER": "openai"},
+            },
+            {"key": "LLM_MODEL", "label": "Modèle (ex: gpt-4o)", "type": "text", "show_if": {"LLM_PROVIDER": "openai"}},
         ],
     },
     {
@@ -95,14 +129,25 @@ ENV_SCHEMA: list[dict] = [
         "fields": [
             {"key": "WHATSAPP_ENABLED", "label": "WhatsApp activé", "type": "bool"},
             {"key": "WHATSAPP_MODE", "label": "Mode", "type": "select", "options": ["meta", "evolution"]},
-            {"key": "WA_PHONE_ID", "label": "Phone Number ID (Meta)", "type": "text",
-             "show_if": {"WHATSAPP_MODE": "meta"}},
-            {"key": "WA_TOKEN", "label": "Token Meta", "type": "password",
-             "show_if": {"WHATSAPP_MODE": "meta"}},
-            {"key": "WA_TEMPLATE_NAME", "label": "Nom du template Meta", "type": "text",
-             "show_if": {"WHATSAPP_MODE": "meta"}},
-            {"key": "EVOLUTION_API_KEY", "label": "Clé Evolution API", "type": "password",
-             "show_if": {"WHATSAPP_MODE": "evolution"}},
+            {
+                "key": "WA_PHONE_ID",
+                "label": "Phone Number ID (Meta)",
+                "type": "text",
+                "show_if": {"WHATSAPP_MODE": "meta"},
+            },
+            {"key": "WA_TOKEN", "label": "Token Meta", "type": "password", "show_if": {"WHATSAPP_MODE": "meta"}},
+            {
+                "key": "WA_TEMPLATE_NAME",
+                "label": "Nom du template Meta",
+                "type": "text",
+                "show_if": {"WHATSAPP_MODE": "meta"},
+            },
+            {
+                "key": "EVOLUTION_API_KEY",
+                "label": "Clé Evolution API",
+                "type": "password",
+                "show_if": {"WHATSAPP_MODE": "evolution"},
+            },
         ],
     },
     {
@@ -117,6 +162,7 @@ ENV_SCHEMA: list[dict] = [
 ]
 
 # ── Lecture/écriture .env ────────────────────────────────────────
+
 
 def _parse_env_file() -> dict[str, str]:
     if not ENV_FILE.exists():
@@ -165,8 +211,8 @@ def _write_env_file(values: dict[str, str]) -> None:
 
 # ── SetupEngine ──────────────────────────────────────────────────
 
-class SetupEngine:
 
+class SetupEngine:
     def get_schema(self) -> list[dict]:
         """Retourne le schéma de formulaire enrichi avec les valeurs actuelles."""
         current = _parse_env_file()
@@ -193,9 +239,8 @@ class SetupEngine:
     async def test_db(self) -> dict:
         try:
             import asyncpg
-            conn = await asyncio.wait_for(
-                asyncpg.connect(settings.ASYNCPG_URL), timeout=5
-            )
+
+            conn = await asyncio.wait_for(asyncpg.connect(settings.ASYNCPG_URL), timeout=5)
             version = await conn.fetchval("SELECT version()")
             await conn.close()
             return {"ok": True, "detail": version.split(",")[0]}
@@ -205,6 +250,7 @@ class SetupEngine:
     async def test_minio(self) -> dict:
         try:
             from core.services.storage_service import StorageService
+
             ok = await StorageService.ping()
             return {"ok": ok, "detail": "Bucket accessible" if ok else "Connexion échouée"}
         except Exception as e:
@@ -213,6 +259,7 @@ class SetupEngine:
     async def test_llm(self) -> dict:
         try:
             from core.services.llm_service import LlmService
+
             ok = await LlmService.ping()
             if ok:
                 # Test rapide : 1 token
@@ -220,7 +267,10 @@ class SetupEngine:
                     [{"role": "user", "content": "Dis uniquement 'ok'"}],
                     max_tokens=5,
                 )
-                return {"ok": True, "detail": f"Modèle : {settings.effective_llm_model} — réponse : {response.strip()[:40]}"}
+                return {
+                    "ok": True,
+                    "detail": f"Modèle : {settings.effective_llm_model} — réponse : {response.strip()[:40]}",
+                }
             return {"ok": False, "detail": "LLM inaccessible"}
         except Exception as e:
             return {"ok": False, "detail": str(e)}
@@ -230,6 +280,7 @@ class SetupEngine:
             return {"ok": False, "detail": "SMTP_HOST non configuré"}
         try:
             import smtplib
+
             with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=5) as s:
                 s.ehlo()
                 if settings.SMTP_PORT == 587:
@@ -245,6 +296,7 @@ class SetupEngine:
             return {"ok": False, "detail": "TELEGRAM_TOKEN non configuré"}
         try:
             import httpx
+
             async with httpx.AsyncClient(timeout=5) as client:
                 r = await client.get(f"https://api.telegram.org/bot{settings.TELEGRAM_TOKEN}/getMe")
             data = r.json()
@@ -260,6 +312,7 @@ class SetupEngine:
             return {"ok": False, "detail": "WhatsApp désactivé"}
         try:
             import httpx
+
             if settings.WHATSAPP_MODE == "meta":
                 if not settings.WA_TOKEN or not settings.WA_PHONE_ID:
                     return {"ok": False, "detail": "WA_TOKEN ou WA_PHONE_ID manquant"}
@@ -279,6 +332,7 @@ class SetupEngine:
         """Retourne les modèles disponibles sur le serveur Ollama."""
         try:
             import httpx
+
             base = settings.OLLAMA_BASE_URL.rstrip("/")
             async with httpx.AsyncClient(timeout=5) as client:
                 r = await client.get(f"{base}/api/tags")
@@ -351,7 +405,9 @@ class SetupEngine:
             eng.dispose()
             up_to_date = current == head
             return {
-                "ok": True, "current": current, "head": head,
+                "ok": True,
+                "current": current,
+                "head": head,
                 "up_to_date": up_to_date,
                 "detail": "À jour" if up_to_date else f"Migration requise ({current} → {head})",
             }
@@ -362,6 +418,7 @@ class SetupEngine:
         """Lance le pull d'un modèle Ollama (bloquant jusqu'à complétion)."""
         try:
             import httpx
+
             base = settings.OLLAMA_BASE_URL.rstrip("/")
             async with httpx.AsyncClient(timeout=600) as client:
                 r = await client.post(f"{base}/api/pull", json={"name": model, "stream": False})
@@ -388,8 +445,9 @@ class SetupEngine:
             {
                 "id": "env",
                 "label": "Fichier .env",
-                "detail": "Variables obligatoires renseignées" if env_ok
-                          else f"Champs manquants : {', '.join(missing)}",
+                "detail": "Variables obligatoires renseignées"
+                if env_ok
+                else f"Champs manquants : {', '.join(missing)}",
                 "done": env_ok,
             },
             {
@@ -417,7 +475,7 @@ class SetupEngine:
                 "id": "llm",
                 "label": "Fournisseur IA",
                 "detail": f"Provider : {current.get('LLM_PROVIDER', '?')} — "
-                          f"Modèle : {current.get('OLLAMA_MODEL') or current.get('LLM_MODEL', '?')}",
+                f"Modèle : {current.get('OLLAMA_MODEL') or current.get('LLM_MODEL', '?')}",
                 "done": filled("LLM_PROVIDER"),
                 "action": "test_llm",
             },
@@ -439,9 +497,7 @@ class SetupEngine:
 
     async def full_status(self) -> dict:
         """Statut global de tous les services — utilisé pour le dashboard."""
-        db, minio, llm = await asyncio.gather(
-            self.test_db(), self.test_minio(), self.test_llm()
-        )
+        db, minio, llm = await asyncio.gather(self.test_db(), self.test_minio(), self.test_llm())
         return {
             "db": db,
             "minio": minio,

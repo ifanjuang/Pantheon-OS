@@ -5,6 +5,7 @@ POST /capture/upload                    -> upload audio + lancement pipeline
 GET  /capture/sessions/{affaire_id}     -> liste des captures d'une affaire
 GET  /capture/sessions/detail/{capture_id} -> detail d'une capture
 """
+
 import uuid
 from typing import Annotated
 

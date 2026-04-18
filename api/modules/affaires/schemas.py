@@ -7,8 +7,27 @@ from pydantic import BaseModel, field_validator
 PHASES_VALIDES = {"ESQ", "APS", "APD", "PRO", "ACT", "VISA", "DET", "AOR"}
 
 ERP_TYPES = {
-    "J", "L", "M", "N", "O", "P", "R", "S", "T", "U", "V", "W", "X", "Y",
-    "PA", "CTS", "SG", "OA", "GA", "EF", "REF",
+    "J",
+    "L",
+    "M",
+    "N",
+    "O",
+    "P",
+    "R",
+    "S",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X",
+    "Y",
+    "PA",
+    "CTS",
+    "SG",
+    "OA",
+    "GA",
+    "EF",
+    "REF",
 }
 ERP_CATEGORIES = {"1", "2", "3", "4", "5"}
 

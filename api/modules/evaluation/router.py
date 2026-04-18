@@ -9,6 +9,7 @@ Accessible aux rôles admin / moe. L'exécution est synchrone (datasets courts,
 < 30 cas). Pour un run sur CI long, passer `dry_run=true` pour valider le
 parsing sans coûter de LLM.
 """
+
 from typing import Optional
 from uuid import UUID
 
