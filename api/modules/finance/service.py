@@ -137,7 +137,7 @@ async def get_dashboard(db: AsyncSession, affaire_id: UUID) -> dict:
     )
     lots = lots_result.scalars().all()
     montant_marches_initial = sum(
-        float(l.montant_marche) for l in lots if l.montant_marche
+        float(lot.montant_marche) for lot in lots if lot.montant_marche
     )
 
     # Avenants

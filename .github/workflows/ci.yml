@@ -125,8 +125,8 @@ jobs:
 
       - name: Audit dependencies
         working-directory: api
-        # --fail-on severity high : bloque la PR si CVE haute/critique
-        run: pip-audit -r requirements.txt --fail-on severity high
+        # pip-audit exits 1 on any vulnerability; --ignore-vuln for known false-positives
+        run: pip-audit -r requirements.txt
 
   # ── Évaluation agents (OpenClaw) ───────────────────────────────────
   # Activé uniquement sur main/develop pour éviter la surconsommation LLM

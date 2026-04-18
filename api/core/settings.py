@@ -80,6 +80,12 @@ class Settings(BaseSettings):
     # ── Capture / Whisper ────────────────────────────────────────
     WHISPER_ENDPOINT: Optional[str] = None  # ex: http://whisper:9000/v1/audio/transcriptions
 
+    # ── OCR / GLM-4V ─────────────────────────────────────────────
+    GLM_OCR_ENDPOINT: Optional[str] = None   # ex: https://open.bigmodel.cn/api/paas/v4
+    GLM_OCR_API_KEY: Optional[str] = None    # Zhipu API key (cloud) ou vide si self-hosted
+    GLM_OCR_MODEL: str = "glm-4v"
+    GLM_OCR_MIN_CHARS: int = 100             # déclenche l'OCR si texte extrait < seuil
+
     # ── Telegram ─────────────────────────────────────────────────
     TELEGRAM_TOKEN: Optional[str] = None
     TELEGRAM_DEFAULT_CHAT_ID: Optional[str] = None

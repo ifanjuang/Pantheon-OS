@@ -6,7 +6,6 @@ Orchestra — nœuds de synthèse et mémoire (M4).
 """
 from uuid import UUID
 
-from uuid import UUID
 
 from ._shared import (
     OrchestraState,

@@ -62,10 +62,10 @@ class Affaire(Base):
         DateTime(timezone=True), nullable=False, default=_now, onupdate=_now
     )
 
-    permissions: Mapped[list["AffairePermission"]] = relationship(  # type: ignore[name-defined]
+    permissions: Mapped[list["AffairePermission"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
         back_populates="affaire", cascade="all, delete-orphan"
     )
-    documents: Mapped[list["Document"]] = relationship(  # type: ignore[name-defined]
+    documents: Mapped[list["Document"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
         back_populates="affaire", cascade="all, delete-orphan"
     )
 

@@ -318,7 +318,8 @@ class SetupEngine:
         try:
             from alembic.config import Config
             from alembic import command as alembic_command
-            import io, contextlib
+            import io
+            import contextlib
 
             cfg = Config("alembic.ini")
             buf = io.StringIO()

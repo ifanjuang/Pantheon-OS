@@ -121,5 +121,5 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ── Routes core (non-modulaires) ─────────────────────────────────
-from core.health import router as health_router
+from core.health import router as health_router  # noqa: E402
 app.include_router(health_router)

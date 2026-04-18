@@ -1,0 +1,5 @@
+name: control
+version: 1.0.0
+description: "Control plane — visibilité système, traçabilité des runs, WebSocket temps réel"
+prefix: /control
+depends_on: [orchestra, agent, monitoring]

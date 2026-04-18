@@ -62,4 +62,4 @@ class AffairePermission(Base):
     role_override: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
     user: Mapped["User"] = relationship(back_populates="permissions")
-    affaire: Mapped["Affaire"] = relationship(back_populates="permissions")  # type: ignore[name-defined]
+    affaire: Mapped["Affaire"] = relationship(back_populates="permissions")  # type: ignore[name-defined]  # noqa: F821

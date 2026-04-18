@@ -130,6 +130,28 @@ class IngestPipeline:
         finally:
             Path(tmp_path).unlink(missing_ok=True)
 
+        # OCR fallback — scanned PDFs / images with little native text
+        ocr_endpoint = getattr(settings, "GLM_OCR_ENDPOINT", None)
+        ocr_min = getattr(settings, "GLM_OCR_MIN_CHARS", 100)
+        if ocr_endpoint and documents:
+            native_text = " ".join(doc.get_content() for doc in documents)
+            if len(native_text.strip()) < ocr_min:
+                try:
+                    from core.services.ocr_service import OcrService
+                    ocr_result = await OcrService.extract_text(file_bytes, filename)
+                    if ocr_result["text"].strip():
+                        from llama_index.core import Document as LIDocument
+                        documents = [LIDocument(text=ocr_result["text"])]
+                        extra_meta = {
+                            **extra_meta,
+                            "ocr_provider": ocr_result.get("ocr_provider", ""),
+                            "extraction_mode": "ocr",
+                        }
+                        log.info("rag.ocr_fallback_used", filename=filename,
+                                 chars=len(ocr_result["text"]))
+                except Exception as exc:
+                    log.warning("rag.ocr_fallback_failed", filename=filename, error=str(exc))
+
         if not documents:
             log.warning("rag.ingest_empty", document_id=str(document_id), filename=filename)
             return 0

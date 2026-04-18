@@ -215,7 +215,7 @@ async def run_agent(
     try:
         for iteration in range(max_iterations):
             llm_iterations += 1
-            t_iter = time.monotonic()
+            time.monotonic()
 
             response = await _llm_react_call(messages)
 

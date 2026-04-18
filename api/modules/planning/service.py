@@ -403,8 +403,8 @@ async def get_health(db: AsyncSession, affaire_id: UUID) -> dict:
     j_a_venir = sum(1 for j in jalons if j.statut == "a_venir")
 
     # ── Lots ──────────────────────────────────────────────────────────
-    l_en_cours = sum(1 for l in lots if l.statut == "en_cours")
-    l_termines = sum(1 for l in lots if l.statut == "termine")
+    l_en_cours = sum(1 for lot in lots if lot.statut == "en_cours")
+    l_termines = sum(1 for lot in lots if lot.statut == "termine")
 
     # ── Score 0-100 ───────────────────────────────────────────────────
     # Pénalités : tâches en retard, jalons manqués, bloquées

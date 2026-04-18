@@ -79,7 +79,7 @@ async def publish(channel: str, payload: dict, pool: asyncpg.Pool | None = None)
     """Envoie un NOTIFY sur un channel PostgreSQL."""
     pool = pool or get_pool()
     async with pool.acquire() as conn:
-        await conn.execute(f"SELECT pg_notify($1, $2)", channel, json.dumps(payload))
+        await conn.execute("SELECT pg_notify($1, $2)", channel, json.dumps(payload))
     log.debug("events.published", channel=channel, event_type=payload.get("event_type"))
 
 

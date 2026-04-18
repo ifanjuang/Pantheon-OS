@@ -46,7 +46,7 @@ async def _check_llm() -> str:
 async def _check_redis() -> str:
     try:
         from core.queue import get_queue
-        pool = await get_queue()
+        await get_queue()
         # ARQ pool exposes the redis connection
         return "ok"
     except Exception:

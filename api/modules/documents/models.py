@@ -57,7 +57,7 @@ class Document(Base):
         DateTime(timezone=True), nullable=False, default=_now
     )
 
-    affaire: Mapped["Affaire"] = relationship(back_populates="documents")  # type: ignore[name-defined]
+    affaire: Mapped["Affaire"] = relationship(back_populates="documents")  # type: ignore[name-defined]  # noqa: F821
     chunks: Mapped[list["Chunk"]] = relationship(
         back_populates="document", cascade="all, delete-orphan"
     )
@@ -72,8 +72,6 @@ def _build_chunk_table():
     Si pgvector n'est pas disponible (dev local sans la lib), la colonne embedding
     est omise — la migration réelle l'inclura toujours.
     """
-    extra_cols = {}
-    extra_indexes = []
 
     if _VECTOR_AVAILABLE:
         from pgvector.sqlalchemy import Vector as V

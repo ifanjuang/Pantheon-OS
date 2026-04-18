@@ -125,6 +125,40 @@ DEFINITIONS = [
     {
         "type": "function",
         "function": {
+            "name": "deep_search",
+            "description": (
+                "Recherche web approfondie (pattern OpenSeeker) : lance une requête, "
+                "lit le contenu complet des pages les plus pertinentes et retourne "
+                "toutes les sources consolidées. Idéal pour les sujets normatifs, "
+                "réglementaires ou techniques nécessitant plusieurs sources (DTU, CCAG, RE2020...). "
+                "Plus lent que web_search mais beaucoup plus complet. "
+                "Budget max_pages contrôle le coût (défaut 3 pages)."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "Requête principale de recherche",
+                    },
+                    "max_pages": {
+                        "type": "integer",
+                        "default": 3,
+                        "description": "Nombre max de pages à lire (1-5). Budget LLM.",
+                    },
+                    "restrict_to_trusted": {
+                        "type": "boolean",
+                        "default": True,
+                        "description": "Restreindre aux sources officielles MOE",
+                    },
+                },
+                "required": ["query"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "fetch_url",
             "description": (
                 "Récupère et extrait le contenu textuel complet d'une URL (page web ou PDF en ligne). "
@@ -177,6 +211,8 @@ async def execute_tool(
         return await _get_affaire_info(db, affaire_id), []
     if name == "web_search":
         return await _web_search(args)
+    if name == "deep_search":
+        return await _deep_search(args)
     if name == "fetch_url":
         return await _fetch_url(args)
     return f"[outil inconnu : {name}]", []
@@ -318,6 +354,63 @@ async def _web_search(args: dict) -> tuple[str, list[dict]]:
 
     lines.append("— Utilise fetch_url(url) pour lire le contenu complet d'une source.")
     return "\n".join(lines), sources
+
+
+async def _deep_search(args: dict) -> tuple[str, list[dict]]:
+    """
+    Pattern OpenSeeker : search → fetch N pages → retourne tout le contenu brut.
+    Budget: max_pages (défaut 3, max 5). Timeout global 30s.
+    """
+    import asyncio as _asyncio
+
+    query = args["query"]
+    max_pages = max(1, min(args.get("max_pages", 3), 5))
+    restrict = args.get("restrict_to_trusted", True)
+
+    # Étape 1 — recherche web
+    search_text, search_sources = await _web_search({
+        "query": query,
+        "num_results": max_pages * 2,
+        "restrict_to_trusted": restrict,
+    })
+
+    urls = [s["document_id"] for s in search_sources if s.get("document_id")][:max_pages]
+    if not urls:
+        return search_text, search_sources
+
+    # Étape 2 — lecture parallèle des pages (budget : 3 000 chars / page)
+    fetch_tasks = [_fetch_url({"url": url, "max_chars": 3000}) for url in urls]
+    try:
+        page_results = await _asyncio.wait_for(
+            _asyncio.gather(*fetch_tasks, return_exceptions=True),
+            timeout=30,
+        )
+    except _asyncio.TimeoutError:
+        log.warning("deep_search.timeout", query=query)
+        return search_text, search_sources
+
+    all_content = [
+        f"=== DEEP SEARCH : « {query} » ===",
+        f"Sources trouvées : {len(urls)} pages",
+        "",
+        search_text,
+        "",
+        "=== CONTENU DES PAGES ===",
+    ]
+    all_sources = list(search_sources)
+    fetched = 0
+
+    for url, result in zip(urls, page_results):
+        if isinstance(result, Exception):
+            log.warning("deep_search.fetch_failed", url=url, error=str(result))
+            continue
+        page_text, page_sources = result
+        all_content.append(page_text)
+        all_sources.extend(page_sources)
+        fetched += 1
+
+    log.info("deep_search.done", query=query, pages_fetched=fetched, max_pages=max_pages)
+    return "\n\n".join(all_content), all_sources
 
 
 async def _fetch_url(args: dict) -> tuple[str, list[dict]]:

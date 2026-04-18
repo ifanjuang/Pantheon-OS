@@ -10,7 +10,10 @@ Jobs disponibles :
   agent_job       → run_agent()
 """
 import asyncio
+import functools
+import json
 import logging
+import time
 from uuid import UUID
 
 from arq import create_pool, cron
@@ -20,6 +23,33 @@ from core.settings import settings
 from database import AsyncSessionLocal
 
 log = logging.getLogger("arq.worker")
+
+_DLQ_KEY = "arq:dlq"
+_DLQ_MAX = 1000
+
+
+def _dlq_wrap(func):
+    """Décore un job ARQ pour pousser les échecs dans la Dead-Letter Queue Redis."""
+    @functools.wraps(func)
+    async def wrapper(ctx, *args, **kwargs):
+        try:
+            return await func(ctx, *args, **kwargs)
+        except Exception as exc:
+            try:
+                redis = ctx.get("redis")
+                if redis:
+                    entry = json.dumps({
+                        "job_id": ctx.get("job_id", "unknown"),
+                        "function": func.__name__,
+                        "error": str(exc)[:500],
+                        "failed_at": time.time(),
+                    })
+                    await redis.lpush(_DLQ_KEY, entry)
+                    await redis.ltrim(_DLQ_KEY, 0, _DLQ_MAX - 1)
+            except Exception:
+                pass
+            raise
+    return wrapper
 
 
 # ── Jobs ──────────────────────────────────────────────────────────────────────
@@ -397,11 +427,18 @@ async def weekly_summary_job(ctx):
 
 class WorkerSettings:
     functions = [
-        orchestra_job, agent_job, memory_job, telegram_message_job,
-        capture_job, memory_consolidation_job,
-        analyze_chantier_obs_job, qualify_nc_job,
-        ingest_courrier_job, draft_courrier_job,
-        daily_alerts_job, weekly_summary_job,
+        _dlq_wrap(orchestra_job),
+        _dlq_wrap(agent_job),
+        _dlq_wrap(memory_job),
+        _dlq_wrap(telegram_message_job),
+        _dlq_wrap(capture_job),
+        memory_consolidation_job,
+        _dlq_wrap(analyze_chantier_obs_job),
+        _dlq_wrap(qualify_nc_job),
+        _dlq_wrap(ingest_courrier_job),
+        _dlq_wrap(draft_courrier_job),
+        daily_alerts_job,
+        weekly_summary_job,
     ]
     cron_jobs = [
         # Consolidation mémoire : 1x/jour à 03:00 UTC

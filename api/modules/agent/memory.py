@@ -253,7 +253,7 @@ async def consolidate_memories(
     total_consolidated = 0
 
     for group in groups:
-        a_name, a_id, category, count = group.agent_name, group.affaire_id, group.category, group.cnt
+        a_name, a_id, category, _count = group.agent_name, group.affaire_id, group.category, group.cnt
         try:
             # Charger les leçons de ce groupe
             lessons_rows = await db.execute(

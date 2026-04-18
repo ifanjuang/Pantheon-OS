@@ -1,0 +1,61 @@
+[
+  {
+    "task_id": "cm-search-001",
+    "title": "Recherche norme DTU RE2020",
+    "type": "search",
+    "agent": "apollon",
+    "instruction": "Quelles sont les exigences de la RE2020 concernant les ponts thermiques dans les bâtiments résidentiels neufs ?",
+    "affaire_code": "CLW-BENCH",
+    "expected": {
+      "contains": ["RE2020", "pont thermique"],
+      "not_contains": ["je ne sais pas", "impossible"],
+      "min_length": 200,
+      "min_score": 0.6
+    },
+    "timeout_s": 90
+  },
+  {
+    "task_id": "cm-compliance-001",
+    "title": "Vérification conformité CCAG",
+    "type": "compliance",
+    "agent": "themis",
+    "instruction": "Dans le cadre du CCAG-Travaux, quel est le délai légal pour répondre à une réclamation d'entreprise ? Cite l'article applicable.",
+    "affaire_code": "CLW-BENCH",
+    "expected": {
+      "contains": ["CCAG", "délai"],
+      "not_contains": ["je ne peux pas"],
+      "min_length": 150,
+      "min_score": 0.5
+    },
+    "timeout_s": 60
+  },
+  {
+    "task_id": "cm-analysis-001",
+    "title": "Analyse faisabilité technique",
+    "type": "document_analysis",
+    "agent": "hephaistos",
+    "instruction": "Pour une façade en bardage bois sur une construction de 4 niveaux en zone côtière (vent fort, embruns), quels sont les points de vigilance techniques principaux selon les DTU en vigueur ?",
+    "affaire_code": "CLW-BENCH",
+    "expected": {
+      "contains": ["DTU", "bardage"],
+      "not_contains": ["désolé"],
+      "min_length": 300,
+      "min_score": 0.5
+    },
+    "timeout_s": 90
+  },
+  {
+    "task_id": "cm-planning-001",
+    "title": "Délai légal et impact planning",
+    "type": "planning",
+    "agent": "chronos",
+    "instruction": "Le permis de construire a été déposé le 1er mars. Le délai d'instruction est de 3 mois. Quelle est la date d'obtention prévisionnelle ? Si le PC est accordé, quel délai faut-il respecter avant l'ouverture de chantier ?",
+    "affaire_code": "CLW-BENCH",
+    "expected": {
+      "contains": ["juin", "1er juin"],
+      "min_length": 100,
+      "min_score": 0.5
+    },
+    "timeout_s": 60
+  }
+]
