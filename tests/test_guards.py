@@ -273,7 +273,7 @@ class TestVetoPatterns:
 class TestMemoryPromotion:
     async def test_promotable_lesson_creates_agence_memory(self, db, affaire):
         """Une leçon promotable crée aussi une entrée scope=agence pour Mnémosyne."""
-        import uuid, json
+        import uuid
         from unittest.mock import AsyncMock, MagicMock, patch
         from modules.agent.models import AgentMemory
         from sqlalchemy import select
@@ -338,7 +338,7 @@ class TestMemoryPromotion:
 
     async def test_non_promotable_lesson_no_agence_memory(self, db, affaire):
         """Une leçon non-promotable ne crée pas d'entrée agence."""
-        import uuid, json
+        import uuid
         from unittest.mock import AsyncMock, MagicMock, patch
         from modules.agent.models import AgentMemory
         from sqlalchemy import select

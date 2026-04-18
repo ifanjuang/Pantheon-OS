@@ -32,9 +32,9 @@ from core.settings import settings
 from database import Base, get_db
 
 # ── URL base de données de test ──────────────────────────────────────────────
-# Remplace le nom de la base par arceus_test
-# Gère les deux cas : @db: (docker) et @localhost: (local)
-TEST_DB_URL = settings.DATABASE_URL.replace("/arceus", "/arceus_test")
+# Remplace le nom de la base par arceus_test quelle que soit la base source.
+# rsplit sur le dernier "/" évite de corrompre l'utilisateur ou le mot de passe.
+TEST_DB_URL = settings.DATABASE_URL.rsplit("/", 1)[0] + "/arceus_test"
 
 
 # ── Engine de test (session scope — créé une seule fois) ─────────────────────

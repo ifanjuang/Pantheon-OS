@@ -127,8 +127,9 @@ jobs:
 
       - name: Audit dependencies
         working-directory: api
-        # pip-audit exits 1 on any vulnerability; --ignore-vuln for known false-positives
-        run: pip-audit -r requirements.txt
+        # GHSA-jr27-m4p2-rc6r: pyasn1<0.5.0 pulled by python-jose 3.4.0 (latest);
+        # cannot upgrade pyasn1 without replacing the JWT library.
+        run: pip-audit -r requirements.txt --ignore-vuln GHSA-jr27-m4p2-rc6r
 
   # ── Évaluation agents (OpenClaw) ───────────────────────────────────
   # Activé uniquement sur main/develop pour éviter la surconsommation LLM
