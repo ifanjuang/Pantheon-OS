@@ -45,6 +45,12 @@ class Affaire(Base):
     zone_risque: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     # {inondation: bool, sismique: str, archeo: bool, bruit: str, retrait_gonflement: str}
 
+    # Domaine professionnel — migration 0027
+    domain: Mapped[str] = mapped_column(String(64), nullable=False, default="btp", server_default="btp")
+    # btp | droit | audit | conseil | medecine | it | ...
+    domain_metadata: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # Métadonnées domaine-spécifiques (ex: spécialité, certification, juridiction…)
+
     # Classification ERP — migration 0020
     erp_type: Mapped[str | None] = mapped_column(String(10), nullable=True)
     # J L M N O P R S T U V W X Y PA CTS SG OA GA EF REF — NULL si non-ERP

@@ -20,7 +20,9 @@ Règle de calibrage :
     pas à une simple mention du concept
 """
 
+import functools
 import re
+from pathlib import Path
 from typing import Optional
 
 from modules.guards.schemas import VetoDecision
@@ -131,16 +133,56 @@ _COMPILED: dict[str, list[tuple[re.Pattern, str]]] = {
 }
 
 
+@functools.lru_cache(maxsize=1)
+def _load_domain_compiled() -> dict[str, list[tuple[re.Pattern, str]]]:
+    """Charge et compile les veto_patterns du domaine actif depuis agents/domains/{DOMAIN}.yaml."""
+    try:
+        import yaml  # type: ignore[import]
+    except ImportError:
+        return {}
+    try:
+        from core.settings import settings
+
+        domain = getattr(settings, "DOMAIN", "btp")
+    except Exception:
+        domain = "btp"
+
+    agents_dir = Path(__file__).parent.parent.parent.parent / "agents"
+    overlay_path = agents_dir / "domains" / f"{domain}.yaml"
+    if not overlay_path.exists():
+        return {}
+    try:
+        data = yaml.safe_load(overlay_path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            return {}
+        veto_raw: dict = data.get("veto_patterns", {})
+        result: dict[str, list[tuple[re.Pattern, str]]] = {}
+        for agent_key, patterns in veto_raw.items():
+            compiled = []
+            for entry in patterns:
+                if isinstance(entry, list) and len(entry) == 2:
+                    try:
+                        compiled.append((re.compile(entry[0], re.IGNORECASE), entry[1]))
+                    except re.error:
+                        pass
+            if compiled:
+                result[agent_key] = compiled
+        return result
+    except Exception:
+        return {}
+
+
 def fast_veto_check(agent: str, output: str) -> Optional[VetoDecision]:
     """Couche 0 : détection déterministe de veto sans appel LLM.
 
-    Teste d'abord les patterns génériques (tout agent), puis les patterns
-    spécifiques à l'agent émetteur.
+    Teste les patterns génériques, les patterns agent statiques (BTP), puis
+    les patterns domaine-spécifiques chargés depuis agents/domains/{DOMAIN}.yaml.
 
     Retourne un VetoDecision bloquant si un pattern critique est trouvé,
     None sinon → l'appelant passe alors en couche 1 (LLM structured_veto).
     """
     agent_lower = agent.lower()
+    domain_compiled = _load_domain_compiled()
 
     # Patterns génériques d'abord (toujours appliqués)
     for pattern, condition_levee in _COMPILED["_generic"]:
@@ -154,9 +196,20 @@ def fast_veto_check(agent: str, output: str) -> Optional[VetoDecision]:
                 condition_levee=condition_levee,
             )
 
-    # Patterns spécifiques à l'agent
-    agent_patterns = _COMPILED.get(agent_lower, [])
-    for pattern, condition_levee in agent_patterns:
+    # Patterns domaine actif (priorité sur les patterns statiques BTP)
+    for pattern, condition_levee in domain_compiled.get(agent_lower, []):
+        m = pattern.search(output)
+        if m:
+            return VetoDecision(
+                veto=True,
+                agent=agent,
+                severity="bloquant",
+                motif=f"Pattern domaine {agent_lower} : «{m.group(0)}»",
+                condition_levee=condition_levee,
+            )
+
+    # Patterns statiques spécifiques à l'agent (BTP — fallback si domaine non-BTP sans pattern)
+    for pattern, condition_levee in _COMPILED.get(agent_lower, []):
         m = pattern.search(output)
         if m:
             return VetoDecision(

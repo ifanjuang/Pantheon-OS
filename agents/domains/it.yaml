@@ -1,0 +1,51 @@
+name: "Direction de projets IT & Infrastructure"
+label: "IT/Infra"
+description: "DSI, cabinets de conseil IT, intégrateurs, éditeurs logiciels — projets complexes à forte technicité."
+
+context_injection: |
+  ## Domaine : Direction de projets IT & Infrastructure
+  Tu travailles pour une DSI, un cabinet de conseil IT, un intégrateur ou un éditeur logiciel.
+  Missions : gestion de projets IT complexes, architecture systèmes, cybersécurité, migrations cloud, transformation digitale, gouvernance des données.
+  Acteurs : équipes dev/ops, architectes, RSSI, DPO, prestataires, fournisseurs cloud, utilisateurs métier, direction, régulateurs (CNIL, ANSSI).
+  Réglementation : RGPD, directive NIS2, référentiel SecNumCloud, normes ISO 27001/27005, DORA (secteur financier), RGS (secteur public).
+  Documents clés : DAT (dossier d'architecture technique), SLA, PSSI, analyses de risque EBIOS, tests d'intrusion, PRA/PCA, cahiers de recette.
+  Impératifs : sécurité des systèmes, continuité de service, traçabilité des changements, gestion des vulnérabilités, protection des données personnelles.
+  Adapte toutes tes analyses à ce contexte IT. Remplace les références BTP par des références techniques IT et sécurité.
+
+trusted_sources:
+  - anssi.fr
+  - cnil.fr
+  - cert.fr
+  - iso.org
+  - nist.gov
+  - legifrance.gouv.fr
+  - eur-lex.europa.eu
+
+criticality_keywords:
+  c5:
+    - "incident de sécurité majeur"
+    - "violation de données personnelles"
+    - "ransomware"
+    - "compromission système critique"
+    - "panne de production critique"
+    - "attaque en cours"
+  c4:
+    - "mise en production majeure"
+    - "modification architecture"
+    - "déploiement critique"
+    - "accès données sensibles"
+    - "changement de configuration production"
+
+veto_patterns:
+  themis:
+    - ["\\bviolation\\s+(de\\s+donn[eé]es|RGPD)\\s+(confirm[eé]e|avér[eé]e)\\b", "Notification CNIL obligatoire sous 72h — informer le DPO immédiatement"]
+    - ["\\bnon[- ]conforme\\s+(RGPD|ISO\\s+27001|NIS2|RGS)\\b", "Plan de remédiation obligatoire avant toute mise en production"]
+    - ["\\baccès\\s+non\\s+autorisé\\s+(confirmé|détecté)\\b", "Suspension des accès, investigation forensique, notification ANSSI si OIV"]
+    - ["\\bresponsabilit[eé]\\s+(du\\s+sous[- ]traitant|contractuelle)\\s+engag[eé]e\\b", "Activer les clauses contractuelles, documenter formellement"]
+  hephaistos:
+    - ["\\bvulnérabilit[eé]\\s+(critique|CVSS\\s+[89]|CVSS\\s+10)\\b", "Patch d'urgence obligatoire — planifier maintenance immédiate"]
+    - ["\\barchitecture\\s+(non\\s+viable|défaillante|non\\s+scalable)\\b", "Revoir l'architecture avant tout développement supplémentaire"]
+    - ["\\bdette\\s+technique\\s+(critique|bloquante)\\b", "Sprint dédié obligatoire avant nouvelle feature"]
+  apollon:
+    - ["\\bcontradiction\\s+(avec\\s+l'architecture|technique)\\s+(confirm[eé]e|établie)\\b", "Arbitrage par l'architecte principal — pas de déploiement avant résolution"]
+    - ["\\bincoh[eé]rence\\s+(de\\s+s[eé]curit[eé]|réglementaire\\s+IT)\\s+(confirm[eé]e)\\b", "Audit de sécurité obligatoire avant mise en production"]

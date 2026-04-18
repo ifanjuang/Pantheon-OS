@@ -1,0 +1,48 @@
+name: "Conseil en stratégie & management"
+label: "Conseil"
+description: "Cabinets de conseil en stratégie, management, transformation, organisation."
+
+context_injection: |
+  ## Domaine : Conseil en stratégie & management
+  Tu travailles pour un cabinet de conseil (stratégie, management, transformation, organisation).
+  Missions : diagnostic organisationnel, stratégie de croissance, transformation digitale, restructuration, M&A advisory, due diligence opérationnelle.
+  Acteurs : clients (COMEX, DAF, DRH, DSI), équipes internes du client, actionnaires, investisseurs, régulateurs sectoriels.
+  Livrables clés : diagnostics, plans stratégiques, business plans, roadmaps, rapports d'analyse, présentations COMEX, synthèses décisionnelles.
+  Impératifs : confidentialité client absolue, objectivité analytique, recommandations actables, gestion des parties prenantes.
+  Méthodes : analyse SWOT/PESTEL, modèles financiers, benchmarks, interviews terrain, ateliers de co-construction, cartographies.
+  Adapte toutes tes analyses à ce contexte de conseil. Les références techniques BTP sont à remplacer par des références managériales et stratégiques.
+
+trusted_sources:
+  - hbr.org
+  - mckinsey.com/insights
+  - bcg.com/publications
+  - deloitte.com/insights
+  - bpifrance-lelab.fr
+  - insee.fr
+  - banque-france.fr
+
+criticality_keywords:
+  c5:
+    - "risque réputationnel majeur"
+    - "défaillance imminente"
+    - "fraude interne confirmée"
+    - "rupture stratégique irréversible"
+    - "perte client critique"
+  c4:
+    - "décision d'investissement majeure"
+    - "engagement contractuel client"
+    - "recommandation engageante"
+    - "restructuration significative"
+    - "acquisition ou cession"
+
+veto_patterns:
+  themis:
+    - ["\\bconfidentialit[eé]\\s+(violée|compromise|non\\s+respectée)\\b", "Suspension immédiate — informer le managing partner et le client"]
+    - ["\\bconflit\\s+d['']int[eé]r[eê]ts?\\b", "Se déporter, documenter, trouver un autre lead partner"]
+    - ["\\bbiais\\s+(confirmé|avéré|systématique)\\s+(dans\\s+l'analyse)\\b", "Refaire l'analyse avec une équipe indépendante"]
+    - ["\\bdonnées\\s+(falsifiées|manipulées|incorrectes)\\s+(confirmées)\\b", "Suspendre le livrable — alerter le client et refaire le diagnostic"]
+  hephaistos:
+    - ["\\binfaisabl[e]\\s+(opérationnellement|financièrement|techniquement)\\b", "Revoir les hypothèses ou proposer une alternative réaliste"]
+    - ["\\bmodèle\\s+(financier|économique)\\s+(non\\s+viable|erroné|incohérent)\\b", "Correction obligatoire avant présentation COMEX"]
+  apollon:
+    - ["\\bcontradiction\\s+(avec\\s+les\\s+données\\s+terrain|factuelle)\\s+(confirmée)\\b", "Aller vérifier sur le terrain — ne pas recommander sur hypothèses fausses"]

@@ -72,6 +72,12 @@ class Settings(BaseSettings):
     # ── Agents ───────────────────────────────────────────────────
     AGENTS_DIR: str = "/agents"
 
+    # ── Domaine métier (Pantheon OS — multi-domaine) ─────────────
+    # Détermine le contexte injecté dans tous les SOUL.md + les veto patterns chargés
+    # Valeurs supportées : btp | droit | audit | conseil | medecine | it
+    DOMAIN: str = "btp"
+    DOMAIN_LABEL: str = "Architecture & Maîtrise d'Œuvre"
+
     # ── RAG avancé ────────────────────────────────────────────────
     CONTEXTUAL_RETRIEVAL: bool = True  # enrichissement LLM par chunk à l'ingestion
     RERANK_ENABLED: bool = False  # cross-encoder reranking post-RRF

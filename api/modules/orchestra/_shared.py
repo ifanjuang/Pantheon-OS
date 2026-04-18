@@ -200,14 +200,37 @@ class OrchestraState(TypedDict):
 # ── Helpers LLM ────────────────────────────────────────────────────
 
 
+@functools.lru_cache(maxsize=1)
+def _get_domain_context() -> str:
+    """Charge le contexte domaine depuis agents/domains/{DOMAIN}.yaml (LRU cached)."""
+    try:
+        import yaml  # type: ignore[import]
+    except ImportError:
+        return ""
+    domain = getattr(settings, "DOMAIN", "btp")
+    overlay_path = AGENTS_DIR / "domains" / f"{domain}.yaml"
+    if not overlay_path.exists():
+        return ""
+    try:
+        data = yaml.safe_load(overlay_path.read_text(encoding="utf-8"))
+        return data.get("context_injection", "") if isinstance(data, dict) else ""
+    except Exception:
+        return ""
+
+
 @functools.lru_cache(maxsize=16)
 def _get_soul(agent_name: str) -> str:
-    """Charge le SOUL.md d'un agent (LRU, process lifetime). Max 3000 chars."""
+    """Charge le SOUL.md d'un agent + contexte domaine (LRU, process lifetime). Max 3000 chars."""
     soul_path = AGENTS_DIR / agent_name.lower() / "SOUL.md"
     if soul_path.exists():
         content = soul_path.read_text(encoding="utf-8")
-        return content[:3000] if len(content) > 3000 else content
-    return f"Tu es {agent_name}, expert ARCEUS. Réponds toujours en JSON strict."
+        soul = content[:3000] if len(content) > 3000 else content
+    else:
+        soul = f"Tu es {agent_name}, expert ARCEUS. Réponds toujours en JSON strict."
+    domain_ctx = _get_domain_context()
+    if domain_ctx:
+        soul = f"{soul}\n\n{domain_ctx}"
+    return soul
 
 
 @functools.lru_cache(maxsize=1)
