@@ -40,6 +40,39 @@ AGENTS_DIR = (
     else Path(__file__).parent.parent.parent.parent / "agents"
 )
 DEFAULT_AGENTS = ["themis", "athena", "chronos"]
+DEFAULT_SYNTHESIS_AGENT = "kairos"  # synthèse finale — remplace mnemosyne dans ce rôle
+
+# ── Limites cognitives par criticité (amélioration 6 — Demeter) ──────
+# Empêche la sur-complexité : plus la criticité est faible, moins d'agents.
+COGNITIVE_LIMITS: dict[str, dict] = {
+    "C1": {"max_agents": 1, "max_subtasks": 1, "max_depth": 1},
+    "C2": {"max_agents": 2, "max_subtasks": 2, "max_depth": 1},
+    "C3": {"max_agents": 4, "max_subtasks": 3, "max_depth": 2},
+    "C4": {"max_agents": 6, "max_subtasks": 5, "max_depth": 3},
+    "C5": {"max_agents": 8, "max_subtasks": 6, "max_depth": 3},
+}
+
+# ── Activation conditionnelle des agents (amélioration 3) ────────────
+# Clé absente = toujours activable. Valeur vide = jamais automatique.
+# Valeur = liste des criticités (ou patterns) déclenchant cet agent.
+AGENT_TRIGGERS: dict[str, list[str]] = {
+    # Agents existants
+    "promethee": ["C4", "C5"],               # contre-analyse : C4/C5 seulement
+    "dionysos":  ["C4", "C5", "exploration"], # créativité : C4/C5 ou pattern exploration
+    "themis":    ["C4", "C5"],               # validation finale/critique uniquement (table)
+    "hestia":    ["C3", "C4", "C5"],         # mémoire projet : pas C1/C2
+    "mnemosyne": ["C4", "C5"],               # capitalisation agence : C4/C5 seulement
+    "aphrodite": [],                         # communication externe — jamais décisionnel auto
+    "iris":      ["C4", "C5"],               # correspondance formelle : C4/C5
+    "dedale":    ["C4", "C5"],               # production dossiers complets : C4/C5
+    # Nouveaux agents Pantheon OS
+    "hera":      ["C3", "C4", "C5"],         # supervision : post-synthèse C3+
+    "artemis":   ["C1", "C2", "C3", "C4", "C5"],  # filtrage : sur demande Zeus (trim)
+    "hades":     ["C4", "C5"],               # risques : uniquement criticité haute
+    "demeter":   ["C3", "C4", "C5"],         # ressources : planification C3+
+    "poseidon":  ["C4", "C5"],               # cascade : systèmes complexes uniquement
+    "kairos":    ["C1", "C2", "C3", "C4", "C5"],  # synthèse : toujours activable
+}
 
 # Routing automatique selon criticité
 CRITICITE_ROUTING = {
@@ -50,7 +83,7 @@ CRITICITE_ROUTING = {
     "C5": {"hitl": True, "zeus": True, "veto_check": True},
 }
 VALID_AGENTS = {
-    # Perception
+    # Perception / Interface
     "hermes",
     "argos",
     # Analyse
@@ -71,6 +104,13 @@ VALID_AGENTS = {
     "aphrodite",
     # Production
     "dedale",
+    # Pantheon OS — nouveaux agents
+    "hera",       # Supervision cohérence globale
+    "artemis",    # Filtrage & recentrage
+    "hades",      # Risques & scénarios négatifs
+    "demeter",    # Optimisation ressources
+    "poseidon",   # Flux & effets cascade
+    "kairos",     # Synthèse finale
 }
 
 
@@ -144,18 +184,53 @@ class OrchestraState(TypedDict):
     # Identifiant de l'OrchestraRun en cours (disponible dès le début, passé depuis service.py)
     orchestra_run_id: str  # UUID de l'OrchestraRun — utilisé par write_memories pour lier les décisions
 
+    # ── Améliorations architecturales ───────────────────────────────────
+
+    # Score multi-critères global (amélioration 1 — tous les runs)
+    run_score: dict  # {quality: 0-100, coherence: 0-100, confidence: 0-100, risk: 0-100}
+
+    # Supervision HERA (amélioration 4 — séparation exécution/supervision)
+    hera_verdict: str  # "aligned" | "misaligned" | "degraded"
+    hera_feedback: str
+
+    # Fallback (amélioration 2 — 0=none | 1=simplified | 2=strategy_changed | 3=degraded)
+    fallback_level: int
+
 
 # ── Helpers LLM ────────────────────────────────────────────────────
 
 
+@functools.lru_cache(maxsize=1)
+def _get_domain_context() -> str:
+    """Charge le contexte domaine depuis agents/domains/{DOMAIN}.yaml (LRU cached)."""
+    try:
+        import yaml  # type: ignore[import]
+    except ImportError:
+        return ""
+    domain = getattr(settings, "DOMAIN", "btp")
+    overlay_path = AGENTS_DIR / "domains" / f"{domain}.yaml"
+    if not overlay_path.exists():
+        return ""
+    try:
+        data = yaml.safe_load(overlay_path.read_text(encoding="utf-8"))
+        return data.get("context_injection", "") if isinstance(data, dict) else ""
+    except Exception:
+        return ""
+
+
 @functools.lru_cache(maxsize=16)
 def _get_soul(agent_name: str) -> str:
-    """Charge le SOUL.md d'un agent (LRU, process lifetime). Max 3000 chars."""
+    """Charge le SOUL.md d'un agent + contexte domaine (LRU, process lifetime). Max 3000 chars."""
     soul_path = AGENTS_DIR / agent_name.lower() / "SOUL.md"
     if soul_path.exists():
         content = soul_path.read_text(encoding="utf-8")
-        return content[:3000] if len(content) > 3000 else content
-    return f"Tu es {agent_name}, expert ARCEUS. Réponds toujours en JSON strict."
+        soul = content[:3000] if len(content) > 3000 else content
+    else:
+        soul = f"Tu es {agent_name}, expert ARCEUS. Réponds toujours en JSON strict."
+    domain_ctx = _get_domain_context()
+    if domain_ctx:
+        soul = f"{soul}\n\n{domain_ctx}"
+    return soul
 
 
 @functools.lru_cache(maxsize=1)

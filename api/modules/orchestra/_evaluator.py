@@ -294,14 +294,71 @@ async def veto_check(state: OrchestraState) -> dict:
     return update
 
 
-async def score_decision(state: OrchestraState) -> dict:
-    """Score automatique pour C4/C5 — appelle ScoringService.score_auto().
-    Pour C1-C3, nœud passant (no-op)."""
-    criticite = state.get("criticite", "C2")
-    if criticite not in ("C4", "C5"):
-        log.info("orchestra.score_skipped", criticite=criticite)
-        return {}
+def _compute_lightweight_run_score(state: OrchestraState) -> dict:
+    """Score multi-critères léger (amélioration 1) — règles et heuristiques, 0 LLM.
 
+    Axes :
+      quality    — couverture agents (résultats / attendus)
+      coherence  — présence et longueur de la réponse finale
+      confidence — verdict precheck (approved > trim > upgrade > clarification)
+      risk       — sévérité du veto (aucun = haute confiance)
+    """
+    results = state.get("agent_results", {})
+    n_results = len(results)
+    n_initial = max(len(state.get("initial_agents", [1])), 1)
+
+    # Quality : ratio agents ayant répondu / attendus
+    quality = min(100, int((n_results / n_initial) * 100))
+
+    # Coherence : longueur de la réponse finale
+    final = state.get("final_answer", "")
+    if not final:
+        coherence = 10
+    else:
+        coherence = min(100, 20 + len(final) // 30)
+
+    # Confidence : verdict precheck
+    precheck = state.get("precheck_verdict", "approved")
+    _confidence_map = {"approved": 90, "trim": 72, "upgrade": 60, "clarification": 35, "blocked": 10, "": 80}
+    confidence = _confidence_map.get(precheck, 70)
+
+    # Risk : sévérité veto (inversé — risk élevé = mauvais)
+    veto_sev = state.get("veto_severity", "")
+    _risk_map = {"bloquant": 15, "reserve": 45, "information": 75, "": 90}
+    risk = _risk_map.get(veto_sev, 90)
+
+    return {
+        "quality": quality,
+        "coherence": coherence,
+        "confidence": confidence,
+        "risk": risk,
+    }
+
+
+async def score_decision(state: OrchestraState) -> dict:
+    """Score décisionnel + score multi-critères global (amélioration 1).
+
+    Tous les runs : run_score {quality, coherence, confidence, risk}.
+    C4/C5 seulement : ScoringService complet (5 axes / 100 pts) en plus.
+    """
+    criticite = state.get("criticite", "C2")
+
+    # ── Score multi-critères léger (tous les runs) ────────────────────
+    run_score = _compute_lightweight_run_score(state)
+    log.info(
+        "orchestra.run_score",
+        criticite=criticite,
+        quality=run_score["quality"],
+        coherence=run_score["coherence"],
+        confidence=run_score["confidence"],
+        risk=run_score["risk"],
+    )
+    updates: dict = {"run_score": run_score}
+
+    if criticite not in ("C4", "C5"):
+        return updates
+
+    # ── Score décisionnel complet C4/C5 (ScoringService) ─────────────
     from modules.scoring.service import ScoringService
     from database import AsyncSessionLocal
 
@@ -324,11 +381,12 @@ async def score_decision(state: OrchestraState) -> dict:
             verdict=score.verdict,
             total=score.total_final,
         )
-        return {
+        updates.update({
             "score_id": str(score.id),
             "score_verdict": score.verdict,
             "score_total": score.total_final,
-        }
+        })
     except Exception as exc:
         log.error("orchestra.score_failed", error=str(exc))
-        return {}
+
+    return updates

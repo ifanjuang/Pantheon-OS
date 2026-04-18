@@ -10,12 +10,33 @@ Orchestra — nœuds de planification (M1).
 from ._shared import (
     OrchestraState,
     VALID_AGENTS,
+    AGENT_TRIGGERS,
+    COGNITIVE_LIMITS,
     _get_agent_summary,
     _llm_call,
     _parse_json_response,
     _zeus_system,
     log,
 )
+
+
+def _filter_agents_by_triggers(agents: list[str], criticite: str) -> list[str]:
+    """Filtre les agents selon leurs conditions d'activation (amélioration 3).
+
+    Un agent sans entrée dans AGENT_TRIGGERS est toujours activable.
+    Un agent avec AGENT_TRIGGERS[agent] = [] n'est jamais activé automatiquement.
+    Un agent avec AGENT_TRIGGERS[agent] = ["C4", "C5"] s'active seulement pour ces criticités.
+    """
+    result = []
+    for agent in agents:
+        triggers = AGENT_TRIGGERS.get(agent)
+        if triggers is None:
+            result.append(agent)
+        elif criticite in triggers:
+            result.append(agent)
+        else:
+            log.debug("orchestra.agent_trigger_blocked", agent=agent, criticite=criticite)
+    return result
 
 # ── Prompt Zeus unifié ───────────────────────────────────────────────
 
@@ -224,10 +245,33 @@ async def zeus_distribute(state: OrchestraState) -> dict:
     Remplace l'ancien pipeline plan_agents (N appels LLM) + zeus_distribute :
     les capacités sont extraites de SOUL.md (LRU cache, 0 appel LLM) et
     transmises directement à Zeus pour la planification en une seule étape.
+
+    Améliorations :
+      - Amélioration 3 : filtre les agents selon AGENT_TRIGGERS + criticité
+      - Amélioration 6 : plafonne le nombre d'agents selon COGNITIVE_LIMITS
     """
     from langgraph.types import interrupt
 
-    agents = state["initial_agents"]
+    criticite = state.get("criticite", "C2")
+    limits = COGNITIVE_LIMITS.get(criticite, COGNITIVE_LIMITS["C2"])
+
+    # ── Amélioration 3 : activation conditionnelle ────────────────────
+    raw_agents = state["initial_agents"]
+    agents = _filter_agents_by_triggers(raw_agents, criticite)
+    if not agents:
+        agents = [a for a in raw_agents if a in VALID_AGENTS] or list(VALID_AGENTS)[:2]
+
+    # ── Amélioration 6 : limite cognitive max_agents ──────────────────
+    max_agents = limits["max_agents"]
+    if len(agents) > max_agents:
+        log.info(
+            "orchestra.cognitive_limit_agents",
+            criticite=criticite,
+            before=len(agents),
+            after=max_agents,
+        )
+        agents = agents[:max_agents]
+
     agent_summaries = {a: _get_agent_summary(a) for a in agents}
     capabilities_text = "\n\n".join(f"### {agent}\n{summary}" for agent, summary in agent_summaries.items())
 
@@ -243,11 +287,19 @@ async def zeus_distribute(state: OrchestraState) -> dict:
     except Exception:
         pass  # Ne pas bloquer l'orchestration si le registry est inaccessible
 
+    # ── Amélioration 6 : limites cognitives injectées dans le prompt ──
+    limits_text = (
+        f"Contraintes cognitives [{criticite}] : "
+        f"max {max_agents} agents, "
+        f"max {limits['max_subtasks']} sous-tâches, "
+        f"profondeur max {limits['max_depth']} niveaux de dépendances."
+    )
+
     prompt = _ZEUS_UNIFIED_PROMPT.format(
         n=len(agents),
         instruction=state["instruction"],
         agent_capabilities=capabilities_text,
-        module_behaviors=module_behaviors,
+        module_behaviors=f"{module_behaviors}\n\n{limits_text}",
     )
     content = await _llm_call(_zeus_system(), prompt)
     parsed = _parse_json_response(content)
@@ -315,6 +367,17 @@ async def zeus_distribute(state: OrchestraState) -> dict:
                         "priority": 2,
                     }
                 )
+
+    # ── Amélioration 6 : limite cognitive max_subtasks ───────────────
+    max_subtasks = limits["max_subtasks"]
+    if len(subtasks) > max_subtasks:
+        log.info(
+            "orchestra.cognitive_limit_subtasks",
+            criticite=criticite,
+            before=len(subtasks),
+            after=max_subtasks,
+        )
+        subtasks = subtasks[:max_subtasks]
 
     log.info("orchestra.zeus_distributed", subtasks=[(s["id"], s["pattern"], s["agents"]) for s in subtasks])
 

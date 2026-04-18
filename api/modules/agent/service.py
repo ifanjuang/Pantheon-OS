@@ -57,26 +57,51 @@ VALID_AGENTS = {
     "aphrodite",
     # Production
     "dedale",
+    # Pantheon OS — nouveaux agents
+    "hera",
+    "artemis",
+    "hades",
+    "demeter",
+    "poseidon",
+    "kairos",
 }
 
-_DEFAULT_PROMPT = """Tu es un assistant copilote pour une agence d'architecture (MOE).
-Tu aides les chargés de projet à trouver des informations, analyser des documents
-et prendre des décisions sur leurs projets de construction.
+_DEFAULT_PROMPT = """Tu es un assistant expert au service d'une organisation professionnelle.
+Tu aides les équipes à trouver des informations, analyser des documents
+et prendre des décisions éclairées dans leur domaine d'expertise.
 
 Règles :
 - Utilise les outils disponibles pour chercher les informations avant de répondre.
 - Cite tes sources (nom du document, score de pertinence).
 - Réponds en français, de manière concise et structurée.
 - Si une information est introuvable, dis-le clairement.
-- N'invente jamais de données chiffrées (délais, coûts, surfaces).
+- N'invente jamais de données chiffrées (délais, coûts, quantités).
 """
 
 AGENTS_COMMON = (AGENTS_DIR / "AGENTS.md").read_text(encoding="utf-8") if (AGENTS_DIR / "AGENTS.md").exists() else ""
 
 
+@functools.lru_cache(maxsize=1)
+def _get_domain_context_for_agent() -> str:
+    """Charge le contexte domaine depuis agents/domains/{DOMAIN}.yaml (LRU cached)."""
+    try:
+        import yaml  # type: ignore[import]
+    except ImportError:
+        return ""
+    domain = getattr(settings, "DOMAIN", "btp")
+    overlay_path = AGENTS_DIR / "domains" / f"{domain}.yaml"
+    if not overlay_path.exists():
+        return ""
+    try:
+        data = yaml.safe_load(overlay_path.read_text(encoding="utf-8"))
+        return data.get("context_injection", "") if isinstance(data, dict) else ""
+    except Exception:
+        return ""
+
+
 @functools.lru_cache(maxsize=32)
 def _build_system_prompt(agent_name: str) -> str:
-    """Charge SOUL.md + MEMORY.md de l'agent demandé. Résultat mis en cache (process lifetime).
+    """Charge SOUL.md + MEMORY.md + contexte domaine de l'agent. Mis en cache (process lifetime).
     Fallback sur prompt par défaut si fichier absent."""
     name = agent_name.lower() if agent_name else "athena"
     if name not in VALID_AGENTS:
@@ -94,7 +119,9 @@ def _build_system_prompt(agent_name: str) -> str:
     )
     memory_section = f"\n\n## Mémoire permanente\n{memory_raw}" if has_memory else ""
     common_section = f"\n\n## Règles communes\n{AGENTS_COMMON}" if AGENTS_COMMON else ""
-    return f"{soul}{memory_section}{common_section}"
+    domain_ctx = _get_domain_context_for_agent()
+    domain_section = f"\n\n{domain_ctx}" if domain_ctx else ""
+    return f"{soul}{memory_section}{common_section}{domain_section}"
 
 
 async def _build_affaire_context(db: AsyncSession, affaire_id: UUID) -> str:
@@ -126,6 +153,11 @@ async def _build_affaire_context(db: AsyncSession, affaire_id: UUID) -> str:
             risques = [k for k, v in affaire.zone_risque.items() if v]
             if risques:
                 parts.append(f"Zones à risque : {', '.join(risques)}")
+        if getattr(affaire, "domain", None) and affaire.domain != "btp":
+            parts.append(f"Domaine : {affaire.domain}")
+        if getattr(affaire, "domain_metadata", None):
+            for k, v in affaire.domain_metadata.items():
+                parts.append(f"{k} : {v}")
         return "\n".join(parts)
     except Exception:
         return ""

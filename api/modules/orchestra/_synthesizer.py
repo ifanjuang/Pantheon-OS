@@ -17,6 +17,37 @@ from ._shared import (
     log,
 )
 
+# ── Prompt HERA — supervision globale ───────────────────────────────
+
+_HERA_PROMPT = """\
+Tu es HERA, gardienne de la cohérence globale. Ton rôle est de vérifier que
+la réponse finale produite répond bien à la demande originale.
+
+## Demande originale
+{instruction}
+
+## Réponse finale produite
+{final_answer}
+
+Analyse l'alignement entre la demande et la réponse. Réponds en JSON strict :
+{{
+  "verdict": "aligned",
+  "feedback": "<explication courte, 1-2 phrases>",
+  "missing_aspects": [],
+  "alignment_score": 85
+}}
+
+Verdicts :
+- "aligned"    : la réponse couvre bien la demande (alignment_score ≥ 75)
+- "degraded"   : réponse partielle, acceptable mais incomplète (50 ≤ score < 75)
+- "misaligned" : écart significatif entre demande et réponse (score < 50)
+
+Règles :
+- Sois factuel et concis dans feedback
+- missing_aspects = liste des points non traités (vide si aligned)
+- Ne jamais bloquer l'orchestration — ton rôle est de tracer, pas d'interrompre
+"""
+
 # ── Prompt extraction décisions (Hestia post-orchestration) ──────────
 
 _DECISION_EXTRACT_PROMPT = """\
@@ -259,3 +290,89 @@ async def write_memories(state: OrchestraState) -> dict:
 
     log.info("orchestra.memories_written", count=memories_count, wiki=bool(wiki_page_id))
     return {"memories_written": memories_count, "wiki_page_id": wiki_page_id}
+
+
+async def hera_supervise(state: OrchestraState) -> dict:
+    """HERA — supervision globale : vérifie la cohérence demande/réponse (amélioration 4).
+
+    Séparation exécution (Zeus) / supervision (HERA) :
+      - Zeus exécute et orchestre
+      - HERA vérifie l'alignement global de la réponse avec l'objectif
+
+    Verdict : aligned | degraded | misaligned.
+    En cas d'échec LLM : verdict = "aligned" (permissif, ne bloque jamais).
+    """
+    final_answer = state.get("final_answer", "")
+    instruction = state.get("instruction", "")
+
+    if not final_answer or len(final_answer.strip()) < 30:
+        log.info("orchestra.hera_skipped", reason="empty_answer")
+        return {"hera_verdict": "degraded", "hera_feedback": "Réponse trop courte ou absente."}
+
+    prompt = _HERA_PROMPT.format(
+        instruction=instruction[:1500],
+        final_answer=final_answer[:3000],
+    )
+
+    try:
+        raw = await _llm_call(_zeus_system(), prompt)
+        parsed = _parse_json_response(raw)
+
+        verdict = parsed.get("verdict", "aligned")
+        if verdict not in ("aligned", "misaligned", "degraded"):
+            verdict = "aligned"
+
+        feedback = str(parsed.get("feedback", ""))[:500]
+        missing = parsed.get("missing_aspects", [])
+
+        if missing:
+            feedback = f"{feedback} Aspects manquants : {', '.join(str(m) for m in missing[:3])}."
+
+        log.info(
+            "orchestra.hera_done",
+            verdict=verdict,
+            alignment_score=parsed.get("alignment_score"),
+            missing=len(missing),
+        )
+        return {"hera_verdict": verdict, "hera_feedback": feedback}
+
+    except Exception as exc:
+        log.warning("orchestra.hera_failed", error=str(exc))
+        return {"hera_verdict": "aligned", "hera_feedback": ""}
+
+
+async def write_error_memory(
+    error: Exception,
+    instruction: str,
+    affaire_id: UUID | None,
+    criticite: str = "C2",
+) -> None:
+    """Persiste le pattern d'échec dans Mnémosyne (amélioration 5).
+
+    Stocke une leçon de type category="erreur" pour que le système apprenne
+    des orchestrations ayant échoué et puisse les éviter à l'avenir.
+    Silencieux en cas d'échec d'écriture — ne bloque jamais l'appelant.
+    """
+    from modules.agent.models import AgentMemory
+    from database import AsyncSessionLocal
+
+    error_type = type(error).__name__
+    lesson = (
+        f"Échec orchestration [{criticite}/{error_type}] : "
+        f"{instruction[:150]}. "
+        f"Erreur : {str(error)[:200]}"
+    )
+    try:
+        async with AsyncSessionLocal() as db:
+            mem = AgentMemory(
+                agent_name="mnemosyne",
+                affaire_id=affaire_id,
+                lesson=lesson[:500],
+                scope="agence",
+                category="erreur",
+            )
+            db.add(mem)
+            await db.commit()
+        log.info("orchestra.error_memory_written", error_type=error_type, criticite=criticite)
+    except Exception as write_exc:
+        log.debug("orchestra.error_memory_skipped", error=str(write_exc))

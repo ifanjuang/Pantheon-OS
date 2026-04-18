@@ -82,3 +82,8 @@ class OrchestraResponse(BaseModel):
     hitl_enabled: bool = False
     hitl_payload: Optional[dict] = None
     duration_ms: Optional[int]
+    # Améliorations architecturales 0026
+    run_score: Optional[dict] = None       # {quality, coherence, confidence, risk}
+    hera_verdict: Optional[str] = None     # aligned | misaligned | degraded
+    hera_feedback: Optional[str] = None
+    fallback_level: int = 0                # 0=none | 1=simplified | 2=changed | 3=degraded

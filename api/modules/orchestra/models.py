@@ -87,6 +87,16 @@ class OrchestraRun(Base):
     memories_written: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     wiki_page_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
+    # Score multi-critères tous runs (amélioration 1 — quality/coherence/confidence/risk)
+    run_score: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
+    # Supervision HERA (amélioration 4 — cohérence globale demande/réponse)
+    hera_verdict: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    hera_feedback: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Fallback (amélioration 2 — 0=none | 1=simplified | 2=strategy_changed | 3=degraded)
+    fallback_level: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
     # Meta
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="running")
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)

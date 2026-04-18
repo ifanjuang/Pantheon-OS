@@ -217,4 +217,9 @@ def _to_response(run: OrchestraRun) -> OrchestraResponse:
         hitl_enabled=run.hitl_enabled or False,
         hitl_payload=run.hitl_payload,
         duration_ms=run.duration_ms,
+        # Améliorations 0026
+        run_score=run.run_score,
+        hera_verdict=run.hera_verdict,
+        hera_feedback=run.hera_feedback,
+        fallback_level=run.fallback_level or 0,
     )

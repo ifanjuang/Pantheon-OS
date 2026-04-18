@@ -44,6 +44,7 @@ from ._shared import (
     CRITICITE_ROUTING,
     VALID_AGENTS,
     DEFAULT_AGENTS,
+    DEFAULT_SYNTHESIS_AGENT,
     log,
 )
 
@@ -57,7 +58,7 @@ from ._executor import dispatch_subtasks, execute_complements
 from ._evaluator import zeus_judge, veto_check, score_decision
 
 # ── Nœuds M4 — synthèse ──────────────────────────────────────────────
-from ._synthesizer import synthesize, write_memories
+from ._synthesizer import synthesize, write_memories, hera_supervise, write_error_memory
 
 
 # ── Routing conditionnel ─────────────────────────────────────────────
@@ -97,6 +98,7 @@ def build_graph(affaire_id: UUID, user_id: UUID | None, checkpointer=None):
     builder.add_node("execute_complements", execute_complements)
     builder.add_node("score_decision", score_decision)
     builder.add_node("synthesize", synthesize)
+    builder.add_node("hera_supervise", hera_supervise)  # amélioration 4
     builder.add_node("write_memories", write_memories)
 
     builder.set_entry_point("preprocess")
@@ -122,7 +124,8 @@ def build_graph(affaire_id: UUID, user_id: UUID | None, checkpointer=None):
     )
     builder.add_edge("execute_complements", "score_decision")
     builder.add_edge("score_decision", "synthesize")
-    builder.add_edge("synthesize", "write_memories")
+    builder.add_edge("synthesize", "hera_supervise")  # amélioration 4 — supervision après synthèse
+    builder.add_edge("hera_supervise", "write_memories")
     builder.add_edge("write_memories", END)
 
     return builder.compile(checkpointer=checkpointer)
@@ -153,7 +156,7 @@ def _build_initial_state(
         "subtasks": [],
         "subtask_results": {},
         "assignments": [],
-        "synthesis_agent": "mnemosyne",
+        "synthesis_agent": DEFAULT_SYNTHESIS_AGENT,
         "agent_results": {},
         "agent_run_ids": [],
         "complement_done": False,
@@ -176,6 +179,11 @@ def _build_initial_state(
         "precheck_reasoning": "",
         "thread_id": thread_id,
         "orchestra_run_id": orchestra_run_id,
+        # Améliorations architecturales
+        "run_score": {},
+        "hera_verdict": "",
+        "hera_feedback": "",
+        "fallback_level": 0,
     }
 
 
@@ -202,6 +210,11 @@ def _persist_run_state(run: OrchestraRun, final_state: dict) -> None:
     run.preprocessed_input = final_state.get("preprocessed_input") or None
     run.precheck_verdict = final_state.get("precheck_verdict", "") or None
     run.precheck_reasoning = final_state.get("precheck_reasoning", "") or None
+    # Améliorations architecturales
+    run.run_score = final_state.get("run_score") or None
+    run.hera_verdict = final_state.get("hera_verdict", "") or None
+    run.hera_feedback = final_state.get("hera_feedback", "") or None
+    run.fallback_level = final_state.get("fallback_level", 0)
 
 
 async def _safe_publish_event(event_type: str, run: OrchestraRun) -> None:
@@ -222,6 +235,72 @@ async def _safe_publish_event(event_type: str, run: OrchestraRun) -> None:
         )
     except Exception:
         pass
+
+
+# ── Fallback intelligent (amélioration 2) ────────────────────────────
+
+
+async def _run_fallback_graph(
+    affaire_id: UUID,
+    user_id: UUID | None,
+    instruction: str,
+    agents: list[str],
+    criticite: str,
+    orchestra_run_id: str,
+) -> dict | None:
+    """Tente d'exécuter le graphe avec les paramètres donnés.
+
+    Retourne l'état final ou None si l'exécution échoue.
+    """
+    try:
+        graph = build_graph(affaire_id, user_id)
+        state = _build_initial_state(
+            instruction, affaire_id, user_id, agents, criticite,
+            orchestra_run_id=orchestra_run_id,
+        )
+        final = await graph.ainvoke(state)
+        return final if final.get("final_answer") else None
+    except Exception as exc:
+        log.warning("orchestra.fallback_graph_failed", error=str(exc))
+        return None
+
+
+async def _run_with_fallback(
+    run: "OrchestraRun",
+    instruction: str,
+    affaire_id: UUID,
+    user_id: UUID | None,
+    initial_agents: list[str],
+    criticite: str,
+) -> tuple[dict | None, int]:
+    """3 niveaux de fallback si le run principal échoue (amélioration 2).
+
+    Niveau 1 — simplification : agents par défaut seulement, même criticité
+    Niveau 2 — stratégie alternative : agent unique athena, criticité abaissée à C2
+    Niveau 3 — réponse dégradée : None (l'appelant génère un message d'échec)
+
+    Retourne (final_state | None, fallback_level 1-3).
+    """
+    run_id = str(run.id)
+
+    # Niveau 1 : agents réduits aux defaults
+    simplified = [a for a in initial_agents if a in DEFAULT_AGENTS] or DEFAULT_AGENTS
+    if simplified != initial_agents:
+        log.info("orchestra.fallback_level1", run_id=run_id, agents=simplified)
+        result = await _run_fallback_graph(affaire_id, user_id, instruction, simplified, criticite, run_id)
+        if result:
+            return result, 1
+
+    # Niveau 2 : agent unique, criticité abaissée à C2
+    single_agent = ["athena"] if criticite in ("C3", "C4", "C5") else ["hermes"]
+    log.info("orchestra.fallback_level2", run_id=run_id, agents=single_agent)
+    result = await _run_fallback_graph(affaire_id, user_id, instruction, single_agent, "C2", run_id)
+    if result:
+        return result, 2
+
+    # Niveau 3 : réponse dégradée
+    log.warning("orchestra.fallback_level3", run_id=run_id)
+    return None, 3
 
 
 # ── Points d'entrée ──────────────────────────────────────────────────
@@ -271,10 +350,26 @@ async def run_orchestra(
         run.status = "completed"
 
     except Exception as exc:
-        log.error("orchestra.failed", error=str(exc))
-        run.status = "failed"
-        run.error_message = str(exc)
-        run.final_answer = f"Erreur lors de l'orchestration : {exc}"
+        # ── Amélioration 2 : fallback intelligent 3 niveaux ──────────
+        log.warning("orchestra.main_failed_trying_fallback", error=str(exc))
+        fallback_state, fallback_level = await _run_with_fallback(
+            run, instruction, affaire_id, user_id, initial_agents, criticite
+        )
+        if fallback_state:
+            _persist_run_state(run, fallback_state)
+            run.status = "completed"
+            run.fallback_level = fallback_level
+            log.info("orchestra.fallback_success", level=fallback_level)
+        else:
+            run.status = "failed"
+            run.error_message = str(exc)
+            run.fallback_level = 3
+            run.final_answer = (
+                f"⚠️ Réponse dégradée (niveau 3) — l'orchestration n'a pu aboutir.\n"
+                f"Erreur : {exc}"
+            )
+            # ── Amélioration 5 : mémoire des erreurs ──────────────────
+            await write_error_memory(exc, instruction, affaire_id, criticite)
 
     finally:
         run.duration_ms = int((time.monotonic() - t_start) * 1000)
@@ -337,10 +432,21 @@ async def run_orchestra_from_run_id(
         _persist_run_state(run, final_state)
         run.status = "completed"
     except Exception as exc:
-        log.error("orchestra.worker_failed", error=str(exc))
-        run.status = "failed"
-        run.error_message = str(exc)
-        run.final_answer = f"Erreur : {exc}"
+        # ── Amélioration 2 : fallback intelligent ──────────────────
+        log.warning("orchestra.worker_failed_trying_fallback", error=str(exc))
+        fallback_state, fallback_level = await _run_with_fallback(
+            run, instruction, affaire_id, user_id, initial_agents, effective_criticite
+        )
+        if fallback_state:
+            _persist_run_state(run, fallback_state)
+            run.status = "completed"
+            run.fallback_level = fallback_level
+        else:
+            run.status = "failed"
+            run.error_message = str(exc)
+            run.fallback_level = 3
+            run.final_answer = f"⚠️ Réponse dégradée — orchestration impossible. Erreur : {exc}"
+            await write_error_memory(exc, instruction, affaire_id, effective_criticite)
     finally:
         run.duration_ms = int((time.monotonic() - t_start) * 1000)
         await db.commit()
@@ -503,8 +609,9 @@ _NODE_LABELS = {
     "veto_check": ("veto", "Veto structuré (Thémis / Héphaïstos / Apollon)..."),
     "execute_complements": ("executing", "Compléments en cours..."),
     "zeus_judge": ("judging", "Zeus juge les résultats..."),
-    "score_decision": ("scoring", "Scoring décisionnel (5 axes / 100 pts)..."),
+    "score_decision": ("scoring", "Scoring multi-critères (qualité / cohérence / confiance / risque)..."),
     "synthesize": ("synthesis", "Synthèse en cours..."),
+    "hera_supervise": ("hera", "HERA — vérification cohérence globale..."),
     "write_memories": ("memories", "Écriture mémoires Hestia / Mnémosyne..."),
 }
 
@@ -658,6 +765,11 @@ async def stream_orchestra(
                     )
 
                 elif node_name == "score_decision":
+                    if updates.get("run_score"):
+                        yield _sse(
+                            "run_score",
+                            {"score": updates.get("run_score", {})},
+                        )
                     if updates.get("score_id"):
                         yield _sse(
                             "score_computed",
@@ -667,6 +779,15 @@ async def stream_orchestra(
                                 "total": updates.get("score_total", 0),
                             },
                         )
+
+                elif node_name == "hera_supervise":
+                    yield _sse(
+                        "hera_verdict",
+                        {
+                            "verdict": updates.get("hera_verdict", "aligned"),
+                            "feedback": updates.get("hera_feedback", ""),
+                        },
+                    )
 
                 elif node_name == "synthesize":
                     yield _sse(
