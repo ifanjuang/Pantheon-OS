@@ -17,6 +17,7 @@ Outils disponibles :
   web_search          → recherche web (DuckDuckGo, optionnel : sites de confiance)
   fetch_url           → extrait le texte d'une URL ou d'un PDF en ligne
 """
+
 import json
 from uuid import UUID
 
@@ -192,6 +193,7 @@ _DB_TOOLS: frozenset[str] = frozenset({"rag_search", "list_documents", "get_affa
 
 # ── Exécution des outils ─────────────────────────────────────────────────────
 
+
 async def execute_tool(
     name: str,
     args: dict,
@@ -239,18 +241,17 @@ async def _rag_search(db: AsyncSession, affaire_id: UUID, args: dict) -> tuple[s
         excerpt = r["contenu"][:300]
 
         # Format lisible pour le LLM — facilite les citations dans la réponse finale
-        lines.append(
-            f"[SOURCE {i}] 📄 {doc_name} (score {score_pct}%)\n"
-            f"{excerpt}"
-        )
+        lines.append(f"[SOURCE {i}] 📄 {doc_name} (score {score_pct}%)\n{excerpt}")
 
-        sources.append({
-            "chunk_id": r["chunk_id"],
-            "document_id": r["document_id"],
-            "document_name": doc_name,
-            "score": r["score"],
-            "excerpt": excerpt[:150],
-        })
+        sources.append(
+            {
+                "chunk_id": r["chunk_id"],
+                "document_id": r["document_id"],
+                "document_name": doc_name,
+                "score": r["score"],
+                "excerpt": excerpt[:150],
+            }
+        )
 
     output = (
         f"Résultats pour : « {args['query']} »\n\n"
@@ -342,15 +343,17 @@ async def _web_search(args: dict) -> tuple[str, list[dict]]:
         badge = "✅" if is_trusted else "🌐"
 
         lines.append(f"[RÉSULTAT {i}] {badge} {title}\n🔗 {url}\n{snippet}\n")
-        sources.append({
-            "chunk_id": f"web_{i}",
-            "document_name": title,
-            "document_id": url,
-            "score": 1.0 if is_trusted else 0.7,
-            "excerpt": snippet[:150],
-            "url": url,
-            "trusted": is_trusted,
-        })
+        sources.append(
+            {
+                "chunk_id": f"web_{i}",
+                "document_name": title,
+                "document_id": url,
+                "score": 1.0 if is_trusted else 0.7,
+                "excerpt": snippet[:150],
+                "url": url,
+                "trusted": is_trusted,
+            }
+        )
 
     lines.append("— Utilise fetch_url(url) pour lire le contenu complet d'une source.")
     return "\n".join(lines), sources
@@ -368,11 +371,13 @@ async def _deep_search(args: dict) -> tuple[str, list[dict]]:
     restrict = args.get("restrict_to_trusted", True)
 
     # Étape 1 — recherche web
-    search_text, search_sources = await _web_search({
-        "query": query,
-        "num_results": max_pages * 2,
-        "restrict_to_trusted": restrict,
-    })
+    search_text, search_sources = await _web_search(
+        {
+            "query": query,
+            "num_results": max_pages * 2,
+            "restrict_to_trusted": restrict,
+        }
+    )
 
     urls = [s["document_id"] for s in search_sources if s.get("document_id")][:max_pages]
     if not urls:
@@ -423,6 +428,7 @@ async def _fetch_url(args: dict) -> tuple[str, list[dict]]:
 
     try:
         import httpx
+
         async with httpx.AsyncClient(
             timeout=15,
             follow_redirects=True,
@@ -439,6 +445,7 @@ async def _fetch_url(args: dict) -> tuple[str, list[dict]]:
             try:
                 import io
                 import pypdf
+
                 reader = pypdf.PdfReader(io.BytesIO(raw))
                 text = "\n".join(p.extract_text() or "" for p in reader.pages)
                 source_type = "PDF"
@@ -450,16 +457,21 @@ async def _fetch_url(args: dict) -> tuple[str, list[dict]]:
         else:
             try:
                 import trafilatura
-                text = trafilatura.extract(
-                    raw,
-                    include_tables=True,
-                    include_links=False,
-                    no_fallback=False,
-                ) or ""
+
+                text = (
+                    trafilatura.extract(
+                        raw,
+                        include_tables=True,
+                        include_links=False,
+                        no_fallback=False,
+                    )
+                    or ""
+                )
                 source_type = "HTML"
             except ImportError:
                 # Fallback : supprimer les balises basiquement
                 import re
+
                 text = re.sub(r"<[^>]+>", " ", raw.decode("utf-8", errors="replace"))
                 source_type = "HTML (extraction basique)"
 
@@ -471,11 +483,7 @@ async def _fetch_url(args: dict) -> tuple[str, list[dict]]:
         excerpt = text[:max_chars]
         suffix = f"\n\n[... contenu tronqué à {max_chars} caractères sur {len(text)}]" if truncated else ""
 
-        output = (
-            f"[CONTENU] {source_type} — {url}\n"
-            f"{'─' * 60}\n"
-            f"{excerpt}{suffix}"
-        )
+        output = f"[CONTENU] {source_type} — {url}\n{'─' * 60}\n{excerpt}{suffix}"
 
         is_trusted = any(site in url for site in TRUSTED_SITES)
         source = {

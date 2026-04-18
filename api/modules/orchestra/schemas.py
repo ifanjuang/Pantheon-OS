@@ -18,11 +18,11 @@ class AgentAssignment(BaseModel):
 
 class Subtask(BaseModel):
     id: str
-    pattern: str = "parallel"        # "solo" | "parallel" | "cascade" | "arena"
+    pattern: str = "parallel"  # "solo" | "parallel" | "cascade" | "arena"
     agents: list[str]
-    judge: str = ""                   # agent arbitre (pattern=arena uniquement)
-    instruction: str = ""             # instruction spécifique à cette sous-tâche (optionnel)
-    depends_on: list[str] = []        # IDs de sous-tâches prérequises
+    judge: str = ""  # agent arbitre (pattern=arena uniquement)
+    instruction: str = ""  # instruction spécifique à cette sous-tâche (optionnel)
+    depends_on: list[str] = []  # IDs de sous-tâches prérequises
 
 
 class ZeusOrchestration(BaseModel):
@@ -47,8 +47,8 @@ class OrchestraRequest(BaseModel):
     instruction: str = Field(..., min_length=5)
     affaire_id: UUID
     agents: Optional[list[str]] = None  # None = Zeus choisit parmi tous
-    criticite: str = "C2"               # C1-C5, détermine le routing HITL/veto
-    hitl: bool = False                  # True = pause avant exécution pour validation humaine
+    criticite: str = "C2"  # C1-C5, détermine le routing HITL/veto
+    hitl: bool = False  # True = pause avant exécution pour validation humaine
 
 
 class ApprovalRequest(BaseModel):

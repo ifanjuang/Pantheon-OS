@@ -7,8 +7,10 @@ from pydantic import BaseModel, Field
 
 # ── CR ──────────────────────────────────────────────────────────────
 
+
 class CRCreateRequest(BaseModel):
     """Saisie manuelle d'un CR (sans upload de fichier)."""
+
     affaire_id: UUID
     titre: str = Field(..., min_length=3)
     contenu_brut: str = Field(..., min_length=20)
@@ -32,6 +34,7 @@ class CRResponse(BaseModel):
 
 # ── Actions ─────────────────────────────────────────────────────────
 
+
 class ActionResponse(BaseModel):
     id: UUID
     affaire_id: UUID
@@ -49,7 +52,7 @@ class ActionResponse(BaseModel):
 
 
 class ActionUpdateRequest(BaseModel):
-    statut: Optional[str] = None          # ouvert | en_cours | clos | reporte
+    statut: Optional[str] = None  # ouvert | en_cours | clos | reporte
     responsable: Optional[str] = None
     echeance: Optional[date] = None
     priorite: Optional[str] = None
@@ -57,6 +60,7 @@ class ActionUpdateRequest(BaseModel):
 
 class ActionCreateRequest(BaseModel):
     """Création manuelle d'une action (hors CR)."""
+
     affaire_id: UUID
     description: str = Field(..., min_length=5)
     responsable: Optional[str] = None
@@ -65,6 +69,7 @@ class ActionCreateRequest(BaseModel):
 
 
 # ── Agenda ──────────────────────────────────────────────────────────
+
 
 class AgendaGenerateRequest(BaseModel):
     affaire_id: UUID
@@ -76,7 +81,7 @@ class AgendaGenerateRequest(BaseModel):
 class AgendaItem(BaseModel):
     ordre: int
     sujet: str
-    type: str           # urgence | suivi | nouveau | decision
+    type: str  # urgence | suivi | nouveau | decision
     porteur: str = ""
     duree_min: int = 10
     contexte: str = ""
@@ -96,6 +101,7 @@ class AgendaResponse(BaseModel):
 
 
 # ── Analyse CR (réponse interne) ─────────────────────────────────────
+
 
 class CRAnalysisResult(BaseModel):
     titre_reunion: str = ""

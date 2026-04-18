@@ -5,6 +5,7 @@ POST /agent/run             → lance une exécution agentique
 GET  /agent/runs/{affaire_id} → historique des runs d'un projet
 GET  /agent/runs/detail/{run_id} → détail d'un run (steps complets)
 """
+
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -56,10 +57,7 @@ def get_router(config: dict) -> APIRouter:
     ):
         """Historique des runs pour un projet donné."""
         result = await db.execute(
-            select(AgentRun)
-            .where(AgentRun.affaire_id == affaire_id)
-            .order_by(AgentRun.created_at.desc())
-            .limit(50)
+            select(AgentRun).where(AgentRun.affaire_id == affaire_id).order_by(AgentRun.created_at.desc()).limit(50)
         )
         return result.scalars().all()
 

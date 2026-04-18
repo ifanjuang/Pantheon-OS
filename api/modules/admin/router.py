@@ -21,6 +21,7 @@ Routes setup/installation :
   POST /admin/setup/test/{service}      → tester un service (db/minio/llm/smtp/telegram/whatsapp)
   GET  /admin/setup/ollama/models       → modèles Ollama disponibles
 """
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
@@ -79,6 +80,7 @@ def get_router(config: dict) -> APIRouter:
     @router.get("/", response_class=HTMLResponse, include_in_schema=False)
     async def config_ui():
         from modules.admin.ui import render_html
+
         return HTMLResponse(render_html())
 
     # ── Modules ──────────────────────────────────────────────────
@@ -322,12 +324,13 @@ def get_router(config: dict) -> APIRouter:
             pwd_ctx = CryptContext(schemes=["bcrypt"])
 
             # Vérifier si un admin existe déjà
-            result = await db.execute(
-                text("SELECT COUNT(*) FROM users WHERE role='admin'")
-            )
+            result = await db.execute(text("SELECT COUNT(*) FROM users WHERE role='admin'"))
             count = result.scalar()
             if count and count > 0 and not payload.force:
-                return {"ok": False, "detail": "Un compte admin existe déjà. Utiliser force=true pour en créer un autre."}
+                return {
+                    "ok": False,
+                    "detail": "Un compte admin existe déjà. Utiliser force=true pour en créer un autre.",
+                }
 
             # Insertion directe (module auth pas encore chargé)
             await db.execute(

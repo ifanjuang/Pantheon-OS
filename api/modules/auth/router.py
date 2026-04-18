@@ -6,6 +6,7 @@ POST /auth/register     → créer utilisateur (admin only)
 GET  /auth/me           → profil courant
 GET  /auth/users        → liste utilisateurs (admin only)
 """
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,9 +44,7 @@ def get_router(config: dict) -> APIRouter:
     ):
         if await get_user_by_email(db, payload.email):
             raise HTTPException(status_code=409, detail="Email déjà utilisé")
-        user = await create_user(
-            db, payload.email, payload.password, payload.full_name, payload.role
-        )
+        user = await create_user(db, payload.email, payload.password, payload.full_name, payload.role)
         await db.commit()
         await db.refresh(user)
         log.info("auth.register", email=user.email, role=user.role)

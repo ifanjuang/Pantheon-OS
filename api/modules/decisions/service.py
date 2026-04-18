@@ -14,6 +14,7 @@ la logique agrégée :
   - enrich_with_scores() : join dynamique avec decision_scores pour obtenir
                            le dernier score de chaque décision
 """
+
 from typing import Optional
 from uuid import UUID
 
@@ -39,15 +40,14 @@ class DecisionsService:
     # ── Vues dashboard ──────────────────────────────────────────────
 
     @classmethod
-    async def view_critiques(
-        cls, db: AsyncSession, affaire_id: Optional[UUID] = None
-    ) -> list[dict]:
+    async def view_critiques(cls, db: AsyncSession, affaire_id: Optional[UUID] = None) -> list[dict]:
         """VUE 1 — Décisions critiques (C4/C5)."""
         clause, params = cls._affaire_clause(affaire_id)
         rows = (
-            await db.execute(
-                text(
-                    f"""
+            (
+                await db.execute(
+                    text(
+                        f"""
                     SELECT d.*,
                            (
                                SELECT total_final
@@ -64,22 +64,24 @@ class DecisionsService:
                         date_decision DESC NULLS LAST,
                         created_at DESC
                     """
-                ),
-                params,
+                    ),
+                    params,
+                )
             )
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
         return [dict(r) for r in rows]
 
     @classmethod
-    async def view_dettes(
-        cls, db: AsyncSession, affaire_id: Optional[UUID] = None
-    ) -> list[dict]:
+    async def view_dettes(cls, db: AsyncSession, affaire_id: Optional[UUID] = None) -> list[dict]:
         """VUE 2 — Dettes ouvertes (D2/D3)."""
         clause, params = cls._affaire_clause(affaire_id)
         rows = (
-            await db.execute(
-                text(
-                    f"""
+            (
+                await db.execute(
+                    text(
+                        f"""
                     SELECT d.*,
                            (
                                SELECT total_final
@@ -96,22 +98,24 @@ class DecisionsService:
                         CASE dette WHEN 'D3' THEN 0 ELSE 1 END,
                         created_at DESC
                     """
-                ),
-                params,
+                    ),
+                    params,
+                )
             )
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
         return [dict(r) for r in rows]
 
     @classmethod
-    async def view_non_validees(
-        cls, db: AsyncSession, affaire_id: Optional[UUID] = None
-    ) -> list[dict]:
+    async def view_non_validees(cls, db: AsyncSession, affaire_id: Optional[UUID] = None) -> list[dict]:
         """VUE 3 — Décisions critiques C4/C5 sans validation."""
         clause, params = cls._affaire_clause(affaire_id)
         rows = (
-            await db.execute(
-                text(
-                    f"""
+            (
+                await db.execute(
+                    text(
+                        f"""
                     SELECT d.*,
                            (
                                SELECT total_final
@@ -126,22 +130,24 @@ class DecisionsService:
                       AND statut NOT IN ('validé', 'caduc')
                     ORDER BY created_at DESC
                     """
-                ),
-                params,
+                    ),
+                    params,
+                )
             )
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
         return [dict(r) for r in rows]
 
     @classmethod
-    async def view_par_lot(
-        cls, db: AsyncSession, affaire_id: Optional[UUID] = None
-    ) -> list[dict]:
+    async def view_par_lot(cls, db: AsyncSession, affaire_id: Optional[UUID] = None) -> list[dict]:
         """VUE 4 — Regroupement par lot métier avec score moyen."""
         clause, params = cls._affaire_clause(affaire_id)
         rows = (
-            await db.execute(
-                text(
-                    f"""
+            (
+                await db.execute(
+                    text(
+                        f"""
                     SELECT
                         COALESCE(d.lot, 'non_affecte') AS lot,
                         COUNT(*) AS total,
@@ -159,10 +165,13 @@ class DecisionsService:
                     GROUP BY COALESCE(d.lot, 'non_affecte')
                     ORDER BY critiques DESC, total DESC
                     """
-                ),
-                params,
+                    ),
+                    params,
+                )
             )
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
         return [
             {
                 "lot": r["lot"],
@@ -174,15 +183,14 @@ class DecisionsService:
         ]
 
     @classmethod
-    async def view_timeline(
-        cls, db: AsyncSession, affaire_id: Optional[UUID] = None
-    ) -> list[dict]:
+    async def view_timeline(cls, db: AsyncSession, affaire_id: Optional[UUID] = None) -> list[dict]:
         """VUE 5 — Timeline par phase."""
         clause, params = cls._affaire_clause(affaire_id)
         rows = (
-            await db.execute(
-                text(
-                    f"""
+            (
+                await db.execute(
+                    text(
+                        f"""
                     SELECT
                         COALESCE(phase, 'non_affectee') AS phase,
                         COUNT(*) AS total,
@@ -203,10 +211,13 @@ class DecisionsService:
                             ELSE 9
                         END
                     """
-                ),
-                params,
+                    ),
+                    params,
+                )
             )
-        ).mappings().all()
+            .mappings()
+            .all()
+        )
         return [
             {
                 "phase": r["phase"],
@@ -220,9 +231,7 @@ class DecisionsService:
     # ── KPIs ────────────────────────────────────────────────────────
 
     @classmethod
-    async def kpis(
-        cls, db: AsyncSession, affaire_id: Optional[UUID] = None
-    ) -> dict:
+    async def kpis(cls, db: AsyncSession, affaire_id: Optional[UUID] = None) -> dict:
         """
         KPIs principaux du dashboard :
           - nombre de décisions critiques (C4/C5)

@@ -11,6 +11,7 @@ Appels parallèles (asyncio.gather) aux services :
 Retourne un dict unifié + liste d'alertes triées par criticité :
   critical > warning > info
 """
+
 import asyncio
 from uuid import UUID
 
@@ -78,109 +79,135 @@ def _build_alertes(
 
     # ── Décisions ─────────────────────────────────────────────────────
     if nb_decisions_critiques > 0:
-        alertes.append({
-            "module": "decisions",
-            "niveau": "critical",
-            "message": f"{nb_decisions_critiques} décision(s) D2/D3 ouverte(s) sans résolution",
-            "count": nb_decisions_critiques,
-        })
+        alertes.append(
+            {
+                "module": "decisions",
+                "niveau": "critical",
+                "message": f"{nb_decisions_critiques} décision(s) D2/D3 ouverte(s) sans résolution",
+                "count": nb_decisions_critiques,
+            }
+        )
 
     # ── Planning ──────────────────────────────────────────────────────
     if planning:
         if planning.get("jalons_manques", 0) > 0:
-            alertes.append({
-                "module": "planning",
-                "niveau": "critical",
-                "message": f"{planning['jalons_manques']} jalon(s) manqué(s)",
-                "count": planning["jalons_manques"],
-            })
+            alertes.append(
+                {
+                    "module": "planning",
+                    "niveau": "critical",
+                    "message": f"{planning['jalons_manques']} jalon(s) manqué(s)",
+                    "count": planning["jalons_manques"],
+                }
+            )
         if planning.get("taches_en_retard", 0) > 0:
-            alertes.append({
-                "module": "planning",
-                "niveau": "warning",
-                "message": f"{planning['taches_en_retard']} tâche(s) en retard",
-                "count": planning["taches_en_retard"],
-            })
+            alertes.append(
+                {
+                    "module": "planning",
+                    "niveau": "warning",
+                    "message": f"{planning['taches_en_retard']} tâche(s) en retard",
+                    "count": planning["taches_en_retard"],
+                }
+            )
         if planning.get("taches_bloquees", 0) > 0:
-            alertes.append({
-                "module": "planning",
-                "niveau": "warning",
-                "message": f"{planning['taches_bloquees']} tâche(s) bloquée(s)",
-                "count": planning["taches_bloquees"],
-            })
+            alertes.append(
+                {
+                    "module": "planning",
+                    "niveau": "warning",
+                    "message": f"{planning['taches_bloquees']} tâche(s) bloquée(s)",
+                    "count": planning["taches_bloquees"],
+                }
+            )
 
     # ── Chantier ──────────────────────────────────────────────────────
     if chantier:
         if chantier.get("alerte_arret_chantier"):
-            alertes.append({
-                "module": "chantier",
-                "niveau": "critical",
-                "message": "Arrêt de chantier requis — NC critique ouverte",
-                "count": 1,
-            })
+            alertes.append(
+                {
+                    "module": "chantier",
+                    "niveau": "critical",
+                    "message": "Arrêt de chantier requis — NC critique ouverte",
+                    "count": 1,
+                }
+            )
         if chantier.get("nc_en_retard", 0) > 0:
-            alertes.append({
-                "module": "chantier",
-                "niveau": "warning",
-                "message": f"{chantier['nc_en_retard']} NC en retard de correction",
-                "count": chantier["nc_en_retard"],
-            })
+            alertes.append(
+                {
+                    "module": "chantier",
+                    "niveau": "warning",
+                    "message": f"{chantier['nc_en_retard']} NC en retard de correction",
+                    "count": chantier["nc_en_retard"],
+                }
+            )
         if chantier.get("observations_a_analyser", 0) > 0:
-            alertes.append({
-                "module": "chantier",
-                "niveau": "info",
-                "message": f"{chantier['observations_a_analyser']} observation(s) à analyser",
-                "count": chantier["observations_a_analyser"],
-            })
+            alertes.append(
+                {
+                    "module": "chantier",
+                    "niveau": "info",
+                    "message": f"{chantier['observations_a_analyser']} observation(s) à analyser",
+                    "count": chantier["observations_a_analyser"],
+                }
+            )
 
     # ── Communications ────────────────────────────────────────────────
     if comms:
         if comms.get("mises_en_demeure", 0) > 0:
-            alertes.append({
-                "module": "communications",
-                "niveau": "critical",
-                "message": f"{comms['mises_en_demeure']} mise(s) en demeure reçue(s)",
-                "count": comms["mises_en_demeure"],
-            })
+            alertes.append(
+                {
+                    "module": "communications",
+                    "niveau": "critical",
+                    "message": f"{comms['mises_en_demeure']} mise(s) en demeure reçue(s)",
+                    "count": comms["mises_en_demeure"],
+                }
+            )
         if comms.get("en_retard", 0) > 0:
-            alertes.append({
-                "module": "communications",
-                "niveau": "warning",
-                "message": f"{comms['en_retard']} courrier(s) sans réponse hors délai",
-                "count": comms["en_retard"],
-            })
+            alertes.append(
+                {
+                    "module": "communications",
+                    "niveau": "warning",
+                    "message": f"{comms['en_retard']} courrier(s) sans réponse hors délai",
+                    "count": comms["en_retard"],
+                }
+            )
         if comms.get("en_attente_reponse", 0) > 0:
-            alertes.append({
-                "module": "communications",
-                "niveau": "info",
-                "message": f"{comms['en_attente_reponse']} courrier(s) en attente de réponse",
-                "count": comms["en_attente_reponse"],
-            })
+            alertes.append(
+                {
+                    "module": "communications",
+                    "niveau": "info",
+                    "message": f"{comms['en_attente_reponse']} courrier(s) en attente de réponse",
+                    "count": comms["en_attente_reponse"],
+                }
+            )
 
     # ── Finance ───────────────────────────────────────────────────────
     if finance:
         derive = finance.get("derive_ht")
         if derive and derive > 0:
-            alertes.append({
-                "module": "finance",
-                "niveau": "warning",
-                "message": f"Dérive budgétaire +{derive:,.0f} € HT",
-                "count": 1,
-            })
+            alertes.append(
+                {
+                    "module": "finance",
+                    "niveau": "warning",
+                    "message": f"Dérive budgétaire +{derive:,.0f} € HT",
+                    "count": 1,
+                }
+            )
         if finance.get("nb_avenants_en_attente", 0) > 0:
-            alertes.append({
-                "module": "finance",
-                "niveau": "info",
-                "message": f"{finance['nb_avenants_en_attente']} avenant(s) en attente de signature",
-                "count": finance["nb_avenants_en_attente"],
-            })
+            alertes.append(
+                {
+                    "module": "finance",
+                    "niveau": "info",
+                    "message": f"{finance['nb_avenants_en_attente']} avenant(s) en attente de signature",
+                    "count": finance["nb_avenants_en_attente"],
+                }
+            )
         if finance.get("nb_situations_en_attente", 0) > 0:
-            alertes.append({
-                "module": "finance",
-                "niveau": "info",
-                "message": f"{finance['nb_situations_en_attente']} situation(s) de travaux à valider",
-                "count": finance["nb_situations_en_attente"],
-            })
+            alertes.append(
+                {
+                    "module": "finance",
+                    "niveau": "info",
+                    "message": f"{finance['nb_situations_en_attente']} situation(s) de travaux à valider",
+                    "count": finance["nb_situations_en_attente"],
+                }
+            )
 
     # Tri : critical > warning > info
     _order = {"critical": 0, "warning": 1, "info": 2}

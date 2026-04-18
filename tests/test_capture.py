@@ -2,6 +2,7 @@
 Tests module capture — upload audio, transcription, pipeline agent.
 Services externes mockés (MinIO, Whisper, LLM).
 """
+
 import io
 import uuid
 
@@ -71,9 +72,7 @@ class TestCaptureUpload:
         assert data["transcription"] is not None
         assert data["affaire_id"] == str(affaire.id)
 
-    async def test_upload_without_whisper(
-        self, client, moe_token, affaire, mock_storage, mock_transcribe_none
-    ):
+    async def test_upload_without_whisper(self, client, moe_token, affaire, mock_storage, mock_transcribe_none):
         r = await client.post(
             "/capture/upload",
             data={"affaire_id": str(affaire.id)},
@@ -85,9 +84,7 @@ class TestCaptureUpload:
         assert data["status"] == "pending"
         assert data["transcription"] is None
 
-    async def test_upload_rejects_bad_mime(
-        self, client, moe_token, affaire, mock_storage
-    ):
+    async def test_upload_rejects_bad_mime(self, client, moe_token, affaire, mock_storage):
         r = await client.post(
             "/capture/upload",
             data={"affaire_id": str(affaire.id)},
@@ -96,9 +93,7 @@ class TestCaptureUpload:
         )
         assert r.status_code == 415
 
-    async def test_upload_rejects_oversized(
-        self, client, moe_token, affaire, mock_storage
-    ):
+    async def test_upload_rejects_oversized(self, client, moe_token, affaire, mock_storage):
         r = await client.post(
             "/capture/upload",
             data={"affaire_id": str(affaire.id)},
@@ -107,9 +102,7 @@ class TestCaptureUpload:
         )
         assert r.status_code == 413
 
-    async def test_upload_forbidden_for_lecteur(
-        self, client, lecteur_token, affaire, mock_storage
-    ):
+    async def test_upload_forbidden_for_lecteur(self, client, lecteur_token, affaire, mock_storage):
         r = await client.post(
             "/capture/upload",
             data={"affaire_id": str(affaire.id)},
@@ -170,6 +163,7 @@ class TestProcessCapture:
             mock_agent.return_value = mock_run
 
             from modules.capture.service import process_capture
+
             await process_capture(
                 db=db,
                 capture_id=capture.id,
@@ -198,6 +192,7 @@ class TestProcessCapture:
         await db.flush()
 
         from modules.capture.service import process_capture
+
         await process_capture(
             db=db,
             capture_id=capture.id,

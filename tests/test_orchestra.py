@@ -2,6 +2,7 @@
 Tests module orchestra — orchestration multi-agents Zeus via LangGraph.
 run_orchestra est mocké pour éviter d'appeler le vrai LLM.
 """
+
 import uuid
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -16,14 +17,20 @@ def _make_mock_run(**overrides):
     run.instruction = overrides.get("instruction", "Quels sont les risques sur ce projet ?")
     run.initial_agents = overrides.get("initial_agents", ["themis", "argus"])
     run.zeus_reasoning = overrides.get("zeus_reasoning", "Thémis pour la conformité, Argus pour les risques.")
-    run.assignments = overrides.get("assignments", [
-        {"agent": "themis", "instruction": "Analyse la conformité.", "priority": 1},
-        {"agent": "argus", "instruction": "Analyse les risques.", "priority": 1},
-    ])
-    run.agent_results = overrides.get("agent_results", {
-        "themis": "Aucune non-conformité détectée.",
-        "argus": "Risque de retard sur lot 3.",
-    })
+    run.assignments = overrides.get(
+        "assignments",
+        [
+            {"agent": "themis", "instruction": "Analyse la conformité.", "priority": 1},
+            {"agent": "argus", "instruction": "Analyse les risques.", "priority": 1},
+        ],
+    )
+    run.agent_results = overrides.get(
+        "agent_results",
+        {
+            "themis": "Aucune non-conformité détectée.",
+            "argus": "Risque de retard sur lot 3.",
+        },
+    )
     run.agent_run_ids = overrides.get("agent_run_ids", [str(uuid.uuid4()), str(uuid.uuid4())])
     run.synthesis_agent = overrides.get("synthesis_agent", "mnemosyne")
     run.final_answer = overrides.get("final_answer", "Synthèse : projet globalement conforme, vigilance sur le lot 3.")

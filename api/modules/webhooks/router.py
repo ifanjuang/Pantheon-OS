@@ -21,6 +21,7 @@ GET  /webhooks/health
 
 Auth : Bearer = WEBHOOK_SECRET (distinct du JWT_SECRET_KEY, configurable dans .env)
 """
+
 import uuid
 from typing import Annotated, Any
 
@@ -43,6 +44,7 @@ log = get_logger("webhooks.router")
 
 # ── Auth webhook ─────────────────────────────────────────────────────────────
 
+
 def _check_webhook_secret(authorization: Annotated[str | None, Header()] = None):
     """
     Valide le header Authorization: Bearer <WEBHOOK_SECRET>.
@@ -62,6 +64,7 @@ def _check_webhook_secret(authorization: Annotated[str | None, Header()] = None)
 
 
 # ── Schémas ──────────────────────────────────────────────────────────────────
+
 
 class HeartbeatResponse(BaseModel):
     runs_triggered: int
@@ -89,6 +92,7 @@ class AgentWebhookResponse(BaseModel):
 
 # ── Router ───────────────────────────────────────────────────────────────────
 
+
 def get_router(config: dict) -> APIRouter:
     router = APIRouter()
 
@@ -106,9 +110,7 @@ def get_router(config: dict) -> APIRouter:
         Heartbeat quotidien : Argus analyse toutes les affaires actives.
         Paperclip appelle cet endpoint selon son schedule (ex : tous les matins à 8h).
         """
-        result = await db.execute(
-            select(Affaire).where(Affaire.statut == "actif")
-        )
+        result = await db.execute(select(Affaire).where(Affaire.statut == "actif"))
         affaires = result.scalars().all()
 
         if not affaires:

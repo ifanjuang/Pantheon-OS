@@ -3,6 +3,7 @@ StorageService — wrapper MinIO S3-compatible (§1b).
 Bucket unique : arceus-files
 Clé : {affaire_id}/{module}/{filename}
 """
+
 import io
 import time
 from uuid import UUID
@@ -73,8 +74,7 @@ class StorageService:
             length=len(content),
             content_type=content_type,
         )
-        log.info("storage.upload", key=key, size=len(content),
-                 duration_ms=int((time.monotonic() - t0) * 1000))
+        log.info("storage.upload", key=key, size=len(content), duration_ms=int((time.monotonic() - t0) * 1000))
         return key
 
     @classmethod
@@ -90,14 +90,14 @@ class StorageService:
         response = cls._get_client().get_object(settings.MINIO_BUCKET, key)
         data = response.read()
         response.close()
-        log.info("storage.download", key=key, size=len(data),
-                 duration_ms=int((time.monotonic() - t0) * 1000))
+        log.info("storage.download", key=key, size=len(data), duration_ms=int((time.monotonic() - t0) * 1000))
         return data
 
     @classmethod
     async def presigned_url(cls, key: str, expires_seconds: int = 3600) -> str:
         """Génère une URL présignée temporaire."""
         from datetime import timedelta
+
         url = cls._get_client().presigned_get_object(
             settings.MINIO_BUCKET, key, expires=timedelta(seconds=expires_seconds)
         )
@@ -113,10 +113,7 @@ class StorageService:
         """Liste les fichiers d'une affaire (optionnellement filtrés par module)."""
         prefix = f"{affaire_id}/{module}/" if module else f"{affaire_id}/"
         objects = cls._get_client().list_objects(settings.MINIO_BUCKET, prefix=prefix, recursive=True)
-        return [
-            {"key": obj.object_name, "size": obj.size, "last_modified": obj.last_modified}
-            for obj in objects
-        ]
+        return [{"key": obj.object_name, "size": obj.size, "last_modified": obj.last_modified} for obj in objects]
 
     @classmethod
     async def ping(cls) -> bool:

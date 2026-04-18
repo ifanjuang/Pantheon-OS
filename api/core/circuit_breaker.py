@@ -31,6 +31,7 @@ Usage :
             llm_breaker.record_failure()
             raise
 """
+
 import asyncio
 import time
 from core.logging import get_logger
@@ -44,9 +45,7 @@ class CircuitOpenError(Exception):
     def __init__(self, service: str, retry_after: float):
         self.service = service
         self.retry_after = retry_after
-        super().__init__(
-            f"Circuit ouvert pour {service} — réessayer dans {retry_after:.0f}s"
-        )
+        super().__init__(f"Circuit ouvert pour {service} — réessayer dans {retry_after:.0f}s")
 
 
 class CircuitBreaker:
@@ -125,11 +124,10 @@ class RedisCircuitBreaker(CircuitBreaker):
     Fallback silencieux si Redis est down — se comporte comme CircuitBreaker.
     """
 
-    _REFRESH_INTERVAL = 5.0     # secondes entre deux lectures Redis
-    _REDIS_KEY_PREFIX  = "circuit"
+    _REFRESH_INTERVAL = 5.0  # secondes entre deux lectures Redis
+    _REDIS_KEY_PREFIX = "circuit"
 
-    def __init__(self, name: str, failure_threshold: int = 5,
-                 recovery_timeout: float = 30.0):
+    def __init__(self, name: str, failure_threshold: int = 5, recovery_timeout: float = 30.0):
         super().__init__(name, failure_threshold, recovery_timeout)
         self._last_redis_refresh: float = 0.0
         self._redis_refresh_pending: bool = False
@@ -142,8 +140,7 @@ class RedisCircuitBreaker(CircuitBreaker):
     @property
     def state(self) -> str:
         now = time.monotonic()
-        if (now - self._last_redis_refresh > self._REFRESH_INTERVAL
-                and not self._redis_refresh_pending):
+        if now - self._last_redis_refresh > self._REFRESH_INTERVAL and not self._redis_refresh_pending:
             self._redis_refresh_pending = True
             try:
                 loop = asyncio.get_running_loop()
@@ -176,6 +173,7 @@ class RedisCircuitBreaker(CircuitBreaker):
         """Lit l'état Redis et met à jour in-process si Redis est plus dégradé."""
         try:
             from modules.memory.service import FunctionalMemoryService
+
             redis = await FunctionalMemoryService._get_client()
             if redis is None:
                 return
@@ -183,8 +181,8 @@ class RedisCircuitBreaker(CircuitBreaker):
             if not data:
                 return
             r_failures = int(data.get("failures", 0))
-            r_state    = data.get("state", "closed")
-            r_last     = float(data.get("last_failure", 0.0))
+            r_state = data.get("state", "closed")
+            r_last = float(data.get("last_failure", 0.0))
 
             # Ne mettre à jour que si Redis signale un état PLUS dégradé
             if r_failures > self._failures:
@@ -208,16 +206,20 @@ class RedisCircuitBreaker(CircuitBreaker):
         """Persiste l'état courant dans Redis (TTL = recovery_timeout × 4)."""
         try:
             from modules.memory.service import FunctionalMemoryService
+
             redis = await FunctionalMemoryService._get_client()
             if redis is None:
                 return
             ttl = int(self.recovery_timeout * 4)
             pipe = redis.pipeline()
-            pipe.hset(self._redis_key(), mapping={
-                "state":        self._state,
-                "failures":     self._failures,
-                "last_failure": self._last_failure_time,
-            })
+            pipe.hset(
+                self._redis_key(),
+                mapping={
+                    "state": self._state,
+                    "failures": self._failures,
+                    "last_failure": self._last_failure_time,
+                },
+            )
             pipe.expire(self._redis_key(), ttl)
             await pipe.execute()
             log.debug(

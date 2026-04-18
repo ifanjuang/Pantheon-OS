@@ -9,6 +9,7 @@ GET    /scoring/decision/{id}  → dernier score pour une decision_id
 GET    /scoring/stats          → KPIs dashboard (global ou par affaire)
 DELETE /scoring/{score_id}     → suppression (admin)
 """
+
 import uuid
 from typing import Optional
 
@@ -114,9 +115,7 @@ def get_router(config: dict) -> APIRouter:
     async def list_scores(
         affaire_id: Optional[uuid.UUID] = Query(None),
         decision_id: Optional[uuid.UUID] = Query(None),
-        verdict: Optional[str] = Query(
-            None, pattern="^(robuste|acceptable|fragile|dangereux)$"
-        ),
+        verdict: Optional[str] = Query(None, pattern="^(robuste|acceptable|fragile|dangereux)$"),
         limit: int = Query(50, ge=1, le=500),
         db: AsyncSession = Depends(get_db),
         _user=Depends(get_current_user),

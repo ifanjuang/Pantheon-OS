@@ -9,6 +9,7 @@ et calculer les marges (float).
 PlanningService.propagate_delays() propage un décalage en cascade
 en remontant le graphe FS (Finish-to-Start) depuis une tâche modifiée.
 """
+
 import uuid
 from datetime import date, datetime, timezone
 
@@ -25,12 +26,11 @@ def _now() -> datetime:
 
 # ── Lots ──────────────────────────────────────────────────────────────
 
+
 class Lot(Base):
     __tablename__ = "planning_lots"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     affaire_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("affaires.id", ondelete="CASCADE"),
@@ -49,12 +49,8 @@ class Lot(Base):
     montant_marche: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
     # Montant contractuel du lot (€ HT)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now, onupdate=_now
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now, onupdate=_now)
 
     def __repr__(self) -> str:
         return f"<Lot {self.code} — {self.nom}>"
@@ -62,12 +58,11 @@ class Lot(Base):
 
 # ── Tâches ────────────────────────────────────────────────────────────
 
+
 class Tache(Base):
     __tablename__ = "planning_taches"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     affaire_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("affaires.id", ondelete="CASCADE"),
@@ -99,12 +94,8 @@ class Tache(Base):
     critique: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # True si sur le chemin critique — mis à jour par compute_critical_path()
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now, onupdate=_now
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now, onupdate=_now)
 
     def __repr__(self) -> str:
         return f"<Tache {self.titre[:40]!r}{'*' if self.critique else ''}>"
@@ -112,12 +103,11 @@ class Tache(Base):
 
 # ── Jalons ────────────────────────────────────────────────────────────
 
+
 class Jalon(Base):
     __tablename__ = "planning_jalons"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     affaire_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("affaires.id", ondelete="CASCADE"),
@@ -138,12 +128,8 @@ class Jalon(Base):
     statut: Mapped[str] = mapped_column(String(20), nullable=False, default="a_venir")
     # a_venir | atteint | manque | reporte
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now, onupdate=_now
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now, onupdate=_now)
 
     def __repr__(self) -> str:
         return f"<Jalon {self.nom[:40]!r} {self.date_cible}>"
@@ -151,12 +137,11 @@ class Jalon(Base):
 
 # ── Liens de dépendance ───────────────────────────────────────────────
 
+
 class LienDependance(Base):
     __tablename__ = "planning_liens"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     predecesseur_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("planning_taches.id", ondelete="CASCADE"),

@@ -7,6 +7,7 @@ process_draft_response(db, courrier_id)
   pour rédiger un brouillon de réponse. Stocke le draft dans
   courrier.draft_iris.
 """
+
 from datetime import date
 from uuid import UUID
 
@@ -20,9 +21,8 @@ from modules.communications.models import Courrier
 # CRUD
 # ══════════════════════════════════════════════════════════════════════
 
-async def create_courrier(
-    db: AsyncSession, affaire_id: UUID, auteur_id: UUID | None = None, **fields
-) -> Courrier:
+
+async def create_courrier(db: AsyncSession, affaire_id: UUID, auteur_id: UUID | None = None, **fields) -> Courrier:
     courrier = Courrier(affaire_id=affaire_id, auteur_id=auteur_id, **fields)
     db.add(courrier)
     await db.flush()
@@ -62,9 +62,7 @@ async def list_courriers(
     return result.scalars().all()
 
 
-async def update_courrier(
-    db: AsyncSession, courrier: Courrier, data: dict
-) -> Courrier:
+async def update_courrier(db: AsyncSession, courrier: Courrier, data: dict) -> Courrier:
     for k, v in data.items():
         if v is not None:
             setattr(courrier, k, v)
@@ -79,6 +77,7 @@ async def delete_courrier(db: AsyncSession, courrier: Courrier) -> None:
 # ══════════════════════════════════════════════════════════════════════
 # PIPELINE IRIS
 # ══════════════════════════════════════════════════════════════════════
+
 
 async def process_draft_response(db: AsyncSession, courrier_id: UUID) -> None:
     """
@@ -132,6 +131,7 @@ async def process_draft_response(db: AsyncSession, courrier_id: UUID) -> None:
 # PIPELINE RAG — INDEXATION COURRIERS
 # ══════════════════════════════════════════════════════════════════════
 
+
 async def ingest_courrier(db: AsyncSession, courrier_id: UUID) -> int:
     """
     Indexe le contenu textuel d'un courrier dans le RAG.
@@ -184,6 +184,7 @@ async def ingest_courrier(db: AsyncSession, courrier_id: UUID) -> int:
 # DASHBOARD
 # ══════════════════════════════════════════════════════════════════════
 
+
 async def get_dashboard(db: AsyncSession, affaire_id: UUID) -> dict:
     today = date.today()
     courriers = await list_courriers(db, affaire_id)
@@ -192,10 +193,9 @@ async def get_dashboard(db: AsyncSession, affaire_id: UUID) -> dict:
     sortants = sum(1 for c in courriers if c.sens == "sortant")
     en_attente = sum(1 for c in courriers if c.statut == "en_attente_reponse")
     en_retard = sum(
-        1 for c in courriers
-        if c.delai_reponse
-        and c.delai_reponse < today
-        and c.statut in ("recu", "en_attente_reponse")
+        1
+        for c in courriers
+        if c.delai_reponse and c.delai_reponse < today and c.statut in ("recu", "en_attente_reponse")
     )
     mises_en_demeure = sum(1 for c in courriers if c.type_doc == "mise_en_demeure")
     sans_suite = sum(1 for c in courriers if c.statut == "sans_suite")

@@ -5,6 +5,7 @@ POST /orchestra/run          → lance une orchestration multi-agents Zeus
 GET  /orchestra/runs/{affaire_id} → liste les runs d'une affaire
 GET  /orchestra/runs/detail/{run_id} → détail d'un run
 """
+
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -44,6 +45,7 @@ def get_router(config: dict) -> APIRouter:
         """
         # Créer le run en DB (status=queued) avant d'enqueuer
         from modules.orchestra.service import VALID_AGENTS, DEFAULT_AGENTS, CRITICITE_ROUTING
+
         initial_agents = [a for a in (payload.agents or DEFAULT_AGENTS) if a in VALID_AGENTS] or DEFAULT_AGENTS
         effective_criticite = payload.criticite if payload.criticite in CRITICITE_ROUTING else "C2"
         run = OrchestraRun(
@@ -117,7 +119,7 @@ def get_router(config: dict) -> APIRouter:
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
-                "X-Accel-Buffering": "no",   # désactive le buffering nginx
+                "X-Accel-Buffering": "no",  # désactive le buffering nginx
             },
         )
 

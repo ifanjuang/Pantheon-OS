@@ -9,6 +9,7 @@ Jobs disponibles :
   orchestra_job   → run_orchestra()
   agent_job       → run_agent()
 """
+
 import asyncio
 import functools
 import json
@@ -30,6 +31,7 @@ _DLQ_MAX = 1000
 
 def _dlq_wrap(func):
     """Décore un job ARQ pour pousser les échecs dans la Dead-Letter Queue Redis."""
+
     @functools.wraps(func)
     async def wrapper(ctx, *args, **kwargs):
         try:
@@ -38,21 +40,25 @@ def _dlq_wrap(func):
             try:
                 redis = ctx.get("redis")
                 if redis:
-                    entry = json.dumps({
-                        "job_id": ctx.get("job_id", "unknown"),
-                        "function": func.__name__,
-                        "error": str(exc)[:500],
-                        "failed_at": time.time(),
-                    })
+                    entry = json.dumps(
+                        {
+                            "job_id": ctx.get("job_id", "unknown"),
+                            "function": func.__name__,
+                            "error": str(exc)[:500],
+                            "failed_at": time.time(),
+                        }
+                    )
                     await redis.lpush(_DLQ_KEY, entry)
                     await redis.ltrim(_DLQ_KEY, 0, _DLQ_MAX - 1)
             except Exception:
                 pass
             raise
+
     return wrapper
 
 
 # ── Jobs ──────────────────────────────────────────────────────────────────────
+
 
 async def orchestra_job(
     ctx,
@@ -182,9 +188,7 @@ async def telegram_message_job(
         if not text.strip():
             return
 
-        agent, instruction = await route_message(
-            db=db, chat_id=chat_id, text=text, affaire_id=affaire_id
-        )
+        agent, instruction = await route_message(db=db, chat_id=chat_id, text=text, affaire_id=affaire_id)
 
         if not instruction:
             await tg_send(chat_id, "Je n'ai pas compris. Envoie une question ou `/help`.")
@@ -425,6 +429,7 @@ async def weekly_summary_job(ctx):
 
 # ── Configuration worker ──────────────────────────────────────────────────────
 
+
 class WorkerSettings:
     functions = [
         _dlq_wrap(orchestra_job),
@@ -450,9 +455,9 @@ class WorkerSettings:
     ]
     redis_settings = RedisSettings.from_dsn(settings.REDIS_URL)
     max_jobs = 10
-    job_timeout = 600           # 10 min max par job
-    keep_result = 3600          # conserver le résultat 1h
-    retry_jobs = False          # ne pas relancer automatiquement (les runs sont idempotents)
+    job_timeout = 600  # 10 min max par job
+    keep_result = 3600  # conserver le résultat 1h
+    retry_jobs = False  # ne pas relancer automatiquement (les runs sont idempotents)
     log_results = True
 
 

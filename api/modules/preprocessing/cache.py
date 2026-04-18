@@ -15,6 +15,7 @@ Gains :
   - Latence réduite de ~500-2000 ms → < 5 ms sur hit Redis local
   - Transparent : fallback silencieux si Redis down ou embed raté
 """
+
 import json
 import math
 from typing import Optional
@@ -24,7 +25,7 @@ from core.logging import get_logger
 log = get_logger("preprocessing.cache")
 
 _NAMESPACE = "preprocess:sem"
-_TTL = 3600        # secondes — aligne sur la mémoire fonctionnelle
+_TTL = 3600  # secondes — aligne sur la mémoire fonctionnelle
 _MAX_ENTRIES = 20  # max entrées par affaire (LIFO push + LTRIM)
 _THRESHOLD = 0.92  # similarité cosine minimale pour un cache hit
 
@@ -40,11 +41,11 @@ def _cosine(a: list[float], b: list[float]) -> float:
 async def _get_redis():
     """Retourne le client Redis de FunctionalMemoryService (singleton partagé)."""
     from modules.memory.service import FunctionalMemoryService
+
     return await FunctionalMemoryService._get_client()
 
 
 class SemanticPreprocessCache:
-
     @classmethod
     async def get(
         cls,

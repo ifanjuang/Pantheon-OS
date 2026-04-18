@@ -12,6 +12,7 @@ Courriers
 Dashboard
   GET    /communications/{affaire_id}/dashboard          → KPIs registre
 """
+
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -55,7 +56,8 @@ def get_router(config: dict) -> APIRouter:
         current_user=Depends(require_role("admin", "moe")),
     ):
         courrier = await create_courrier(
-            db, affaire_id,
+            db,
+            affaire_id,
             auteur_id=current_user.id,
             **payload.model_dump(exclude_none=True),
         )
@@ -90,8 +92,11 @@ def get_router(config: dict) -> APIRouter:
         _user=Depends(get_current_user),
     ):
         return await list_courriers(
-            db, affaire_id,
-            sens=sens, type_doc=type_doc, statut=statut,
+            db,
+            affaire_id,
+            sens=sens,
+            type_doc=type_doc,
+            statut=statut,
             en_retard_seulement=en_retard_seulement,
         )
 

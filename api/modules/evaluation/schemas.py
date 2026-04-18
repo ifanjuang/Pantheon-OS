@@ -19,6 +19,7 @@ Score d'éval (distinct du scoring décisionnel !) :
   - security     : pas de recommandation dangereuse ou hallucination
   - completeness : tous les attendus sont satisfaits
 """
+
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -26,8 +27,10 @@ from pydantic import BaseModel, Field
 
 # ── Définition d'un cas ──────────────────────────────────────────────
 
+
 class EvalCase(BaseModel):
     """Cas d'éval individuel au sein d'un dataset."""
+
     id: str = Field(..., min_length=1, max_length=64)
     instruction: str = Field(..., min_length=3, max_length=4000)
     criticite: str = Field("C2", pattern=r"^C[1-5]$")
@@ -37,9 +40,7 @@ class EvalCase(BaseModel):
     # Attendus qualitatifs
     expected_criticite: Optional[str] = Field(None, pattern=r"^C[1-5]$")
     expected_intent: Optional[str] = None
-    expected_precheck: Optional[
-        Literal["approved", "trim", "upgrade", "clarification", "blocked"]
-    ] = None
+    expected_precheck: Optional[Literal["approved", "trim", "upgrade", "clarification", "blocked"]] = None
     expected_agents: list[str] = Field(default_factory=list)
     forbidden_agents: list[str] = Field(default_factory=list)
     expected_veto: bool = False
@@ -50,6 +51,7 @@ class EvalCase(BaseModel):
 
 class EvalDataset(BaseModel):
     """Un dataset = ensemble de cas (fichier YAML)."""
+
     id: str = Field(..., min_length=1, max_length=64)
     title: str = ""
     description: str = ""
@@ -58,8 +60,10 @@ class EvalDataset(BaseModel):
 
 # ── Résultat d'un run d'éval ─────────────────────────────────────────
 
+
 class CaseCheck(BaseModel):
     """Résultat par cas (checks individuels)."""
+
     name: str
     passed: bool
     detail: str = ""
@@ -84,6 +88,7 @@ class CaseResult(BaseModel):
 
 class EvalReport(BaseModel):
     """Rapport agrégé pour un dataset."""
+
     dataset_id: str
     started_at: str  # ISO 8601
     finished_at: str
@@ -102,14 +107,11 @@ class EvalReport(BaseModel):
 
 # ── Requêtes API ─────────────────────────────────────────────────────
 
+
 class RunEvalRequest(BaseModel):
     dataset_id: str = Field(..., min_length=1, max_length=64)
-    affaire_id: Optional[str] = Field(
-        None, description="UUID d'affaire pour contextualiser (sinon : sans contexte)"
-    )
-    max_cases: Optional[int] = Field(
-        None, ge=1, le=100, description="Limite le nombre de cas (debug)"
-    )
+    affaire_id: Optional[str] = Field(None, description="UUID d'affaire pour contextualiser (sinon : sans contexte)")
+    max_cases: Optional[int] = Field(None, ge=1, le=100, description="Limite le nombre de cas (debug)")
     dry_run: bool = Field(
         False,
         description="Si True, valide les attendus sans exécuter le graphe (stub)",

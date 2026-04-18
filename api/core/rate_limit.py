@@ -11,6 +11,7 @@ Usage :
     async def analyse(request: Request, ...):
         ...
 """
+
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from core.settings import settings

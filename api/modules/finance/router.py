@@ -16,6 +16,7 @@ Situations de travaux
 Dashboard
   GET    /finance/{affaire_id}/dashboard         → agrégats financiers + dérive
 """
+
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -143,9 +144,7 @@ def get_router(config: dict) -> APIRouter:
         db: AsyncSession = Depends(get_db),
         _user=Depends(get_current_user),
     ):
-        return await list_situations(
-            db, affaire_id, lot_id=lot_id, statut=statut, entreprise=entreprise
-        )
+        return await list_situations(db, affaire_id, lot_id=lot_id, statut=statut, entreprise=entreprise)
 
     @router.patch("/situations/{sit_id}", response_model=SituationResponse)
     async def situation_update(

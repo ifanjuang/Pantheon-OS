@@ -19,6 +19,7 @@ Channels standard :
     notifications_channel → demande d'envoi de notification (→ module notifications)
     rag_channel           → document importé (→ module memory)
 """
+
 import asyncpg
 import json
 from typing import Callable, Any

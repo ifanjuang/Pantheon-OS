@@ -4,6 +4,7 @@ Modèle CaptureSession — capture vocale chantier (NoobScribe).
 Chaque session représente un enregistrement audio uploadé depuis le terrain,
 sa transcription et le résultat structuré produit par l'agent.
 """
+
 import uuid
 from datetime import datetime, timezone
 
@@ -21,9 +22,7 @@ def _now() -> datetime:
 class CaptureSession(Base):
     __tablename__ = "capture_sessions"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     affaire_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("affaires.id", ondelete="CASCADE"),
@@ -44,14 +43,10 @@ class CaptureSession(Base):
         ForeignKey("agent_runs.id", ondelete="SET NULL"),
         nullable=True,
     )
-    status: Mapped[str] = mapped_column(
-        String(32), nullable=False, default="pending"
-    )
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
     # pending | transcribing | processing | completed | failed
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
 
     def __repr__(self) -> str:
         return f"<CaptureSession {self.id} [{self.status}]>"

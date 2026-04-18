@@ -20,6 +20,7 @@ Bonus/malus :
   -10 code="dette_critique"     si dette == D3
   -5  code="certitude_faible"   si certitude < 0.5
 """
+
 from typing import Optional
 from uuid import UUID
 
@@ -162,9 +163,7 @@ class ScoringService:
         return adjustments
 
     @classmethod
-    async def _read_decision_dette(
-        cls, db: AsyncSession, decision_id: UUID
-    ) -> Optional[str]:
+    async def _read_decision_dette(cls, db: AsyncSession, decision_id: UUID) -> Optional[str]:
         """Lit la dette courante d'une project_decision (raw SQL)."""
         row = (
             await db.execute(
@@ -312,9 +311,7 @@ class ScoringService:
     # ── Stats dashboard ─────────────────────────────────────────────
 
     @classmethod
-    async def stats_for_affaire(
-        cls, db: AsyncSession, affaire_id: Optional[UUID] = None
-    ) -> dict:
+    async def stats_for_affaire(cls, db: AsyncSession, affaire_id: Optional[UUID] = None) -> dict:
         """
         KPIs agrégés : moyenne, distribution des verdicts, dettes D3.
         Si affaire_id=None → stats globales agence.

@@ -20,13 +20,13 @@ jobs:
           cache: pip
 
       - name: Install linters
-        run: pip install ruff==0.8.0 black==24.10.0
+        run: pip install ruff==0.8.0
 
       - name: ruff check
         run: ruff check api/ tests/
 
-      - name: black --check
-        run: black --check api/ tests/
+      - name: ruff format --check
+        run: ruff format --check api/ tests/
 
   # ── Tests ──────────────────────────────────────────────────────────
   test:
@@ -93,8 +93,10 @@ jobs:
 
       - name: Run tests
         working-directory: api
+        env:
+          PYTHONPATH: .
         run: |
-          pytest tests/ -q \
+          pytest ../tests/ -q \
             --cov=. \
             --cov-report=term-missing \
             --cov-report=xml \

@@ -15,6 +15,7 @@ Deux structures principales :
     - suggested_subtask_ids / suggested_criticite : ajustements
     - clarification_message : question à renvoyer à l'utilisateur
 """
+
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -22,14 +23,12 @@ from pydantic import BaseModel, Field
 
 # ── Preprocessor output ─────────────────────────────────────────────
 
+
 class PreprocessedInput(BaseModel):
     """Entrée brute normalisée par Hermès."""
-    cleaned_question: str = Field(
-        ..., description="Message nettoyé (salutations, fautes, ponctuation parasite)"
-    )
-    reformulated_question: str = Field(
-        ..., description="Demande reformulée en mode opérationnel (1-2 phrases)"
-    )
+
+    cleaned_question: str = Field(..., description="Message nettoyé (salutations, fautes, ponctuation parasite)")
+    reformulated_question: str = Field(..., description="Demande reformulée en mode opérationnel (1-2 phrases)")
     intent: Literal[
         "information",
         "question",
@@ -46,16 +45,12 @@ class PreprocessedInput(BaseModel):
         None,
         description="Technique/Contractuel/Planning/Relationnel/Administratif/Financier",
     )
-    project_detected: Optional[str] = Field(
-        None, description="Indice d'affaire détecté (nom, numéro, adresse)"
-    )
+    project_detected: Optional[str] = Field(None, description="Indice d'affaire détecté (nom, numéro, adresse)")
     missing_information: list[str] = Field(
         default_factory=list,
         description="Infos critiques manquantes pour trancher",
     )
-    confidence: float = Field(
-        ..., ge=0.0, le=1.0, description="Confiance globale de l'interprétation"
-    )
+    confidence: float = Field(..., ge=0.0, le=1.0, description="Confiance globale de l'interprétation")
     suggested_criticite: Optional[str] = Field(
         None,
         pattern=r"^C[1-5]$",
@@ -65,14 +60,14 @@ class PreprocessedInput(BaseModel):
 
 # ── Precheck verdict ─────────────────────────────────────────────────
 
+
 class PrecheckDecision(BaseModel):
     """Verdict du gate Precheck après zeus_distribute."""
+
     verdict: Literal["approved", "trim", "upgrade", "clarification", "blocked"] = Field(
         ..., description="Décision du gate"
     )
-    reasoning: str = Field(
-        ..., description="Justification courte (1-2 phrases)"
-    )
+    reasoning: str = Field(..., description="Justification courte (1-2 phrases)")
     suggested_subtask_ids: list[str] = Field(
         default_factory=list,
         description="IDs des subtasks à conserver (verdict=trim)",
@@ -89,6 +84,7 @@ class PrecheckDecision(BaseModel):
 
 
 # ── Requêtes router (debug / preview) ───────────────────────────────
+
 
 class PreprocessRequest(BaseModel):
     message: str = Field(..., min_length=3, max_length=4000)

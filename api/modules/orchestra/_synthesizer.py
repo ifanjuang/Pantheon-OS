@@ -4,6 +4,7 @@ Orchestra — nœuds de synthèse et mémoire (M4).
   synthesize    : un agent produit la réponse finale consolidée
   write_memories: persiste les mémoires projet/agence/wiki/fonctionnelle
 """
+
 from uuid import UUID
 
 
@@ -68,6 +69,7 @@ Produis une réponse finale construite, structurée, en français.
 
 # ── Nœuds LangGraph ──────────────────────────────────────────────────
 
+
 async def synthesize(state: OrchestraState) -> dict:
     """Phase 4b — un agent produit la synthèse finale."""
     affaire_uuid = UUID(state["affaire_id"])
@@ -75,10 +77,7 @@ async def synthesize(state: OrchestraState) -> dict:
     thread_id = state.get("thread_id", "")
 
     synthesis_agent = state.get("synthesis_agent", "mnemosyne")
-    results_text = "\n\n".join(
-        f"### {agent}\n{result}"
-        for agent, result in state["agent_results"].items()
-    )
+    results_text = "\n\n".join(f"### {agent}\n{result}" for agent, result in state["agent_results"].items())
     synthesis_instruction = _SYNTHESIS_PROMPT_TEMPLATE.format(
         synthesis_instruction=state.get("instruction", "Synthétise les analyses."),
         instruction=state["instruction"],
@@ -237,6 +236,7 @@ async def write_memories(state: OrchestraState) -> dict:
     if thread_id:
         try:
             from modules.memory.service import FunctionalMemoryService
+
             await FunctionalMemoryService.set_context(
                 thread_id,
                 "last_verdict",

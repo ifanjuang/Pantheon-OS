@@ -13,6 +13,7 @@ GET    /wiki/pages/{id}/export           → markdown brut (mode AUDIT)
 POST   /wiki/search                      → recherche hybride
 POST   /wiki/precedents                  → lookup précédents + bonus scoring
 """
+
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
@@ -139,9 +140,7 @@ def get_router(config: dict) -> APIRouter:
         if scope:
             query = query.where(WikiPage.scope == scope)
         if affaire_id:
-            query = query.where(
-                or_(WikiPage.affaire_id == affaire_id, WikiPage.scope == "agence")
-            )
+            query = query.where(or_(WikiPage.affaire_id == affaire_id, WikiPage.scope == "agence"))
         if criticite:
             query = query.where(WikiPage.criticite == criticite)
         if tag:

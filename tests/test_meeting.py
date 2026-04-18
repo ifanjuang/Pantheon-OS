@@ -2,6 +2,7 @@
 Tests module meeting — CR, actions, ordre du jour.
 LLM mocké pour éviter les appels réels.
 """
+
 import uuid
 from datetime import date
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -86,6 +87,7 @@ AGENDA_MOCK = {
 @pytest.fixture
 def mock_llm_analyse(mocker):
     import json
+
     mocker.patch(
         "modules.meeting.service._llm",
         new_callable=AsyncMock,
@@ -96,6 +98,7 @@ def mock_llm_analyse(mocker):
 @pytest.fixture
 def mock_llm_agenda(mocker):
     import json
+
     mocker.patch(
         "modules.meeting.service._llm",
         new_callable=AsyncMock,
@@ -104,6 +107,7 @@ def mock_llm_agenda(mocker):
 
 
 # ── Tests CR ─────────────────────────────────────────────────────────────────
+
 
 class TestCRCreate:
     async def test_create_cr_text(self, client, moe_token, affaire):
@@ -168,6 +172,7 @@ class TestCRCreate:
 
 # ── Tests analyse LLM ────────────────────────────────────────────────────────
 
+
 class TestCRAnalysis:
     async def test_analyse_extracts_actions(self, client, moe_token, affaire, mock_llm_analyse):
         from database import AsyncSessionLocal
@@ -208,9 +213,7 @@ class TestCRAnalysis:
             await db.refresh(cr)
             await analyse_cr(db, cr)
 
-            result = await db.execute(
-                select(MeetingAction).where(MeetingAction.cr_id == cr.id)
-            )
+            result = await db.execute(select(MeetingAction).where(MeetingAction.cr_id == cr.id))
             actions = result.scalars().all()
 
         assert len(actions) == 2
@@ -233,6 +236,7 @@ class TestCRAnalysis:
 
 
 # ── Tests Actions ─────────────────────────────────────────────────────────────
+
 
 class TestActions:
     async def test_list_actions_empty(self, client, moe_token, affaire):
@@ -283,6 +287,7 @@ class TestActions:
 
 
 # ── Tests Agenda ──────────────────────────────────────────────────────────────
+
 
 class TestAgenda:
     async def test_generate_agenda(self, client, moe_token, affaire, mock_llm_agenda):

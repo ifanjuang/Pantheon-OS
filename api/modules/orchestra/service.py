@@ -24,6 +24,7 @@ Les nœuds sont définis dans les sous-modules :
   _evaluator  — zeus_judge, veto_check, score_decision
   _synthesizer— synthesize, write_memories
 """
+
 import json
 import time
 from uuid import UUID
@@ -61,6 +62,7 @@ from ._synthesizer import synthesize, write_memories
 
 # ── Routing conditionnel ─────────────────────────────────────────────
 
+
 def _route_after_judge(state: OrchestraState) -> str:
     if state.get("verdict") == "needs_complement" and not state.get("complement_done"):
         return "execute_complements"
@@ -76,6 +78,7 @@ def _route_after_precheck(state: OrchestraState) -> str:
 
 # ── Graph factory ────────────────────────────────────────────────────
 
+
 def build_graph(affaire_id: UUID, user_id: UUID | None, checkpointer=None):
     """Construit et compile le graphe Zeus.
 
@@ -85,39 +88,48 @@ def build_graph(affaire_id: UUID, user_id: UUID | None, checkpointer=None):
     """
     builder = StateGraph(OrchestraState)
 
-    builder.add_node("preprocess",          preprocess)
-    builder.add_node("zeus_distribute",     zeus_distribute)
-    builder.add_node("workflow_precheck",   workflow_precheck)
-    builder.add_node("dispatch_subtasks",   dispatch_subtasks)
-    builder.add_node("veto_check",          veto_check)
-    builder.add_node("zeus_judge",          zeus_judge)
+    builder.add_node("preprocess", preprocess)
+    builder.add_node("zeus_distribute", zeus_distribute)
+    builder.add_node("workflow_precheck", workflow_precheck)
+    builder.add_node("dispatch_subtasks", dispatch_subtasks)
+    builder.add_node("veto_check", veto_check)
+    builder.add_node("zeus_judge", zeus_judge)
     builder.add_node("execute_complements", execute_complements)
-    builder.add_node("score_decision",      score_decision)
-    builder.add_node("synthesize",          synthesize)
-    builder.add_node("write_memories",      write_memories)
+    builder.add_node("score_decision", score_decision)
+    builder.add_node("synthesize", synthesize)
+    builder.add_node("write_memories", write_memories)
 
     builder.set_entry_point("preprocess")
-    builder.add_edge("preprocess",         "zeus_distribute")
-    builder.add_edge("zeus_distribute",    "workflow_precheck")
-    builder.add_conditional_edges("workflow_precheck", _route_after_precheck, {
-        "dispatch_subtasks": "dispatch_subtasks",
-        "end": END,
-    })
-    builder.add_edge("dispatch_subtasks",   "veto_check")
-    builder.add_edge("veto_check",          "zeus_judge")
-    builder.add_conditional_edges("zeus_judge", _route_after_judge, {
-        "execute_complements": "execute_complements",
-        "score_decision":      "score_decision",
-    })
+    builder.add_edge("preprocess", "zeus_distribute")
+    builder.add_edge("zeus_distribute", "workflow_precheck")
+    builder.add_conditional_edges(
+        "workflow_precheck",
+        _route_after_precheck,
+        {
+            "dispatch_subtasks": "dispatch_subtasks",
+            "end": END,
+        },
+    )
+    builder.add_edge("dispatch_subtasks", "veto_check")
+    builder.add_edge("veto_check", "zeus_judge")
+    builder.add_conditional_edges(
+        "zeus_judge",
+        _route_after_judge,
+        {
+            "execute_complements": "execute_complements",
+            "score_decision": "score_decision",
+        },
+    )
     builder.add_edge("execute_complements", "score_decision")
-    builder.add_edge("score_decision",      "synthesize")
-    builder.add_edge("synthesize",          "write_memories")
-    builder.add_edge("write_memories",      END)
+    builder.add_edge("score_decision", "synthesize")
+    builder.add_edge("synthesize", "write_memories")
+    builder.add_edge("write_memories", END)
 
     return builder.compile(checkpointer=checkpointer)
 
 
 # ── Helpers internes ─────────────────────────────────────────────────
+
 
 def _build_initial_state(
     instruction: str,
@@ -169,46 +181,51 @@ def _build_initial_state(
 
 def _persist_run_state(run: OrchestraRun, final_state: dict) -> None:
     """Copie l'état final du graphe dans le run DB."""
-    run.agent_plans          = final_state.get("agent_plans", {})
-    run.zeus_reasoning       = final_state.get("zeus_reasoning", "")
-    run.assignments          = final_state.get("assignments", [])
-    run.agent_results        = final_state.get("agent_results", {})
-    run.agent_run_ids        = final_state.get("agent_run_ids", [])
-    run.final_answer         = final_state.get("final_answer", "")
-    run.synthesis_agent      = final_state.get("synthesis_agent", "mnemosyne")
-    run.subtasks             = final_state.get("subtasks", [])
-    run.subtask_results      = final_state.get("subtask_results", {})
-    run.veto_agent           = final_state.get("veto_agent", "") or None
-    run.veto_motif           = final_state.get("veto_motif", "") or None
-    run.veto_severity        = final_state.get("veto_severity", "") or None
+    run.agent_plans = final_state.get("agent_plans", {})
+    run.zeus_reasoning = final_state.get("zeus_reasoning", "")
+    run.assignments = final_state.get("assignments", [])
+    run.agent_results = final_state.get("agent_results", {})
+    run.agent_run_ids = final_state.get("agent_run_ids", [])
+    run.final_answer = final_state.get("final_answer", "")
+    run.synthesis_agent = final_state.get("synthesis_agent", "mnemosyne")
+    run.subtasks = final_state.get("subtasks", [])
+    run.subtask_results = final_state.get("subtask_results", {})
+    run.veto_agent = final_state.get("veto_agent", "") or None
+    run.veto_motif = final_state.get("veto_motif", "") or None
+    run.veto_severity = final_state.get("veto_severity", "") or None
     run.veto_condition_levee = final_state.get("veto_condition_levee", "") or None
-    run.score_id             = final_state.get("score_id", "") or None
-    run.score_verdict        = final_state.get("score_verdict", "") or None
-    run.score_total          = final_state.get("score_total") or None
-    run.memories_written     = final_state.get("memories_written", 0)
-    run.wiki_page_id         = final_state.get("wiki_page_id", "") or None
-    run.preprocessed_input   = final_state.get("preprocessed_input") or None
-    run.precheck_verdict     = final_state.get("precheck_verdict", "") or None
-    run.precheck_reasoning   = final_state.get("precheck_reasoning", "") or None
+    run.score_id = final_state.get("score_id", "") or None
+    run.score_verdict = final_state.get("score_verdict", "") or None
+    run.score_total = final_state.get("score_total") or None
+    run.memories_written = final_state.get("memories_written", 0)
+    run.wiki_page_id = final_state.get("wiki_page_id", "") or None
+    run.preprocessed_input = final_state.get("preprocessed_input") or None
+    run.precheck_verdict = final_state.get("precheck_verdict", "") or None
+    run.precheck_reasoning = final_state.get("precheck_reasoning", "") or None
 
 
 async def _safe_publish_event(event_type: str, run: OrchestraRun) -> None:
     """Publie un événement orchestra sur le bus PostgreSQL (best-effort)."""
     try:
         import core.events as events
-        await events.publish("orchestra_channel", {
-            "event_type": event_type,
-            "run_id": str(run.id),
-            "affaire_id": str(run.affaire_id) if run.affaire_id else None,
-            "status": run.status,
-            "criticite": run.criticite,
-            "veto_agent": run.veto_agent,
-        })
+
+        await events.publish(
+            "orchestra_channel",
+            {
+                "event_type": event_type,
+                "run_id": str(run.id),
+                "affaire_id": str(run.affaire_id) if run.affaire_id else None,
+                "status": run.status,
+                "criticite": run.criticite,
+                "veto_agent": run.veto_agent,
+            },
+        )
     except Exception:
         pass
 
 
 # ── Points d'entrée ──────────────────────────────────────────────────
+
 
 async def run_orchestra(
     db: AsyncSession,
@@ -241,7 +258,12 @@ async def run_orchestra(
     try:
         graph = build_graph(affaire_id, user_id)
         initial_state = _build_initial_state(
-            instruction, affaire_id, user_id, initial_agents, criticite, routing["hitl"],
+            instruction,
+            affaire_id,
+            user_id,
+            initial_agents,
+            criticite,
+            routing["hitl"],
             orchestra_run_id=str(run.id),
         )
         final_state = await graph.ainvoke(initial_state)
@@ -303,8 +325,12 @@ async def run_orchestra_from_run_id(
     try:
         graph = build_graph(affaire_id, user_id)
         initial_state = _build_initial_state(
-            instruction, affaire_id, user_id, initial_agents,
-            effective_criticite, routing["hitl"],
+            instruction,
+            affaire_id,
+            user_id,
+            initial_agents,
+            effective_criticite,
+            routing["hitl"],
             orchestra_run_id=str(run.id),
         )
         final_state = await graph.ainvoke(initial_state)
@@ -326,6 +352,7 @@ async def run_orchestra_from_run_id(
 
 
 # ── Human-in-the-loop ────────────────────────────────────────────────
+
 
 async def run_orchestra_hitl(
     db: AsyncSession,
@@ -358,8 +385,13 @@ async def run_orchestra_hitl(
 
     structlog.contextvars.bind_contextvars(run_id=str(run.id), run_type="orchestra.hitl")
     initial_state = _build_initial_state(
-        instruction, affaire_id, user_id, initial_agents,
-        effective_criticite, hitl_enabled=True, thread_id=thread_id,
+        instruction,
+        affaire_id,
+        user_id,
+        initial_agents,
+        effective_criticite,
+        hitl_enabled=True,
+        thread_id=thread_id,
         orchestra_run_id=str(run.id),
     )
     config = {"configurable": {"thread_id": thread_id}}
@@ -464,16 +496,16 @@ async def resume_orchestra(
 # ── SSE Streaming ────────────────────────────────────────────────────
 
 _NODE_LABELS = {
-    "preprocess":           ("preprocess", "Normalisation Hermès..."),
-    "zeus_distribute":      ("zeus",       "Zeus organise les sous-tâches..."),
-    "workflow_precheck":    ("precheck",   "Gate Precheck — dimensionnement du plan..."),
-    "dispatch_subtasks":    ("executing",  "Exécution des agents (cascade / arène / parallèle)..."),
-    "veto_check":           ("veto",       "Veto structuré (Thémis / Héphaïstos / Apollon)..."),
-    "execute_complements":  ("executing",  "Compléments en cours..."),
-    "zeus_judge":           ("judging",    "Zeus juge les résultats..."),
-    "score_decision":       ("scoring",    "Scoring décisionnel (5 axes / 100 pts)..."),
-    "synthesize":           ("synthesis",  "Synthèse en cours..."),
-    "write_memories":       ("memories",   "Écriture mémoires Hestia / Mnémosyne..."),
+    "preprocess": ("preprocess", "Normalisation Hermès..."),
+    "zeus_distribute": ("zeus", "Zeus organise les sous-tâches..."),
+    "workflow_precheck": ("precheck", "Gate Precheck — dimensionnement du plan..."),
+    "dispatch_subtasks": ("executing", "Exécution des agents (cascade / arène / parallèle)..."),
+    "veto_check": ("veto", "Veto structuré (Thémis / Héphaïstos / Apollon)..."),
+    "execute_complements": ("executing", "Compléments en cours..."),
+    "zeus_judge": ("judging", "Zeus juge les résultats..."),
+    "score_decision": ("scoring", "Scoring décisionnel (5 axes / 100 pts)..."),
+    "synthesize": ("synthesis", "Synthèse en cours..."),
+    "write_memories": ("memories", "Écriture mémoires Hestia / Mnémosyne..."),
 }
 
 
@@ -511,7 +543,11 @@ async def stream_orchestra(
 
     graph = build_graph(affaire_id, user_id)
     initial_state = _build_initial_state(
-        instruction, affaire_id, user_id, initial_agents, effective_criticite,
+        instruction,
+        affaire_id,
+        user_id,
+        initial_agents,
+        effective_criticite,
         thread_id=str(run_id),
         orchestra_run_id=str(run_id),
     )
@@ -527,93 +563,128 @@ async def stream_orchestra(
 
                 if node_name == "preprocess":
                     pp = updates.get("preprocessed_input", {}) or {}
-                    yield _sse("preprocess_ready", {
-                        "intent": pp.get("intent"),
-                        "confidence": pp.get("confidence"),
-                        "suggested_criticite": pp.get("suggested_criticite"),
-                        "missing_information": pp.get("missing_information", []),
-                        "reformulated_question": pp.get("reformulated_question", ""),
-                    })
+                    yield _sse(
+                        "preprocess_ready",
+                        {
+                            "intent": pp.get("intent"),
+                            "confidence": pp.get("confidence"),
+                            "suggested_criticite": pp.get("suggested_criticite"),
+                            "missing_information": pp.get("missing_information", []),
+                            "reformulated_question": pp.get("reformulated_question", ""),
+                        },
+                    )
 
                 elif node_name == "zeus_distribute":
-                    yield _sse("plans_ready", {
-                        "plans": {
-                            agent: {"plan": summary, "expected_output": ""}
-                            for agent, summary in updates.get("agent_summaries", {}).items()
-                        }
-                    })
-                    yield _sse("zeus_decision", {
-                        "reasoning": updates.get("zeus_reasoning", ""),
-                        "subtasks": updates.get("subtasks", []),
-                        "assignments": updates.get("assignments", []),
-                        "synthesis_agent": updates.get("synthesis_agent", "mnemosyne"),
-                    })
+                    yield _sse(
+                        "plans_ready",
+                        {
+                            "plans": {
+                                agent: {"plan": summary, "expected_output": ""}
+                                for agent, summary in updates.get("agent_summaries", {}).items()
+                            }
+                        },
+                    )
+                    yield _sse(
+                        "zeus_decision",
+                        {
+                            "reasoning": updates.get("zeus_reasoning", ""),
+                            "subtasks": updates.get("subtasks", []),
+                            "assignments": updates.get("assignments", []),
+                            "synthesis_agent": updates.get("synthesis_agent", "mnemosyne"),
+                        },
+                    )
 
                 elif node_name == "workflow_precheck":
                     precheck_verdict = updates.get("precheck_verdict", "approved")
-                    yield _sse("precheck_verdict", {
-                        "verdict": precheck_verdict,
-                        "reasoning": updates.get("precheck_reasoning", ""),
-                        "criticite": updates.get("criticite") or final_state.get("criticite"),
-                        "subtasks_trimmed": bool(updates.get("subtasks")),
-                    })
+                    yield _sse(
+                        "precheck_verdict",
+                        {
+                            "verdict": precheck_verdict,
+                            "reasoning": updates.get("precheck_reasoning", ""),
+                            "criticite": updates.get("criticite") or final_state.get("criticite"),
+                            "subtasks_trimmed": bool(updates.get("subtasks")),
+                        },
+                    )
                     if precheck_verdict in ("clarification", "blocked") and updates.get("final_answer"):
-                        yield _sse("final_answer", {
-                            "answer": updates.get("final_answer", ""),
-                            "run_id": str(run_id),
-                            "short_circuited": True,
-                        })
+                        yield _sse(
+                            "final_answer",
+                            {
+                                "answer": updates.get("final_answer", ""),
+                                "run_id": str(run_id),
+                                "short_circuited": True,
+                            },
+                        )
 
                 elif node_name in ("dispatch_subtasks", "execute_complements"):
                     subtask_results = updates.get("subtask_results", {})
                     if subtask_results:
                         for task_id, task_res in subtask_results.items():
-                            yield _sse("subtask_done", {
-                                "task_id": task_id,
-                                "agents": list(task_res.keys()),
-                                "results": {a: r[:500] for a, r in task_res.items()},
-                            })
-                    yield _sse("agents_done", {
-                        "results": {
-                            agent: result[:500]
-                            for agent, result in updates.get("agent_results", {}).items()
-                        }
-                    })
+                            yield _sse(
+                                "subtask_done",
+                                {
+                                    "task_id": task_id,
+                                    "agents": list(task_res.keys()),
+                                    "results": {a: r[:500] for a, r in task_res.items()},
+                                },
+                            )
+                    yield _sse(
+                        "agents_done",
+                        {
+                            "results": {
+                                agent: result[:500] for agent, result in updates.get("agent_results", {}).items()
+                            }
+                        },
+                    )
 
                 elif node_name == "veto_check":
                     if updates.get("veto_agent"):
-                        yield _sse("veto_detected", {
-                            "agent": updates.get("veto_agent", ""),
-                            "severity": updates.get("veto_severity", ""),
-                            "motif": updates.get("veto_motif", ""),
-                            "condition_levee": updates.get("veto_condition_levee", ""),
-                        })
+                        yield _sse(
+                            "veto_detected",
+                            {
+                                "agent": updates.get("veto_agent", ""),
+                                "severity": updates.get("veto_severity", ""),
+                                "motif": updates.get("veto_motif", ""),
+                                "condition_levee": updates.get("veto_condition_levee", ""),
+                            },
+                        )
 
                 elif node_name == "zeus_judge":
-                    yield _sse("zeus_verdict", {
-                        "verdict": updates.get("verdict", "complete"),
-                        "complement_requested": updates.get("verdict") == "needs_complement",
-                    })
+                    yield _sse(
+                        "zeus_verdict",
+                        {
+                            "verdict": updates.get("verdict", "complete"),
+                            "complement_requested": updates.get("verdict") == "needs_complement",
+                        },
+                    )
 
                 elif node_name == "score_decision":
                     if updates.get("score_id"):
-                        yield _sse("score_computed", {
-                            "score_id": updates.get("score_id", ""),
-                            "verdict": updates.get("score_verdict", ""),
-                            "total": updates.get("score_total", 0),
-                        })
+                        yield _sse(
+                            "score_computed",
+                            {
+                                "score_id": updates.get("score_id", ""),
+                                "verdict": updates.get("score_verdict", ""),
+                                "total": updates.get("score_total", 0),
+                            },
+                        )
 
                 elif node_name == "synthesize":
-                    yield _sse("final_answer", {
-                        "answer": updates.get("final_answer", ""),
-                        "run_id": str(run_id),
-                    })
+                    yield _sse(
+                        "final_answer",
+                        {
+                            "answer": updates.get("final_answer", ""),
+                            "run_id": str(run_id),
+                        },
+                    )
 
                 elif node_name == "write_memories":
-                    yield _sse("memories_written", {
-                        "count": updates.get("memories_written", 0),
-                        "wiki_page_id": updates.get("wiki_page_id", ""),
-                    })
+                    yield _sse(
+                        "memories_written",
+                        {
+                            "count": updates.get("memories_written", 0),
+                            "wiki_page_id": updates.get("wiki_page_id", ""),
+                        },
+                    )
 
         async with AsyncSessionLocal() as db:
             run = await db.get(OrchestraRun, run_id)
@@ -623,10 +694,13 @@ async def stream_orchestra(
                 run.duration_ms = int((time.monotonic() - t_start) * 1000)
                 await db.commit()
 
-        yield _sse("done", {
-            "run_id": str(run_id),
-            "duration_ms": int((time.monotonic() - t_start) * 1000),
-        })
+        yield _sse(
+            "done",
+            {
+                "run_id": str(run_id),
+                "duration_ms": int((time.monotonic() - t_start) * 1000),
+            },
+        )
 
     except Exception as exc:
         log.error("orchestra.stream_failed", run_id=str(run_id), error=str(exc))

@@ -19,6 +19,7 @@ Hybrid search :
   - Fusion      : Reciprocal Rank Fusion (RRF, k=60) — SQL natif via CTE
                   FULL OUTER JOIN (1 round-trip DB au lieu de 2)
 """
+
 import asyncio
 import json
 import re
@@ -42,11 +43,11 @@ _WINDOW_TYPES = {"cctp", "dtu"}
 
 # Configuration chunking adaptatif par type de document
 CHUNK_CONFIG: dict[str, dict] = {
-    "cctp":  {"chunk_size": 512, "chunk_overlap": 64},
-    "dtu":   {"chunk_size": 256, "chunk_overlap": 32},
+    "cctp": {"chunk_size": 512, "chunk_overlap": 64},
+    "dtu": {"chunk_size": 256, "chunk_overlap": 32},
     "email": {"chunk_size": 128, "chunk_overlap": 16},
-    "cr":    {"chunk_size": 256, "chunk_overlap": 32},
-    "note":  {"chunk_size": 256, "chunk_overlap": 32},
+    "cr": {"chunk_size": 256, "chunk_overlap": 32},
+    "note": {"chunk_size": 256, "chunk_overlap": 32},
 }
 DEFAULT_CHUNK = {"chunk_size": 256, "chunk_overlap": 32}
 
@@ -80,6 +81,7 @@ def _rerank(query: str, hits: list[dict], top_k: int) -> list[dict]:
 
     try:
         from sentence_transformers import CrossEncoder
+
         _model_name = getattr(settings, "RERANK_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
 
         if not hasattr(_rerank, "_model") or _rerank._model is None:
@@ -103,6 +105,7 @@ def _rerank(query: str, hits: list[dict], top_k: int) -> list[dict]:
     except Exception as exc:
         log.warning("rag.rerank_failed", error=str(exc))
         return hits[:top_k]
+
 
 _rerank._model = None  # lazy-loaded singleton
 
@@ -187,9 +190,11 @@ class RagService:
         if ocr_endpoint and len(native_text.strip()) < ocr_min:
             try:
                 from core.services.ocr_service import OcrService
+
                 ocr_result = await OcrService.extract_text(file_bytes, filename)
                 if ocr_result["text"].strip():
                     from llama_index.core import Document as LIDocument
+
                     documents = [LIDocument(text=ocr_result["text"])]
                     extra_meta = {
                         **extra_meta,
@@ -211,6 +216,7 @@ class RagService:
         # Chunking adaptatif selon le type de document
         if source_type in _WINDOW_TYPES:
             from llama_index.core.node_parser import SentenceWindowNodeParser
+
             parser = SentenceWindowNodeParser.from_defaults(
                 window_size=3,
                 window_metadata_key="window",
@@ -248,8 +254,9 @@ class RagService:
                 )
                 # Batch : on traite par lots de 10 pour ne pas saturer Ollama
                 from core.services.llm_service import LlmService
+
                 for batch_start in range(0, len(texts), 10):
-                    batch = texts[batch_start:batch_start + 10]
+                    batch = texts[batch_start : batch_start + 10]
                     ctx_tasks = [
                         LlmService.chat(
                             messages=[{"role": "user", "content": _CTX_PROMPT.format(chunk=t[:800])}],
@@ -263,17 +270,15 @@ class RagService:
                         if isinstance(result, str) and len(result.strip()) > 10:
                             contexts[batch_start + i] = result.strip()
 
-                log.info("rag.contextual_retrieval", chunks=len(texts),
-                         contexts_generated=sum(1 for c in contexts if c))
+                log.info(
+                    "rag.contextual_retrieval", chunks=len(texts), contexts_generated=sum(1 for c in contexts if c)
+                )
             except Exception as exc:
                 log.warning("rag.contextual_retrieval_failed", error=str(exc))
                 # Continuer sans contexte — pas bloquant
 
         # Préparer le texte pour embedding : contexte + contenu
-        embed_texts = [
-            f"{ctx}\n\n{t}" if ctx else t
-            for ctx, t in zip(contexts, texts)
-        ]
+        embed_texts = [f"{ctx}\n\n{t}" if ctx else t for ctx, t in zip(contexts, texts)]
         embeddings = await cls._get_embed_model().aget_text_embedding_batch(embed_texts)
 
         # Bulk INSERT — un seul aller-retour DB pour tous les chunks
@@ -287,14 +292,16 @@ class RagService:
             }
             if "window" in node.metadata:
                 meta["window"] = node.metadata["window"]
-            rows.append({
-                "doc_id": str(document_id),
-                "aff_id": str(affaire_id),
-                "contenu": node.get_content(),
-                "embedding": str(embedding),
-                "idx": idx,
-                "meta": json.dumps(meta),
-            })
+            rows.append(
+                {
+                    "doc_id": str(document_id),
+                    "aff_id": str(affaire_id),
+                    "contenu": node.get_content(),
+                    "embedding": str(embedding),
+                    "idx": idx,
+                    "meta": json.dumps(meta),
+                }
+            )
 
         await db.execute(
             text("""
@@ -367,8 +374,8 @@ class RagService:
         t0 = time.monotonic()
 
         # Sanitize FTS (identique à l'ancienne _search_fts)
-        sanitized_fts = re.sub(r'[^\w\s\-àâäéèêëïîôùûüÿçœæ]', ' ', query)
-        sanitized_fts = ' '.join(sanitized_fts.split())
+        sanitized_fts = re.sub(r"[^\w\s\-àâäéèêëïîôùûüÿçœæ]", " ", query)
+        sanitized_fts = " ".join(sanitized_fts.split())
 
         # Si la query FTS est vide après nettoyage → sémantique seule
         if not sanitized_fts:
@@ -541,8 +548,8 @@ class RagService:
 
         try:
             # Sanitiser la query FTS : supprimer les caractères spéciaux qui cassent plainto_tsquery
-            sanitized_query = re.sub(r'[^\w\s\-àâäéèêëïîôùûüÿçœæ]', ' ', query)
-            sanitized_query = ' '.join(sanitized_query.split())  # normaliser les espaces
+            sanitized_query = re.sub(r"[^\w\s\-àâäéèêëïîôùûüÿçœæ]", " ", query)
+            sanitized_query = " ".join(sanitized_query.split())  # normaliser les espaces
             if not sanitized_query.strip():
                 return []
             params["query"] = sanitized_query
@@ -614,9 +621,7 @@ class RagService:
 
         # Supprimer les chunks existants pour cet objet (idempotence)
         await db.execute(
-            text(
-                "DELETE FROM chunks WHERE source_type = :st AND source_id = :sid"
-            ),
+            text("DELETE FROM chunks WHERE source_type = :st AND source_id = :sid"),
             {"st": source_type, "sid": str(source_id)},
         )
 
@@ -627,6 +632,7 @@ class RagService:
         )
 
         from llama_index.core import Document as LIDocument
+
         li_doc = LIDocument(text=text_content)
         nodes = splitter.get_nodes_from_documents([li_doc])
 
@@ -643,15 +649,17 @@ class RagService:
                 "source_id": str(source_id),
                 **extra_meta,
             }
-            rows.append({
-                "src_type": source_type,
-                "src_id": str(source_id),
-                "aff_id": str(affaire_id),
-                "contenu": node.get_content(),
-                "embedding": str(embedding),
-                "idx": idx,
-                "meta": json.dumps(meta),
-            })
+            rows.append(
+                {
+                    "src_type": source_type,
+                    "src_id": str(source_id),
+                    "aff_id": str(affaire_id),
+                    "contenu": node.get_content(),
+                    "embedding": str(embedding),
+                    "idx": idx,
+                    "meta": json.dumps(meta),
+                }
+            )
 
         await db.execute(
             text("""

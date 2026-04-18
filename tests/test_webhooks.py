@@ -2,6 +2,7 @@
 Tests module webhooks — endpoints pour Paperclip.
 L'agent ReAct est mocké (pas besoin d'Ollama).
 """
+
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 from core.settings import settings
@@ -36,9 +37,7 @@ class TestHealth:
         assert r.json()["status"] == "ok"
 
     async def test_health_invalid_secret(self, client):
-        r = await client.get(
-            "/webhooks/health", headers={"Authorization": "Bearer mauvais-secret"}
-        )
+        r = await client.get("/webhooks/health", headers={"Authorization": "Bearer mauvais-secret"})
         assert r.status_code == 401
 
     async def test_health_no_auth(self, client):
@@ -76,6 +75,7 @@ class TestHeartbeat:
 class TestDocumentUploaded:
     async def test_triggers_themis(self, client, affaire, mock_run):
         import uuid
+
         r = await client.post(
             "/webhooks/document-uploaded",
             json={
@@ -108,6 +108,7 @@ class TestTriggerAgent:
 
     async def test_trigger_invalid_agent(self, client, affaire):
         import uuid
+
         r = await client.post(
             "/webhooks/agent/zeus",
             json={

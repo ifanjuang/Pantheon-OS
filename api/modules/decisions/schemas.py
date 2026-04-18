@@ -8,6 +8,7 @@ Trois entités CRUD :
 
 Plus les schémas KPI pour alimenter le dashboard.
 """
+
 from datetime import date, datetime
 from typing import Optional
 from uuid import UUID
@@ -16,6 +17,7 @@ from pydantic import BaseModel, Field
 
 
 # ── Décisions ────────────────────────────────────────────────────────
+
 
 class DecisionCreateRequest(BaseModel):
     affaire_id: Optional[UUID] = None
@@ -49,9 +51,7 @@ class DecisionUpdateRequest(BaseModel):
     options: Optional[list[dict]] = None
     criticite: Optional[str] = Field(None, pattern="^C[1-5]$")
     dette: Optional[str] = Field(None, pattern="^D[0-3]$")
-    statut: Optional[str] = Field(
-        None, pattern="^(ouvert|validé|suspendu|caduc|a_revoir)$"
-    )
+    statut: Optional[str] = Field(None, pattern="^(ouvert|validé|suspendu|caduc|a_revoir)$")
     phase: Optional[str] = Field(None, pattern="^(APS|APD|PRO|DCE|ACT|EXE|DOE)$")
     lot: Optional[str] = None
     agents_impliques: Optional[list[str]] = None
@@ -59,9 +59,7 @@ class DecisionUpdateRequest(BaseModel):
     impact_delai: Optional[int] = None
     responsable: Optional[str] = None
     date_decision: Optional[date] = None
-    phase_revision: Optional[str] = Field(
-        None, pattern="^(APS|APD|PRO|DCE|ACT|EXE|DOE)$"
-    )
+    phase_revision: Optional[str] = Field(None, pattern="^(APS|APD|PRO|DCE|ACT|EXE|DOE)$")
 
 
 class DecisionResponse(BaseModel):
@@ -95,6 +93,7 @@ class DecisionResponse(BaseModel):
 
 class DecisionRow(BaseModel):
     """Version pour la TABLE 1 du dashboard — colonnes exactes de l'archi."""
+
     id: UUID
     phase: Optional[str]
     sujet: Optional[str]
@@ -115,6 +114,7 @@ class DecisionRow(BaseModel):
 
 
 # ── Tâches ───────────────────────────────────────────────────────────
+
 
 class TaskCreateRequest(BaseModel):
     affaire_id: Optional[UUID] = None
@@ -154,6 +154,7 @@ class TaskResponse(BaseModel):
 
 # ── Observations ────────────────────────────────────────────────────
 
+
 class ObservationCreateRequest(BaseModel):
     affaire_id: Optional[UUID] = None
     decision_id: Optional[UUID] = None
@@ -164,9 +165,7 @@ class ObservationCreateRequest(BaseModel):
 
 class ObservationUpdateRequest(BaseModel):
     analyse_argos: Optional[str] = None
-    traitement: Optional[str] = Field(
-        None, pattern="^(a_traiter|en_cours|traite|ignore)$"
-    )
+    traitement: Optional[str] = Field(None, pattern="^(a_traiter|en_cours|traite|ignore)$")
     decision_id: Optional[UUID] = None
 
 
@@ -187,12 +186,14 @@ class ObservationResponse(BaseModel):
 
 # ── Dashboard KPIs ──────────────────────────────────────────────────
 
+
 class DecisionKPIs(BaseModel):
     """KPIs du dashboard — alignés sur l'archi utilisateur."""
-    decisions_critiques: int       # C4 + C5
-    dette_moyenne: float           # 0-3 (D0=0, D3=3)
+
+    decisions_critiques: int  # C4 + C5
+    dette_moyenne: float  # 0-3 (D0=0, D3=3)
     delai_resolution_moyen: float  # jours
-    taux_revues: float             # 0.0-1.0 (décisions ayant changé de statut)
+    taux_revues: float  # 0.0-1.0 (décisions ayant changé de statut)
     total_decisions: int
     total_taches_ouvertes: int
     total_observations_a_traiter: int

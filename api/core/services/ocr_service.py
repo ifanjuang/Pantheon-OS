@@ -11,6 +11,7 @@ Protocole endpoint (OpenAI-compatible /chat/completions) :
 Pour PDF multi-pages : rendu via PyMuPDF (fitz) page par page → concaténation.
 Fallback silencieux si fitz non disponible → tentative image directe.
 """
+
 import base64
 import io
 from pathlib import Path
@@ -69,9 +70,13 @@ def _image_to_b64(image_bytes: bytes, mime: str = "image/jpeg") -> str:
 def _mime_from_filename(filename: str) -> str:
     suffix = Path(filename).suffix.lower()
     return {
-        ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
-        ".png": "image/png", ".tiff": "image/tiff", ".tif": "image/tiff",
-        ".bmp": "image/bmp", ".webp": "image/webp",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".tiff": "image/tiff",
+        ".tif": "image/tiff",
+        ".bmp": "image/bmp",
+        ".webp": "image/webp",
     }.get(suffix, "image/jpeg")
 
 

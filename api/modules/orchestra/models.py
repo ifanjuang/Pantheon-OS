@@ -1,6 +1,7 @@
 """
 OrchestraRun — trace d'une exécution multi-agents orchestrée par Zeus.
 """
+
 from datetime import datetime
 from uuid import UUID, uuid4
 
@@ -89,6 +90,4 @@ class OrchestraRun(Base):
     # Meta
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="running")
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

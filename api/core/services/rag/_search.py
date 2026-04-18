@@ -9,6 +9,7 @@ Trois modes :
 
 _rrf_fusion() : fusion Python de deux listes de hits (fallback + tests unitaires).
 """
+
 import re
 import time
 from typing import Optional
@@ -63,7 +64,6 @@ def _rrf_fusion(
 
 
 class HybridSearcher:
-
     @classmethod
     async def search(
         cls,
@@ -99,8 +99,8 @@ class HybridSearcher:
         """
         t0 = time.monotonic()
 
-        sanitized_fts = re.sub(r'[^\w\s\-àâäéèêëïîôùûüÿçœæ]', ' ', query)
-        sanitized_fts = ' '.join(sanitized_fts.split())
+        sanitized_fts = re.sub(r"[^\w\s\-àâäéèêëïîôùûüÿçœæ]", " ", query)
+        sanitized_fts = " ".join(sanitized_fts.split())
 
         if not sanitized_fts:
             return await cls.search_semantic(db, query, affaire_id, top_k, source_type)
@@ -250,8 +250,8 @@ class HybridSearcher:
         source_type: Optional[str] = None,
     ) -> list[dict]:
         """Recherche full-text via colonne tsv pré-calculée (index GIN)."""
-        sanitized = re.sub(r'[^\w\s\-àâäéèêëïîôùûüÿçœæ]', ' ', query)
-        sanitized = ' '.join(sanitized.split())
+        sanitized = re.sub(r"[^\w\s\-àâäéèêëïîôùûüÿçœæ]", " ", query)
+        sanitized = " ".join(sanitized.split())
         if not sanitized.strip():
             return []
 

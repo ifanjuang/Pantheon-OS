@@ -15,6 +15,7 @@ Contextual Retrieval (Anthropic pattern) :
   Génère un court contexte par chunk pour améliorer la précision sémantique.
   Désactivable via CONTEXTUAL_RETRIEVAL=false.
 """
+
 import asyncio
 import json
 import tempfile
@@ -37,11 +38,11 @@ _WINDOW_TYPES = {"cctp", "dtu"}
 
 # Configuration chunking adaptatif par type de document
 CHUNK_CONFIG: dict[str, dict] = {
-    "cctp":  {"chunk_size": 512, "chunk_overlap": 64},
-    "dtu":   {"chunk_size": 256, "chunk_overlap": 32},
+    "cctp": {"chunk_size": 512, "chunk_overlap": 64},
+    "dtu": {"chunk_size": 256, "chunk_overlap": 32},
     "email": {"chunk_size": 128, "chunk_overlap": 16},
-    "cr":    {"chunk_size": 256, "chunk_overlap": 32},
-    "note":  {"chunk_size": 256, "chunk_overlap": 32},
+    "cr": {"chunk_size": 256, "chunk_overlap": 32},
+    "note": {"chunk_size": 256, "chunk_overlap": 32},
 }
 DEFAULT_CHUNK = {"chunk_size": 256, "chunk_overlap": 32}
 
@@ -72,18 +73,20 @@ async def _contextual_retrieval(
     doc_summary = texts[0][:500] if texts else ""
 
     for batch_start in range(0, len(texts), 10):
-        batch = texts[batch_start:batch_start + 10]
+        batch = texts[batch_start : batch_start + 10]
         tasks = [
             LlmService.chat(
-                messages=[{
-                    "role": "user",
-                    "content": _CTX_PROMPT.format(
-                        filename=filename,
-                        source_type=source_type,
-                        doc_summary=doc_summary,
-                        chunk=t[:800],
-                    ),
-                }],
+                messages=[
+                    {
+                        "role": "user",
+                        "content": _CTX_PROMPT.format(
+                            filename=filename,
+                            source_type=source_type,
+                            doc_summary=doc_summary,
+                            chunk=t[:800],
+                        ),
+                    }
+                ],
                 temperature=0.0,
                 max_tokens=80,
             )
@@ -100,7 +103,6 @@ async def _contextual_retrieval(
 
 
 class IngestPipeline:
-
     @classmethod
     async def ingest(
         cls,
@@ -138,17 +140,18 @@ class IngestPipeline:
             if len(native_text.strip()) < ocr_min:
                 try:
                     from core.services.ocr_service import OcrService
+
                     ocr_result = await OcrService.extract_text(file_bytes, filename)
                     if ocr_result["text"].strip():
                         from llama_index.core import Document as LIDocument
+
                         documents = [LIDocument(text=ocr_result["text"])]
                         extra_meta = {
                             **extra_meta,
                             "ocr_provider": ocr_result.get("ocr_provider", ""),
                             "extraction_mode": "ocr",
                         }
-                        log.info("rag.ocr_fallback_used", filename=filename,
-                                 chars=len(ocr_result["text"]))
+                        log.info("rag.ocr_fallback_used", filename=filename, chars=len(ocr_result["text"]))
                 except Exception as exc:
                     log.warning("rag.ocr_fallback_failed", filename=filename, error=str(exc))
 
@@ -158,6 +161,7 @@ class IngestPipeline:
 
         if source_type in _WINDOW_TYPES:
             from llama_index.core.node_parser import SentenceWindowNodeParser
+
             parser = SentenceWindowNodeParser.from_defaults(
                 window_size=3,
                 window_metadata_key="window",
@@ -195,14 +199,16 @@ class IngestPipeline:
             }
             if "window" in node.metadata:
                 meta["window"] = node.metadata["window"]
-            rows.append({
-                "doc_id": str(document_id),
-                "aff_id": str(affaire_id),
-                "contenu": node.get_content(),
-                "embedding": str(embedding),
-                "idx": idx,
-                "meta": json.dumps(meta),
-            })
+            rows.append(
+                {
+                    "doc_id": str(document_id),
+                    "aff_id": str(affaire_id),
+                    "contenu": node.get_content(),
+                    "embedding": str(embedding),
+                    "idx": idx,
+                    "meta": json.dumps(meta),
+                }
+            )
 
         await db.execute(
             text("""
@@ -272,15 +278,17 @@ class IngestPipeline:
         rows = []
         for idx, (node, embedding) in enumerate(zip(nodes, embeddings)):
             meta = {"source_type": source_type, "source_id": str(source_id), **extra_meta}
-            rows.append({
-                "src_type": source_type,
-                "src_id": str(source_id),
-                "aff_id": str(affaire_id),
-                "contenu": node.get_content(),
-                "embedding": str(embedding),
-                "idx": idx,
-                "meta": json.dumps(meta),
-            })
+            rows.append(
+                {
+                    "src_type": source_type,
+                    "src_id": str(source_id),
+                    "aff_id": str(affaire_id),
+                    "contenu": node.get_content(),
+                    "embedding": str(embedding),
+                    "idx": idx,
+                    "meta": json.dumps(meta),
+                }
+            )
 
         await db.execute(
             text("""

@@ -18,6 +18,7 @@ Non-conformités
 Dashboard
   GET    /chantier/{affaire_id}/dashboard             → KPIs qualité chantier
 """
+
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -69,9 +70,7 @@ def get_router(config: dict) -> APIRouter:
         current_user=Depends(require_role("admin", "moe")),
     ):
         data = payload.model_dump(exclude_none=True)
-        obs = await create_observation(
-            db, affaire_id, auteur_id=current_user.id, **data
-        )
+        obs = await create_observation(db, affaire_id, auteur_id=current_user.id, **data)
         await db.commit()
         await db.refresh(obs)
         log.info("chantier.obs_created", affaire_id=str(affaire_id), source=obs.source)
@@ -170,8 +169,11 @@ def get_router(config: dict) -> APIRouter:
         _user=Depends(get_current_user),
     ):
         return await list_nonconformites(
-            db, affaire_id,
-            gravite=gravite, statut=statut, lot_id=lot_id,
+            db,
+            affaire_id,
+            gravite=gravite,
+            statut=statut,
+            lot_id=lot_id,
             ouvertes_seulement=ouvertes_seulement,
         )
 

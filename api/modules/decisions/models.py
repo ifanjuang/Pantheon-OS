@@ -20,6 +20,7 @@ Champs ajoutés en 0015 pour aligner sur l'archi dashboard :
   - date_decision    (date effective de la décision)
   - phase_revision   (phase pendant laquelle la décision a été revue)
 """
+
 import uuid
 from datetime import date, datetime, timezone
 
@@ -36,12 +37,11 @@ def _now() -> datetime:
 
 # ── Table 1 : Décisions ──────────────────────────────────────────────
 
+
 class ProjectDecision(Base):
     __tablename__ = "project_decisions"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     affaire_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("affaires.id", ondelete="CASCADE"),
@@ -74,9 +74,7 @@ class ProjectDecision(Base):
     phase: Mapped[str | None] = mapped_column(String(16), nullable=True)
     # APS | APD | PRO | DCE | ACT | EXE | DOE
     lot: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
-    agents_impliques: Mapped[list] = mapped_column(
-        JSONB, nullable=False, default=list
-    )
+    agents_impliques: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     impact_cout: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
     impact_delai: Mapped[int | None] = mapped_column(Integer, nullable=True)
     # jours (positif = retard)
@@ -90,9 +88,7 @@ class ProjectDecision(Base):
     reversible: Mapped[bool | None] = mapped_column(nullable=True)
     # Réversibilité de la décision (reversibility_guard)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True, default=_now, onupdate=_now
     )
@@ -103,12 +99,11 @@ class ProjectDecision(Base):
 
 # ── Table 2 : Tâches ─────────────────────────────────────────────────
 
+
 class ProjectTask(Base):
     __tablename__ = "project_tasks"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     affaire_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("affaires.id", ondelete="CASCADE"),
@@ -131,12 +126,8 @@ class ProjectTask(Base):
     responsable: Mapped[str | None] = mapped_column(String(128), nullable=True)
     echeance: Mapped[date | None] = mapped_column(Date, nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now, onupdate=_now
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now, onupdate=_now)
 
     def __repr__(self) -> str:
         return f"<ProjectTask U{self.urgence} {self.titre[:40]!r}>"
@@ -144,12 +135,11 @@ class ProjectTask(Base):
 
 # ── Table 3 : Observations ───────────────────────────────────────────
 
+
 class ProjectObservation(Base):
     __tablename__ = "project_observations"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     affaire_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("affaires.id", ondelete="CASCADE"),
@@ -182,9 +172,7 @@ class ProjectObservation(Base):
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
 
     def __repr__(self) -> str:
         return f"<ProjectObservation {self.source} {self.traitement}>"

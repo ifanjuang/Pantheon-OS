@@ -14,6 +14,7 @@ session_id Telegram, persiste le cleaned_question, le dernier
 preprocessed_input, la dernière réponse agent pour retrouver le
 contexte sur N appels consécutifs.
 """
+
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
@@ -21,8 +22,10 @@ from pydantic import BaseModel, Field
 
 # ── Requête / réponse API ────────────────────────────────────────────
 
+
 class MemoryEntry(BaseModel):
     """Une entrée de mémoire fonctionnelle."""
+
     key: str = Field(..., min_length=1, max_length=128)
     value: Any = Field(..., description="Valeur JSON-sérialisable")
     ttl: int = Field(3600, ge=1, le=86400, description="TTL en secondes (max 24h)")
@@ -41,10 +44,13 @@ class GetContextResponse(BaseModel):
 
 class PromoteRequest(BaseModel):
     """Promotion du contexte fonctionnel → mémoire projet (Hestia)."""
+
     thread_id: str = Field(..., min_length=1, max_length=128)
     affaire_id: str = Field(..., description="UUID de l'affaire cible")
     lesson: str = Field(
-        ..., min_length=3, max_length=4000,
+        ...,
+        min_length=3,
+        max_length=4000,
         description="Leçon à écrire dans agent_memory scope=projet",
     )
     category: Optional[str] = Field(

@@ -4,6 +4,7 @@ Modèles documents — Document, Chunk (RAG)
 Chunk.embedding utilise pgvector (Vector) dont la dimension est configurable
 via settings.EMBEDDING_DIM (défaut 768 pour nomic-embed-text).
 """
+
 import uuid
 from datetime import datetime, timezone
 
@@ -16,6 +17,7 @@ from core.settings import settings
 
 try:
     from pgvector.sqlalchemy import Vector
+
     _VECTOR_AVAILABLE = True
 except ImportError:  # pgvector pas encore installé en dev local
     Vector = None
@@ -33,9 +35,7 @@ COUCHES = ("public", "agence", "projet", "sensible")
 class Document(Base):
     __tablename__ = "documents"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     affaire_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("affaires.id", ondelete="CASCADE"),
@@ -53,14 +53,10 @@ class Document(Base):
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
 
     affaire: Mapped["Affaire"] = relationship(back_populates="documents")  # type: ignore[name-defined]  # noqa: F821
-    chunks: Mapped[list["Chunk"]] = relationship(
-        back_populates="document", cascade="all, delete-orphan"
-    )
+    chunks: Mapped[list["Chunk"]] = relationship(back_populates="document", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<Document {self.nom} [{self.couche}]>"
@@ -88,9 +84,7 @@ def _build_chunk_table():
                 ),
             )
 
-            id: Mapped[uuid.UUID] = mapped_column(
-                UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-            )
+            id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
             document_id: Mapped[uuid.UUID | None] = mapped_column(
                 UUID(as_uuid=True),
                 ForeignKey("documents.id", ondelete="CASCADE"),
@@ -106,14 +100,10 @@ def _build_chunk_table():
             source_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
             source_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
             contenu: Mapped[str] = mapped_column(Text, nullable=False)
-            embedding: Mapped[list[float]] = mapped_column(
-                V(settings.EMBEDDING_DIM), nullable=True
-            )
+            embedding: Mapped[list[float]] = mapped_column(V(settings.EMBEDDING_DIM), nullable=True)
             chunk_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
             meta: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
-            created_at: Mapped[datetime] = mapped_column(
-                DateTime(timezone=True), nullable=False, default=_now
-            )
+            created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
 
             document: Mapped["Document | None"] = relationship(back_populates="chunks")
 
@@ -121,12 +111,11 @@ def _build_chunk_table():
                 return f"<Chunk doc={self.document_id} src={self.source_type}:{self.source_id} idx={self.chunk_index}>"
 
     else:
+
         class Chunk(Base):  # type: ignore[no-redef]
             __tablename__ = "chunks"
 
-            id: Mapped[uuid.UUID] = mapped_column(
-                UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-            )
+            id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
             document_id: Mapped[uuid.UUID | None] = mapped_column(
                 UUID(as_uuid=True),
                 ForeignKey("documents.id", ondelete="CASCADE"),
@@ -144,9 +133,7 @@ def _build_chunk_table():
             contenu: Mapped[str] = mapped_column(Text, nullable=False)
             chunk_index: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
             meta: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
-            created_at: Mapped[datetime] = mapped_column(
-                DateTime(timezone=True), nullable=False, default=_now
-            )
+            created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
 
             document: Mapped["Document | None"] = relationship(back_populates="chunks")
 

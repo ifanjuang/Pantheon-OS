@@ -8,6 +8,7 @@ POST /guards/criticality/preview    → preview du criticality_guard (règle pur
 Les trois endpoints sont stateless. Ils servent à tester les règles et
 les prompts des gardes-fous avant de les câbler dans une orchestration.
 """
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from core.auth import get_current_user

@@ -7,6 +7,7 @@ Usage :
     log = get_logger(__name__)
     log.info("rag.search", affaire_id=str(id), query=query[:60], hits=5, duration_ms=120)
 """
+
 import logging
 import sys
 import structlog
@@ -24,9 +25,7 @@ def configure_logging() -> None:
 
     if settings.DEBUG:
         # Développement : sortie lisible en console
-        processors = shared_processors + [
-            structlog.dev.ConsoleRenderer(colors=True)
-        ]
+        processors = shared_processors + [structlog.dev.ConsoleRenderer(colors=True)]
     else:
         # Production : JSON sur stdout (filtrable Grafana Loki, etc.)
         processors = shared_processors + [
@@ -36,9 +35,7 @@ def configure_logging() -> None:
 
     structlog.configure(
         processors=processors,
-        wrapper_class=structlog.make_filtering_bound_logger(
-            logging.DEBUG if settings.DEBUG else logging.INFO
-        ),
+        wrapper_class=structlog.make_filtering_bound_logger(logging.DEBUG if settings.DEBUG else logging.INFO),
         context_class=dict,
         logger_factory=structlog.PrintLoggerFactory(sys.stdout),
         cache_logger_on_first_use=True,

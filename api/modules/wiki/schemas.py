@@ -7,8 +7,10 @@ from pydantic import BaseModel, Field
 
 # ── Page ─────────────────────────────────────────────────────────────
 
+
 class WikiPageCreateRequest(BaseModel):
     """Création manuelle d'une page wiki (sans passer par une décision)."""
+
     affaire_id: Optional[UUID] = None
     scope: str = Field("projet", pattern="^(projet|agence)$")
     titre: str = Field(..., min_length=3, max_length=512)
@@ -52,6 +54,7 @@ class WikiPageResponse(BaseModel):
 
 class WikiPageSummary(BaseModel):
     """Version allégée pour les listes."""
+
     id: UUID
     scope: str
     slug: str
@@ -66,6 +69,7 @@ class WikiPageSummary(BaseModel):
 
 
 # ── Recherche & précédents ───────────────────────────────────────────
+
 
 class WikiSearchRequest(BaseModel):
     query: str = Field(..., min_length=2)
@@ -92,6 +96,7 @@ class PrecedentResult(BaseModel):
     Résultat d'une vérification de précédent pour le scoring.
     bonus_applicable : +5 si au moins un précédent agence validé est trouvé.
     """
+
     bonus_applicable: bool
     bonus_points: int
     precedents: list[WikiSearchHit]
@@ -99,11 +104,13 @@ class PrecedentResult(BaseModel):
 
 # ── Promotion depuis une décision ────────────────────────────────────
 
+
 class PromoteDecisionRequest(BaseModel):
     """
     Promeut une project_decision validée en page wiki.
     scope='agence' pour en faire un précédent réutilisable entre projets.
     """
+
     scope: str = Field("projet", pattern="^(projet|agence)$")
     tags: list[str] = Field(default_factory=list)
     contenu_md_override: Optional[str] = None

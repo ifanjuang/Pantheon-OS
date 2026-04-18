@@ -9,6 +9,7 @@ get_dashboard() agrège :
 
 Toutes les valeurs monétaires sont en € HT.
 """
+
 from uuid import UUID
 
 from sqlalchemy import select
@@ -20,6 +21,7 @@ from modules.finance.models import Avenant, SituationTravaux
 # ══════════════════════════════════════════════════════════════════════
 # AVENANTS
 # ══════════════════════════════════════════════════════════════════════
+
 
 async def create_avenant(db: AsyncSession, affaire_id: UUID, **fields) -> Avenant:
     av = Avenant(affaire_id=affaire_id, **fields)
@@ -38,11 +40,7 @@ async def list_avenants(
     lot_id: UUID | None = None,
     statut: str | None = None,
 ) -> list[Avenant]:
-    q = (
-        select(Avenant)
-        .where(Avenant.affaire_id == affaire_id)
-        .order_by(Avenant.numero)
-    )
+    q = select(Avenant).where(Avenant.affaire_id == affaire_id).order_by(Avenant.numero)
     if lot_id:
         q = q.where(Avenant.lot_id == lot_id)
     if statut:
@@ -66,6 +64,7 @@ async def delete_avenant(db: AsyncSession, av: Avenant) -> None:
 # ══════════════════════════════════════════════════════════════════════
 # SITUATIONS DE TRAVAUX
 # ══════════════════════════════════════════════════════════════════════
+
 
 async def create_situation(db: AsyncSession, affaire_id: UUID, **fields) -> SituationTravaux:
     sit = SituationTravaux(affaire_id=affaire_id, **fields)
@@ -100,9 +99,7 @@ async def list_situations(
     return result.scalars().all()
 
 
-async def update_situation(
-    db: AsyncSession, sit: SituationTravaux, data: dict
-) -> SituationTravaux:
+async def update_situation(db: AsyncSession, sit: SituationTravaux, data: dict) -> SituationTravaux:
     for k, v in data.items():
         if v is not None:
             setattr(sit, k, v)
@@ -118,6 +115,7 @@ async def delete_situation(db: AsyncSession, sit: SituationTravaux) -> None:
 # DASHBOARD FINANCIER
 # ══════════════════════════════════════════════════════════════════════
 
+
 async def get_dashboard(db: AsyncSession, affaire_id: UUID) -> dict:
     """
     Agrège les données financières de l'affaire :
@@ -132,67 +130,33 @@ async def get_dashboard(db: AsyncSession, affaire_id: UUID) -> dict:
     honoraires = float(affaire.honoraires) if affaire and affaire.honoraires else None
 
     # Base contractuelle : somme des montants de marché des lots
-    lots_result = await db.execute(
-        select(Lot).where(Lot.affaire_id == affaire_id)
-    )
+    lots_result = await db.execute(select(Lot).where(Lot.affaire_id == affaire_id))
     lots = lots_result.scalars().all()
-    montant_marches_initial = sum(
-        float(lot.montant_marche) for lot in lots if lot.montant_marche
-    )
+    montant_marches_initial = sum(float(lot.montant_marche) for lot in lots if lot.montant_marche)
 
     # Avenants
     avenants = await list_avenants(db, affaire_id)
-    avenants_acceptes = sum(
-        float(a.montant_ht) for a in avenants if a.statut == "accepte"
-    )
-    avenants_en_attente = sum(
-        float(a.montant_ht)
-        for a in avenants
-        if a.statut in ("soumis", "en_preparation")
-    )
-    nb_avenants_en_attente = sum(
-        1 for a in avenants if a.statut in ("soumis", "en_preparation")
-    )
+    avenants_acceptes = sum(float(a.montant_ht) for a in avenants if a.statut == "accepte")
+    avenants_en_attente = sum(float(a.montant_ht) for a in avenants if a.statut in ("soumis", "en_preparation"))
+    nb_avenants_en_attente = sum(1 for a in avenants if a.statut in ("soumis", "en_preparation"))
 
     montant_contractuel = montant_marches_initial + avenants_acceptes
 
     # Situations
     situations = await list_situations(db, affaire_id)
     montant_reclame = sum(
-        float(s.montant_demande_ht)
-        for s in situations
-        if s.statut in ("soumise", "en_revision", "validee", "payee")
+        float(s.montant_demande_ht) for s in situations if s.statut in ("soumise", "en_revision", "validee", "payee")
     )
     montant_valide = sum(
-        float(s.montant_valide_ht)
-        for s in situations
-        if s.statut in ("validee", "payee") and s.montant_valide_ht
+        float(s.montant_valide_ht) for s in situations if s.statut in ("validee", "payee") and s.montant_valide_ht
     )
-    montant_paye = sum(
-        float(s.montant_valide_ht)
-        for s in situations
-        if s.statut == "payee" and s.montant_valide_ht
-    )
-    nb_situations_en_attente = sum(
-        1 for s in situations if s.statut in ("soumise", "en_revision")
-    )
+    montant_paye = sum(float(s.montant_valide_ht) for s in situations if s.statut == "payee" and s.montant_valide_ht)
+    nb_situations_en_attente = sum(1 for s in situations if s.statut in ("soumise", "en_revision"))
 
     # Ratios
-    taux_engagement = (
-        round(montant_contractuel / budget_moa * 100, 1)
-        if budget_moa and budget_moa > 0
-        else None
-    )
-    taux_realisation = (
-        round(montant_valide / montant_contractuel * 100, 1)
-        if montant_contractuel > 0
-        else None
-    )
-    derive = (
-        round(montant_contractuel - budget_moa, 2)
-        if budget_moa is not None
-        else None
-    )
+    taux_engagement = round(montant_contractuel / budget_moa * 100, 1) if budget_moa and budget_moa > 0 else None
+    taux_realisation = round(montant_valide / montant_contractuel * 100, 1) if montant_contractuel > 0 else None
+    derive = round(montant_contractuel - budget_moa, 2) if budget_moa is not None else None
 
     return {
         "affaire_id": str(affaire_id),

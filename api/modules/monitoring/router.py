@@ -10,6 +10,7 @@ GET /monitoring/kpis/guards           → uniquement GuardsKPIs
 Fenêtres disponibles : 24h / 7d / 30d / 90d (default: 7d).
 Accessible aux rôles admin / moe (même règle que decisions).
 """
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 

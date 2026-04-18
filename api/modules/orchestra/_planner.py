@@ -6,6 +6,7 @@ Orchestra — nœuds de planification (M1).
   zeus_distribute   : Zeus planifie les sous-tâches depuis les capacités statiques des agents
                       (0 appel LLM supplémentaire — SOUL.md LRU cached)
 """
+
 from ._shared import (
     OrchestraState,
     VALID_AGENTS,
@@ -81,6 +82,7 @@ Règles :
 
 
 # ── Nœuds ────────────────────────────────────────────────────────────
+
 
 async def preprocess(state: OrchestraState) -> dict:
     """M1 — Hermès++ : normalise la demande avant zeus_distribute.
@@ -183,19 +185,19 @@ async def workflow_precheck(state: OrchestraState) -> dict:
 
     if decision.verdict == "trim" and decision.suggested_subtask_ids:
         keep = set(decision.suggested_subtask_ids)
-        trimmed = [
-            st for st in state.get("subtasks", []) if st.get("id") in keep
-        ]
+        trimmed = [st for st in state.get("subtasks", []) if st.get("id") in keep]
         if trimmed:
             updates["subtasks"] = trimmed
             new_assignments: list = []
             for st in trimmed:
                 for agent in st["agents"]:
-                    new_assignments.append({
-                        "agent": agent,
-                        "instruction": st.get("instruction", state["instruction"]),
-                        "priority": 1,
-                    })
+                    new_assignments.append(
+                        {
+                            "agent": agent,
+                            "instruction": st.get("instruction", state["instruction"]),
+                            "priority": 1,
+                        }
+                    )
             updates["assignments"] = new_assignments
 
     if decision.verdict == "upgrade" and decision.suggested_criticite:
@@ -227,15 +229,13 @@ async def zeus_distribute(state: OrchestraState) -> dict:
 
     agents = state["initial_agents"]
     agent_summaries = {a: _get_agent_summary(a) for a in agents}
-    capabilities_text = "\n\n".join(
-        f"### {agent}\n{summary}"
-        for agent, summary in agent_summaries.items()
-    )
+    capabilities_text = "\n\n".join(f"### {agent}\n{summary}" for agent, summary in agent_summaries.items())
 
     # Behaviors des modules actifs — contraintes métier injectées dynamiquement
     module_behaviors = "(aucune contrainte spécifique)"
     try:
         from core.registry import registry as _reg
+
         if _reg is not None:
             behaviors = _reg.get_all_behaviors()
             if behaviors:
@@ -262,14 +262,16 @@ async def zeus_distribute(state: OrchestraState) -> dict:
         judge = st.get("judge", "")
         if judge and judge not in VALID_AGENTS:
             judge = "apollon"
-        subtasks.append({
-            "id": st.get("id", f"T{len(subtasks) + 1}"),
-            "pattern": st.get("pattern", "parallel"),
-            "agents": valid_agents,
-            "judge": judge,
-            "instruction": st.get("instruction", "") or state["instruction"],
-            "depends_on": st.get("depends_on", []),
-        })
+        subtasks.append(
+            {
+                "id": st.get("id", f"T{len(subtasks) + 1}"),
+                "pattern": st.get("pattern", "parallel"),
+                "agents": valid_agents,
+                "judge": judge,
+                "instruction": st.get("instruction", "") or state["instruction"],
+                "depends_on": st.get("depends_on", []),
+            }
+        )
 
     # ── Fallback : ancien format assignments ──────────────────────────
     assignments = parsed.get("assignments", [])
@@ -277,58 +279,58 @@ async def zeus_distribute(state: OrchestraState) -> dict:
 
     if not subtasks and not assignments:
         assignments = [
-            {"agent": a, "instruction": state["instruction"], "priority": 1}
-            for a in state["initial_agents"]
+            {"agent": a, "instruction": state["instruction"], "priority": 1} for a in state["initial_agents"]
         ]
 
     if not subtasks and assignments:
-        subtasks = [{
-            "id": "T1",
-            "pattern": "parallel",
-            "agents": [a["agent"] for a in assignments],
-            "judge": "",
-            "instruction": state["instruction"],
-            "depends_on": [],
-            "_agent_instructions": {
-                a["agent"]: a.get("instruction", state["instruction"])
-                for a in assignments
-            },
-        }]
+        subtasks = [
+            {
+                "id": "T1",
+                "pattern": "parallel",
+                "agents": [a["agent"] for a in assignments],
+                "judge": "",
+                "instruction": state["instruction"],
+                "depends_on": [],
+                "_agent_instructions": {a["agent"]: a.get("instruction", state["instruction"]) for a in assignments},
+            }
+        ]
 
     # Pour compat HITL/synthèse — aplatir subtasks → assignments
     if subtasks and not assignments:
         assignments = []
         for st in subtasks:
             for agent in st["agents"]:
-                assignments.append({
-                    "agent": agent,
-                    "instruction": st["instruction"],
-                    "priority": 1,
-                })
+                assignments.append(
+                    {
+                        "agent": agent,
+                        "instruction": st["instruction"],
+                        "priority": 1,
+                    }
+                )
             if st.get("judge"):
-                assignments.append({
-                    "agent": st["judge"],
-                    "instruction": st["instruction"],
-                    "priority": 2,
-                })
+                assignments.append(
+                    {
+                        "agent": st["judge"],
+                        "instruction": st["instruction"],
+                        "priority": 2,
+                    }
+                )
 
-    log.info("orchestra.zeus_distributed",
-             subtasks=[(s["id"], s["pattern"], s["agents"]) for s in subtasks])
+    log.info("orchestra.zeus_distributed", subtasks=[(s["id"], s["pattern"], s["agents"]) for s in subtasks])
 
     approval = {}
     if state.get("hitl_enabled"):
-        approval = interrupt({
-            "message": "Zeus a planifié les sous-tâches. Validez pour lancer l'exécution.",
-            "reasoning": parsed.get("reasoning", ""),
-            "subtasks": subtasks,
-            "assignments": assignments,
-            "synthesis_agent": parsed.get("synthesis_agent", "mnemosyne"),
-        })
+        approval = interrupt(
+            {
+                "message": "Zeus a planifié les sous-tâches. Validez pour lancer l'exécution.",
+                "reasoning": parsed.get("reasoning", ""),
+                "subtasks": subtasks,
+                "assignments": assignments,
+                "synthesis_agent": parsed.get("synthesis_agent", "mnemosyne"),
+            }
+        )
         if approval.get("modified_assignments"):
-            assignments = [
-                a for a in approval["modified_assignments"]
-                if a.get("agent") in VALID_AGENTS
-            ] or assignments
+            assignments = [a for a in approval["modified_assignments"] if a.get("agent") in VALID_AGENTS] or assignments
 
     return {
         "zeus_reasoning": parsed.get("reasoning", ""),

@@ -8,6 +8,7 @@ Les bornes viennent directement de l'architecture :
   Cohérence /15 : alignement /10, lisibilité /5
   Robustesse /15 : hypothèses /10, incertitude /5
 """
+
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
@@ -16,6 +17,7 @@ from pydantic import BaseModel, Field, computed_field
 
 
 # ── Sous-axes ────────────────────────────────────────────────────────
+
 
 class TechniqueScore(BaseModel):
     faisabilite: int = Field(..., ge=0, le=10)
@@ -77,11 +79,13 @@ class LogiqueScore(BaseModel):
 
 # ── Ensemble des 5 axes ─────────────────────────────────────────────
 
+
 class AxesDetail(BaseModel):
     """
     Utilisé à la fois comme payload d'entrée (scoring manuel) et comme
     schéma de sortie du LLM via Instructor (scoring auto).
     """
+
     technique: TechniqueScore
     contractuel: ContractuelScore
     planning: PlanningScore
@@ -102,6 +106,7 @@ class AxesDetail(BaseModel):
 
 # ── Bonus / malus ───────────────────────────────────────────────────
 
+
 class BonusMalus(BaseModel):
     code: str
     label: str
@@ -111,8 +116,10 @@ class BonusMalus(BaseModel):
 
 # ── Requêtes ────────────────────────────────────────────────────────
 
+
 class ScoreManualRequest(BaseModel):
     """Scoring manuel : l'utilisateur fournit directement les sous-scores."""
+
     sujet: str = Field(..., min_length=3, max_length=512)
     axes: AxesDetail
     affaire_id: Optional[UUID] = None
@@ -124,6 +131,7 @@ class ScoreManualRequest(BaseModel):
 
 class ScoreAutoRequest(BaseModel):
     """Scoring automatique via LLM (Instructor) à partir d'un contexte texte."""
+
     sujet: str = Field(..., min_length=3, max_length=512)
     contexte: str = Field(..., min_length=20)
     affaire_id: Optional[UUID] = None
@@ -133,6 +141,7 @@ class ScoreAutoRequest(BaseModel):
 
 
 # ── Réponses ────────────────────────────────────────────────────────
+
 
 class DecisionScoreResponse(BaseModel):
     id: UUID
@@ -155,6 +164,7 @@ class DecisionScoreResponse(BaseModel):
 
 class ScoreSummary(BaseModel):
     """Version allégée pour listes et dashboard."""
+
     id: UUID
     decision_id: Optional[UUID]
     sujet: str
@@ -168,8 +178,10 @@ class ScoreSummary(BaseModel):
 
 # ── Stats dashboard ─────────────────────────────────────────────────
 
+
 class ScoringStats(BaseModel):
     """KPIs du dashboard — à afficher sur la vue scoring."""
+
     total_scores: int
     moyenne: float
     distribution: dict[str, int]  # {"robuste": 12, "acceptable": 7, ...}

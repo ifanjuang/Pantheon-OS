@@ -2,6 +2,7 @@
 Point d'entrée de l'API OS Projet.
 Ne connaît aucun module — tout passe par ModuleRegistry.load_all().
 """
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -74,6 +75,7 @@ async def lifespan(app: FastAPI):
 
     # 4. Créer les tables LangGraph (checkpointer HITL)
     from core.checkpointer import setup_checkpointer
+
     try:
         await setup_checkpointer()
         log.info("checkpointer.ready")
@@ -82,11 +84,13 @@ async def lifespan(app: FastAPI):
 
     # 5. Seed utilisateur admin par défaut
     from modules.auth.service import seed_admin
+
     async with AsyncSessionLocal() as db:
         await seed_admin(db)
 
     # 6. Charger les modules
     from core.registry import ModuleRegistry
+
     reg = ModuleRegistry(app)
     reg.load_all("modules.yaml")
 
@@ -122,4 +126,5 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # ── Routes core (non-modulaires) ─────────────────────────────────
 from core.health import router as health_router  # noqa: E402
+
 app.include_router(health_router)

@@ -10,6 +10,7 @@ Moteur d'analyse :
                              via un BFS sur les liens FS sortants.
   - get_health             : KPIs de santé du planning.
 """
+
 from collections import defaultdict, deque
 from datetime import date, timedelta
 from uuid import UUID
@@ -24,6 +25,7 @@ from modules.planning.models import Jalon, LienDependance, Lot, Tache
 # LOTS
 # ══════════════════════════════════════════════════════════════════════
 
+
 async def create_lot(db: AsyncSession, affaire_id: UUID, **fields) -> Lot:
     lot = Lot(affaire_id=affaire_id, **fields)
     db.add(lot)
@@ -36,9 +38,7 @@ async def get_lot(db: AsyncSession, lot_id: UUID) -> Lot | None:
 
 
 async def list_lots(db: AsyncSession, affaire_id: UUID) -> list[Lot]:
-    result = await db.execute(
-        select(Lot).where(Lot.affaire_id == affaire_id).order_by(Lot.code)
-    )
+    result = await db.execute(select(Lot).where(Lot.affaire_id == affaire_id).order_by(Lot.code))
     return result.scalars().all()
 
 
@@ -57,6 +57,7 @@ async def delete_lot(db: AsyncSession, lot: Lot) -> None:
 # ══════════════════════════════════════════════════════════════════════
 # TÂCHES
 # ══════════════════════════════════════════════════════════════════════
+
 
 async def create_tache(db: AsyncSession, affaire_id: UUID, **fields) -> Tache:
     tache = Tache(affaire_id=affaire_id, **fields)
@@ -103,6 +104,7 @@ async def delete_tache(db: AsyncSession, tache: Tache) -> None:
 # JALONS
 # ══════════════════════════════════════════════════════════════════════
 
+
 async def create_jalon(db: AsyncSession, affaire_id: UUID, **fields) -> Jalon:
     jalon = Jalon(affaire_id=affaire_id, **fields)
     db.add(jalon)
@@ -115,11 +117,7 @@ async def get_jalon(db: AsyncSession, jalon_id: UUID) -> Jalon | None:
 
 
 async def list_jalons(db: AsyncSession, affaire_id: UUID) -> list[Jalon]:
-    result = await db.execute(
-        select(Jalon)
-        .where(Jalon.affaire_id == affaire_id)
-        .order_by(Jalon.date_cible)
-    )
+    result = await db.execute(select(Jalon).where(Jalon.affaire_id == affaire_id).order_by(Jalon.date_cible))
     return result.scalars().all()
 
 
@@ -138,6 +136,7 @@ async def delete_jalon(db: AsyncSession, jalon: Jalon) -> None:
 # ══════════════════════════════════════════════════════════════════════
 # LIENS DE DÉPENDANCE
 # ══════════════════════════════════════════════════════════════════════
+
 
 async def create_lien(
     db: AsyncSession,
@@ -178,6 +177,7 @@ async def delete_lien(db: AsyncSession, lien: LienDependance) -> None:
 # ══════════════════════════════════════════════════════════════════════
 # CHEMIN CRITIQUE (CPM)
 # ══════════════════════════════════════════════════════════════════════
+
 
 async def compute_critical_path(db: AsyncSession, affaire_id: UUID) -> dict:
     """
@@ -228,9 +228,7 @@ async def compute_critical_path(db: AsyncSession, affaire_id: UUID) -> dict:
         for succ_id, _ in succs:
             in_degree[succ_id] += 1
 
-    queue: deque[UUID] = deque(
-        [t_id for t_id in task_ids if in_degree[t_id] == 0]
-    )
+    queue: deque[UUID] = deque([t_id for t_id in task_ids if in_degree[t_id] == 0])
     topo_order: list[UUID] = []
     while queue:
         node = queue.popleft()
@@ -302,9 +300,8 @@ async def compute_critical_path(db: AsyncSession, affaire_id: UUID) -> dict:
 # PROPAGATION DE DÉCALAGES
 # ══════════════════════════════════════════════════════════════════════
 
-async def propagate_delays(
-    db: AsyncSession, tache_id: UUID, delta_jours: int
-) -> list[dict]:
+
+async def propagate_delays(db: AsyncSession, tache_id: UUID, delta_jours: int) -> list[dict]:
     """
     Propage un décalage de `delta_jours` (positif = retard) à tous les
     successeurs transitifs via les liens FS.
@@ -339,9 +336,7 @@ async def propagate_delays(
     if not visited:
         return []
 
-    result = await db.execute(
-        select(Tache).where(Tache.id.in_(visited))
-    )
+    result = await db.execute(select(Tache).where(Tache.id.in_(visited)))
     affected_tasks = result.scalars().all()
 
     output: list[dict] = []
@@ -352,15 +347,17 @@ async def propagate_delays(
             t.date_debut_prevue = t.date_debut_prevue + delta
         if t.date_fin_prevue:
             t.date_fin_prevue = t.date_fin_prevue + delta
-        output.append({
-            "id": str(t.id),
-            "titre": t.titre,
-            "decalage_jours": delta_jours,
-            "old_debut": old_debut.isoformat() if old_debut else None,
-            "new_debut": t.date_debut_prevue.isoformat() if t.date_debut_prevue else None,
-            "old_fin": old_fin.isoformat() if old_fin else None,
-            "new_fin": t.date_fin_prevue.isoformat() if t.date_fin_prevue else None,
-        })
+        output.append(
+            {
+                "id": str(t.id),
+                "titre": t.titre,
+                "decalage_jours": delta_jours,
+                "old_debut": old_debut.isoformat() if old_debut else None,
+                "new_debut": t.date_debut_prevue.isoformat() if t.date_debut_prevue else None,
+                "old_fin": old_fin.isoformat() if old_fin else None,
+                "new_fin": t.date_fin_prevue.isoformat() if t.date_fin_prevue else None,
+            }
+        )
 
     await db.flush()
     return output
@@ -369,6 +366,7 @@ async def propagate_delays(
 # ══════════════════════════════════════════════════════════════════════
 # SANTÉ DU PLANNING
 # ══════════════════════════════════════════════════════════════════════
+
 
 async def get_health(db: AsyncSession, affaire_id: UUID) -> dict:
     """KPIs de santé du planning pour une affaire."""
@@ -385,21 +383,15 @@ async def get_health(db: AsyncSession, affaire_id: UUID) -> dict:
     t_terminees = sum(1 for t in taches if t.statut == "terminee")
     t_bloquees = sum(1 for t in taches if t.statut == "bloquee")
     t_en_retard = sum(
-        1 for t in non_annulees
-        if t.date_fin_prevue and t.date_fin_prevue < today
-        and t.statut not in ("terminee", "annulee")
+        1
+        for t in non_annulees
+        if t.date_fin_prevue and t.date_fin_prevue < today and t.statut not in ("terminee", "annulee")
     )
-    avancement_moyen = (
-        sum(t.avancement for t in non_annulees) / len(non_annulees)
-        if non_annulees else 0.0
-    )
+    avancement_moyen = sum(t.avancement for t in non_annulees) / len(non_annulees) if non_annulees else 0.0
 
     # ── Jalons ────────────────────────────────────────────────────────
     j_atteints = sum(1 for j in jalons if j.statut == "atteint")
-    j_manques = sum(
-        1 for j in jalons
-        if j.date_cible < today and j.statut != "atteint"
-    )
+    j_manques = sum(1 for j in jalons if j.date_cible < today and j.statut != "atteint")
     j_a_venir = sum(1 for j in jalons if j.statut == "a_venir")
 
     # ── Lots ──────────────────────────────────────────────────────────
@@ -415,13 +407,7 @@ async def get_health(db: AsyncSession, affaire_id: UUID) -> dict:
 
     score = max(
         0,
-        round(
-            100
-            - (retard_ratio * 40)
-            - (bloque_ratio * 20)
-            - (jalon_ratio * 30)
-            - ((100 - avancement_moyen) * 0.1)
-        ),
+        round(100 - (retard_ratio * 40) - (bloque_ratio * 20) - (jalon_ratio * 30) - ((100 - avancement_moyen) * 0.1)),
     )
 
     return {

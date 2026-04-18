@@ -1,6 +1,7 @@
 """
 Tests module affaires — CRUD projets MOE
 """
+
 import pytest
 from tests.conftest import auth_headers
 
@@ -86,9 +87,8 @@ class TestGetAffaire:
 
     async def test_get_not_found(self, client, lecteur_token):
         import uuid
-        r = await client.get(
-            f"/affaires/{uuid.uuid4()}", headers=auth_headers(lecteur_token)
-        )
+
+        r = await client.get(f"/affaires/{uuid.uuid4()}", headers=auth_headers(lecteur_token))
         assert r.status_code == 404
 
 
@@ -123,6 +123,7 @@ class TestUpdateAffaire:
 class TestDeleteAffaire:
     async def test_delete_by_admin(self, client, admin_token, db):
         from modules.affaires.service import create_affaire
+
         a = await create_affaire(db, "DEL-001", "À supprimer", None, "actif", None)
         await db.commit()
 

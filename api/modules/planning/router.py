@@ -30,6 +30,7 @@ Vues analytiques
   POST   /planning/{affaire_id}/critical-path → calculer chemin critique (CPM)
   GET    /planning/{affaire_id}/health        → KPIs de santé
 """
+
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -363,8 +364,10 @@ def get_router(config: dict) -> APIRouter:
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
+
 async def _gather_gantt(db, affaire_id):
     import asyncio
+
     lots, taches, jalons, liens = await asyncio.gather(
         list_lots(db, affaire_id),
         list_taches(db, affaire_id),

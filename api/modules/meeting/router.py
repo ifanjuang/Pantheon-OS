@@ -19,6 +19,7 @@ GET  /meeting/agenda/{affaire_id}    → liste des agendas
 GET  /meeting/agenda/detail/{id}     → détail agenda
 GET  /meeting/agenda/export/{id}     → texte formaté (copier-coller)
 """
+
 import uuid
 from typing import Annotated
 
@@ -89,6 +90,7 @@ def get_router(config: dict) -> APIRouter:
         date_obj = None
         if date_reunion:
             from datetime import date
+
             try:
                 date_obj = date.fromisoformat(date_reunion)
             except ValueError:
@@ -109,6 +111,7 @@ def get_router(config: dict) -> APIRouter:
         # Analyse en arrière-plan
         async def _run_analyse():
             from database import AsyncSessionLocal
+
             async with AsyncSessionLocal() as bg_db:
                 cr_fresh = await bg_db.get(MeetingCR, cr.id)
                 if cr_fresh:
@@ -142,6 +145,7 @@ def get_router(config: dict) -> APIRouter:
 
         async def _run():
             from database import AsyncSessionLocal
+
             async with AsyncSessionLocal() as bg_db:
                 cr_fresh = await bg_db.get(MeetingCR, cr.id)
                 if cr_fresh:
@@ -213,6 +217,7 @@ def get_router(config: dict) -> APIRouter:
         Passer statut=all pour tout voir.
         """
         from datetime import date as date_cls
+
         query = select(MeetingAction).where(MeetingAction.affaire_id == affaire_id)
 
         if statut != "all":
@@ -317,6 +322,7 @@ def get_router(config: dict) -> APIRouter:
 
 # ── Extraction texte selon format ─────────────────────────────────────────────
 
+
 async def _extract_text(content: bytes, mime: str, filename: str) -> str:
     """Extrait le texte brut d'un fichier selon son type MIME."""
     if mime == "text/plain" or mime == "text/markdown":
@@ -326,6 +332,7 @@ async def _extract_text(content: bytes, mime: str, filename: str) -> str:
         try:
             import io
             import pypdf
+
             reader = pypdf.PdfReader(io.BytesIO(content))
             return "\n".join(page.extract_text() or "" for page in reader.pages)
         except ImportError:
@@ -336,6 +343,7 @@ async def _extract_text(content: bytes, mime: str, filename: str) -> str:
         try:
             import io
             import docx
+
             doc = docx.Document(io.BytesIO(content))
             return "\n".join(p.text for p in doc.paragraphs)
         except ImportError:

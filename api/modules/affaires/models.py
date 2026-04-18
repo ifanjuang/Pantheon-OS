@@ -1,6 +1,7 @@
 """
 Modèles affaires — Affaire (dossier/projet MOE)
 """
+
 import uuid
 from datetime import date, datetime, timezone
 
@@ -21,9 +22,7 @@ STATUTS = ("actif", "archive", "clos")
 class Affaire(Base):
     __tablename__ = "affaires"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     code: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
     nom: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -55,12 +54,8 @@ class Affaire(Base):
     created_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now, onupdate=_now
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now, onupdate=_now)
 
     permissions: Mapped[list["AffairePermission"]] = relationship(  # type: ignore[name-defined]  # noqa: F821
         back_populates="affaire", cascade="all, delete-orphan"

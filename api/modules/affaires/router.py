@@ -8,6 +8,7 @@ PATCH  /affaires/{id}          → modifier
 DELETE /affaires/{id}          → supprimer (admin uniquement)
 GET    /affaires/{id}/cockpit  → tableau de bord transversal (planning + chantier + comms + finance + alertes)
 """
+
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -52,10 +53,7 @@ def get_router(config: dict) -> APIRouter:
         if await get_affaire_by_code(db, payload.code):
             raise HTTPException(status_code=409, detail=f"Code '{payload.code}' déjà utilisé")
         _base = {"code", "nom", "description", "statut"}
-        context = {
-            k: v for k, v in payload.model_dump(exclude_none=True).items()
-            if k not in _base
-        }
+        context = {k: v for k, v in payload.model_dump(exclude_none=True).items() if k not in _base}
         affaire = await create_affaire(
             db,
             code=payload.code,
@@ -91,9 +89,7 @@ def get_router(config: dict) -> APIRouter:
         affaire = await get_affaire(db, affaire_id)
         if not affaire:
             raise HTTPException(status_code=404, detail="Affaire introuvable")
-        affaire = await update_affaire(
-            db, affaire, payload.model_dump(exclude_none=True)
-        )
+        affaire = await update_affaire(db, affaire, payload.model_dump(exclude_none=True))
         await db.commit()
         await db.refresh(affaire)
         log.info("affaires.updated", id=str(affaire_id))

@@ -16,6 +16,7 @@ Pipeline :
            → NonConformite (si NC détectée) → [Héphaïstos] analyse_hephaistos
            → action corrective assignée → résolution
 """
+
 import uuid
 from datetime import date, datetime, timezone
 
@@ -32,12 +33,11 @@ def _now() -> datetime:
 
 # ── Observations terrain ──────────────────────────────────────────────
 
+
 class ObservationChantier(Base):
     __tablename__ = "chantier_observations"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     affaire_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("affaires.id", ondelete="CASCADE"),
@@ -79,12 +79,8 @@ class ObservationChantier(Base):
     statut: Mapped[str] = mapped_column(String(20), nullable=False, default="a_analyser")
     # a_analyser | en_cours | analyse | ignore
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now, onupdate=_now
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now, onupdate=_now)
 
     def __repr__(self) -> str:
         return f"<ObservationChantier {self.source} {self.date_constat} {self.statut}>"
@@ -92,12 +88,11 @@ class ObservationChantier(Base):
 
 # ── Non-conformités ───────────────────────────────────────────────────
 
+
 class NonConformite(Base):
     __tablename__ = "chantier_nonconformites"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     affaire_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("affaires.id", ondelete="CASCADE"),
@@ -141,17 +136,11 @@ class NonConformite(Base):
     analyse_hephaistos: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Diagnostic technique produit par Héphaïstos (rempli par ARQ)
 
-    arret_chantier: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False
-    )
+    arret_chantier: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # True si Héphaïstos ou gravite="arret_chantier" → alerte critique
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=_now, onupdate=_now
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_now, onupdate=_now)
 
     def __repr__(self) -> str:
         return f"<NonConformite {self.gravite} {self.statut} {self.description[:40]!r}>"
