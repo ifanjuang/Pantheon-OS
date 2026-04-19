@@ -30,11 +30,13 @@ from modules.agent.tools import DEFINITIONS, execute_tool, _DB_TOOLS
 
 log = get_logger("agent.service")
 
+_ROOT = Path(__file__).parent.parent.parent.parent
 AGENTS_DIR = (
     Path(settings.AGENTS_DIR)
     if hasattr(settings, "AGENTS_DIR")
-    else Path(__file__).parent.parent.parent.parent / "agents"
+    else _ROOT / "agents"
 )
+CORE_DIR = _ROOT / "core"  # meta-agents
 VALID_AGENTS = {
     # Perception
     "hermes",
@@ -81,6 +83,18 @@ Règles :
 AGENTS_COMMON = (AGENTS_DIR / "AGENTS.md").read_text(encoding="utf-8") if (AGENTS_DIR / "AGENTS.md").exists() else ""
 
 
+def _resolve_soul_path(agent_name: str) -> Path | None:
+    """Résout le chemin SOUL.md — core/ en priorité, agents/ en fallback."""
+    name = agent_name.lower()
+    core_path = CORE_DIR / name / "SOUL.md"
+    if core_path.exists():
+        return core_path
+    agents_path = AGENTS_DIR / name / "SOUL.md"
+    if agents_path.exists():
+        return agents_path
+    return None
+
+
 @functools.lru_cache(maxsize=1)
 def _get_domain_context_for_agent() -> str:
     """Charge le contexte domaine depuis agents/domains/{DOMAIN}.yaml (LRU cached)."""
@@ -107,10 +121,10 @@ def _build_system_prompt(agent_name: str) -> str:
     if name not in VALID_AGENTS:
         name = "athena"
 
-    soul_path = AGENTS_DIR / name / "SOUL.md"
-    memory_path = AGENTS_DIR / name / "MEMORY.md"
+    soul_path = _resolve_soul_path(name)
+    memory_path = (CORE_DIR / name / "MEMORY.md") if (CORE_DIR / name / "MEMORY.md").exists() else (AGENTS_DIR / name / "MEMORY.md")
 
-    soul = soul_path.read_text(encoding="utf-8") if soul_path.exists() else _DEFAULT_PROMPT
+    soul = soul_path.read_text(encoding="utf-8") if soul_path else _DEFAULT_PROMPT
     memory_raw = memory_path.read_text(encoding="utf-8").strip() if memory_path.exists() else ""
 
     has_memory = any(

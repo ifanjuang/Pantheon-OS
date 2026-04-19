@@ -20,6 +20,7 @@ ZEUS:
   role: orchestrator
   layer: meta
   class: ZeusOrchestrator
+  soul_dir: core
   triggers: [C3, C4, C5]
   veto: false
   old_names: [zeus, orchestrator, agent_manager]
@@ -28,6 +29,7 @@ HERA:
   role: supervisor
   layer: meta
   class: HeraSupervisor
+  soul_dir: core
   triggers: [C3, C4, C5]
   veto: false
   old_names: [hera]
@@ -36,6 +38,7 @@ ARTEMIS:
   role: filter
   layer: meta
   class: ArtemisFilter
+  soul_dir: core
   triggers: [C1, C2, C3, C4, C5]
   veto: false
   old_names: [artemis]
@@ -44,6 +47,7 @@ KAIROS:
   role: synthesizer
   layer: meta
   class: KairosSynthesizer
+  soul_dir: core
   triggers: [C1, C2, C3, C4, C5]
   veto: false
   old_names: [kairos]
@@ -54,6 +58,7 @@ HERMES:
   role: router
   layer: perception
   class: HermesRouter
+  soul_dir: core
   triggers: [C1, C2, C3, C4, C5]
   veto: false
   old_names: [hermes]
@@ -72,6 +77,7 @@ ATHENA:
   role: planner
   layer: analysis
   class: AthenaPlanner
+  soul_dir: core
   triggers: [C1, C2, C3, C4, C5]
   veto: false
   old_names: [athena, planner, task_planner]

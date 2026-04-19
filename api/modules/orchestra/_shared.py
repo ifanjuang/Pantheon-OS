@@ -34,12 +34,14 @@ log = get_logger("orchestra.service")
 # Timeout d'un appel LLM Zeus (secondes) — empêche un Ollama pendu de figer l'orchestration
 _LLM_TIMEOUT = 90
 
+_ROOT = Path(__file__).parent.parent.parent.parent
 AGENTS_DIR = (
     Path(settings.AGENTS_DIR)
     if hasattr(settings, "AGENTS_DIR")
-    else Path(__file__).parent.parent.parent.parent / "agents"
+    else _ROOT / "agents"
 )
-_REGISTRY_PATH = Path(__file__).parent.parent.parent.parent / "config" / "agent_registry.yaml"
+CORE_DIR = _ROOT / "core"   # meta-agents (zeus, hera, artemis, kairos, hermes, athena)
+_REGISTRY_PATH = _ROOT / "config" / "agent_registry.yaml"
 
 
 @functools.lru_cache(maxsize=1)
@@ -251,11 +253,23 @@ def _get_domain_context() -> str:
         return ""
 
 
-@functools.lru_cache(maxsize=16)
+def _resolve_soul_path(agent_name: str) -> Path | None:
+    """Résout le chemin SOUL.md — core/ en priorité, agents/ en fallback."""
+    name = agent_name.lower()
+    core_path = CORE_DIR / name / "SOUL.md"
+    if core_path.exists():
+        return core_path
+    agents_path = AGENTS_DIR / name / "SOUL.md"
+    if agents_path.exists():
+        return agents_path
+    return None
+
+
+@functools.lru_cache(maxsize=22)
 def _get_soul(agent_name: str) -> str:
     """Charge le SOUL.md d'un agent + contexte domaine (LRU, process lifetime). Max 3000 chars."""
-    soul_path = AGENTS_DIR / agent_name.lower() / "SOUL.md"
-    if soul_path.exists():
+    soul_path = _resolve_soul_path(agent_name)
+    if soul_path:
         content = soul_path.read_text(encoding="utf-8")
         soul = content[:3000] if len(content) > 3000 else content
     else:
@@ -343,8 +357,8 @@ def _get_agent_summary(agent_name: str) -> str:
     Mis en cache pour la durée du process — aucun appel LLM.
     """
     name = agent_name.lower()
-    soul_path = AGENTS_DIR / name / "SOUL.md"
-    if not soul_path.exists():
+    soul_path = _resolve_soul_path(name)
+    if not soul_path:
         return f"{name} — agent spécialisé ARCEUS"
 
     text = soul_path.read_text(encoding="utf-8")
