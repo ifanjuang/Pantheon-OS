@@ -5,6 +5,7 @@ from .promethee_challenger import PrometheeChallenger
 from .apollon_researcher import ApollonResearcher
 from .dionysos_creative import DionysosCreative
 from .hades_analyst import HadesAnalyst
+from .hecate_resolver import HecateResolver
 from .poseidon_analyst import PoseidonAnalyst
 from .themis_validator import ThemisValidator
 from .chronos_planner import ChronosPlanner
@@ -13,6 +14,8 @@ from .demeter_optimizer import DemeterOptimizer
 from .hestia_memory import HestiaMemory
 from .mnemosyne_memory import MnemosyneMemory
 from .iris_communicator import IrisCommunicator
+from .iris_clarifier import IrisClarifier
+from .metis_editor import MetisEditor
 from .aphrodite_marketer import AphroditeMarketer
 from .dedale_builder import DedaleBuilder
 
@@ -23,6 +26,7 @@ __all__ = [
     "ApollonResearcher",
     "DionysosCreative",
     "HadesAnalyst",
+    "HecateResolver",
     "PoseidonAnalyst",
     "ThemisValidator",
     "ChronosPlanner",
@@ -31,6 +35,8 @@ __all__ = [
     "HestiaMemory",
     "MnemosyneMemory",
     "IrisCommunicator",
+    "IrisClarifier",
+    "MetisEditor",
     "AphroditeMarketer",
     "DedaleBuilder",
 ]

@@ -107,6 +107,10 @@ AGENT_TRIGGERS: dict[str, list[str]] = {
     "demeter":   ["C3", "C4", "C5"],         # ressources : planification C3+
     "poseidon":  ["C4", "C5"],               # cascade : systèmes complexes uniquement
     "kairos":    ["C1", "C2", "C3", "C4", "C5"],  # synthèse : toujours activable
+    # Agents Hécate / Métis / IrisClarifier
+    "hecate":        ["C1", "C2", "C3", "C4", "C5"],  # analyse incertitude : always-on
+    "metis":         ["C2", "C3", "C4", "C5"],         # révision stylistique
+    "iris_clarifier":["C1", "C2", "C3", "C4", "C5"],  # reformulation questions
 }
 
 # Routing automatique selon criticité
@@ -144,8 +148,12 @@ VALID_AGENTS = {
     "artemis",    # Filtrage & recentrage
     "hades",      # Risques & scénarios négatifs
     "demeter",    # Optimisation ressources
-    "poseidon",   # Flux & effets cascade
-    "kairos",     # Synthèse finale
+    "poseidon",        # Flux & effets cascade
+    "kairos",          # Synthèse finale
+    # Agents v2 — incertitude, édition, clarification
+    "hecate",          # Analyse d'incertitude
+    "metis",           # Révision stylistique
+    "iris_clarifier",  # Questions de clarification
 }
 
 

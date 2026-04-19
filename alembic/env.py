@@ -28,6 +28,7 @@ from modules.planning.models import Lot, Tache, Jalon, LienDependance           
 from modules.chantier.models import ObservationChantier, NonConformite               # noqa: F401
 from modules.communications.models import Courrier                                    # noqa: F401
 from modules.finance.models import Avenant, SituationTravaux                         # noqa: F401
+from modules.flowmanager.models import WorkflowDefinition                             # noqa: F401
 
 config = context.config
 

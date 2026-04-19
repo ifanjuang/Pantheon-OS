@@ -122,6 +122,14 @@ HADES:
   veto: false
   old_names: [hades]
 
+HECATE:
+  role: uncertainty_resolver
+  layer: analysis
+  class: HecateResolver
+  triggers: [C1, C2, C3, C4, C5]
+  veto: false
+  old_names: [hecate]
+
 POSEIDON:
   role: cascade_analyst
   layer: analysis
@@ -191,6 +199,22 @@ IRIS:
   triggers: [C4, C5]
   veto: false
   old_names: [iris]
+
+IRIS_CLARIFIER:
+  role: clarifier
+  layer: communication
+  class: IrisClarifier
+  triggers: [C1, C2, C3, C4, C5]
+  veto: false
+  old_names: [iris_clarifier]
+
+METIS:
+  role: editor
+  layer: communication
+  class: MetisEditor
+  triggers: [C2, C3, C4, C5]
+  veto: false
+  old_names: [metis]
 
 APHRODITE:
   role: marketer
