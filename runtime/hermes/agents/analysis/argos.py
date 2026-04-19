@@ -5,7 +5,7 @@ from .._base import AgentBase
 class Argos(AgentBase):
     """Factual extraction — extracts facts, figures, citations, references; structures verifiable evidence."""
 
-    agent = "ARGOS"
+    agent = "@Argos"
     role = "extractor"
     layer = "analysis"
     veto = False

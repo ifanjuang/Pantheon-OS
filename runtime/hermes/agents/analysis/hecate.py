@@ -5,7 +5,7 @@ from .._base import AgentBase
 class Hecate(AgentBase):
     """Information gap and uncertainty detection — detects ambiguities, lists missing info, decides if clarification needed."""
 
-    agent = "HECATE"
+    agent = "@Hecate"
     role = "uncertainty_resolver"
     layer = "analysis"
     veto = False

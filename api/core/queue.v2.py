@@ -1,3 +1,4 @@
+# V2 only — ARQ job queue. Requires redis.
 """
 queue.py — pool Redis ARQ partagé (singleton lazy).
 

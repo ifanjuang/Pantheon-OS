@@ -5,7 +5,7 @@ from .._base import AgentBase
 class Prometheus(AgentBase):
     """Contradiction and cross-referencing — compares sources, detects inconsistencies, flags weak hypotheses."""
 
-    agent = "PROMETHEUS"
+    agent = "@Prometheus"
     role = "challenger"
     layer = "analysis"
     veto = False

@@ -5,7 +5,7 @@ from .._base import AgentBase
 class Hera(AgentBase):
     """Global coherence — verifies final alignment, detects internal contradictions."""
 
-    agent = "HERA"
+    agent = "@HERA"
     role = "supervisor"
     layer = "meta"
     veto = False

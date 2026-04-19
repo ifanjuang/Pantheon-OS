@@ -5,7 +5,7 @@ from .._base import AgentBase
 class Athena(AgentBase):
     """Planning and decomposition — analyzes request, identifies task type, decomposes into sub-tasks."""
 
-    agent = "ATHENA"
+    agent = "@ATHENA"
     role = "planner"
     layer = "meta"
     veto = False

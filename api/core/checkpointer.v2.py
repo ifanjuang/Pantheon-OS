@@ -1,3 +1,4 @@
+# V2 only — LangGraph HITL checkpointer. Requires langgraph-checkpoint-postgres.
 """
 checkpointer.py — PostgreSQL checkpointer LangGraph (HITL).
 

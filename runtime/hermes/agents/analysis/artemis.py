@@ -5,7 +5,7 @@ from .._base import AgentBase
 class Artemis(AgentBase):
     """Filtering and focus — cuts noise, keeps most relevant, adapts depth to context."""
 
-    agent = "ARTEMIS"
+    agent = "@Artemis"
     role = "filter"
     layer = "analysis"
     veto = False

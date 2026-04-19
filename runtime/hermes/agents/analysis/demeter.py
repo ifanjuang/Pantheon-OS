@@ -5,7 +5,7 @@ from .._base import AgentBase
 class Demeter(AgentBase):
     """Collection and data ingestion — fetches PDFs, files, web pages, notes; normalizes data."""
 
-    agent = "DEMETER"
+    agent = "@Demeter"
     role = "collector"
     layer = "analysis"
     veto = False

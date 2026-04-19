@@ -5,7 +5,7 @@ from .._base import AgentBase
 class Zeus(AgentBase):
     """Global orchestration — chooses execution order, arbitrates agents, decides merge/fork/child workflows."""
 
-    agent = "ZEUS"
+    agent = "@ZEUS"
     role = "orchestrator"
     layer = "meta"
     veto = False

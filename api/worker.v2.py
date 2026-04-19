@@ -1,3 +1,4 @@
+# V2 only — requires Redis + ARQ. Enable by renaming to worker.py.
 """
 ARQ Worker — exécute les jobs orchestra et agent en arrière-plan.
 

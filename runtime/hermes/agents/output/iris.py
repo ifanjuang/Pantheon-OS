@@ -5,7 +5,7 @@ from .._base import AgentBase
 class Iris(AgentBase):
     """Communication and tone adaptation — reformulates by context, adapts to recipient, asks clear questions."""
 
-    agent = "IRIS"
+    agent = "@Iris"
     role = "communicator"
     layer = "output"
     veto = False

@@ -1,6 +1,6 @@
 # Changelog
 
-Toutes les modifications notables du projet ARCEUS sont documentées dans ce fichier.
+Toutes les modifications notables du projet Pantheon OS sont documentées dans ce fichier.
 
 Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
@@ -22,6 +22,27 @@ Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et le pr
 ---
 
 ## [Unreleased]
+
+### Changed — Refactoring MVP (2026-04-19)
+- **Architecture MVP** : refonte complète de l'arborescence vers `runtime/hermes/agents/` (5 couches : meta, analysis, memory, output, system). Anciens `core/` et `agents/` racine supprimés.
+- **Convention de nommage `@`** : les identifiants agents adoptent le préfixe `@`. Méta-agents majeurs : `@ZEUS`, `@ATHENA`, `@THEMIS`, `@HERA`, `@APOLLO` (ALL CAPS = autorité d'orchestration). Agents opérationnels : `@Hermes`, `@Argos`, `@Prometheus`, `@Hecate`, `@Hestia`, `@Hades`, `@Kairos`, `@Daedalus`, `@Iris`, `@Aphrodite`, `@Hephaestus`, `@Ares`, `@Poseidon`, `@Demeter`, `@Artemis`, `@Metis`, `@Mnemosyne` (PascalCase = agents opérationnels).
+- **Renames agents** : PROMETHEE → PROMETHEUS, DEDALE → DAEDALUS, HEPHAISTOS → HEPHAESTUS, APOLLON → APOLLO.
+- **docker-compose.yml simplifié** : MVP = OpenWebUI + FastAPI + PostgreSQL+pgvector + Ollama. Redis, ARQ worker, MinIO, Portainer déplacés dans `infra/compose/docker-compose.v2.yml`.
+- **`api/requirements.txt` allégé** : LangGraph, ARQ, Redis, MinIO, llama-index retirés (commentés pour V2).
+- **`api/main.py`** : suppression du démarrage LangGraph checkpointer et Redis queue.
+- **`api/core/settings.py`** : MinIO non obligatoire en MVP, variables simplifiées.
+- **`modules.yaml`** : seuls 7 modules actifs au démarrage MVP (auth, admin, affaires, documents, agent, openai_compat, hermes_console). 20 modules V2/domain désactivés.
+- **`.env.example`** : base de données renommée `pantheon` (était `arceus`), variables V2 commentées.
+- **Fichiers V2 renommés** : `worker.py` → `worker.v2.py`, `core/checkpointer.py` → `checkpointer.v2.py`, `core/queue.py` → `queue.v2.py`.
+
+### Added — Refactoring MVP (2026-04-19)
+- **`runtime/hermes/`** : nouveau moteur agentique. 22 agents Python avec SOUL.md individuel. Registres YAML-backed (`AgentRegistry`, `SkillRegistry`, `WorkflowRegistry`). `HermesRouter` (intent → workflow). `SessionState`. Validation (`check_completeness`, `check_coherence`).
+- **`config/`** : 5 fichiers de configuration centralisés — `agents.yaml`, `skills.yaml`, `workflows.yaml`, `settings.yaml`, `policies.yaml`.
+- **`api/modules/hermes_console/`** : nouveau module REST pour la gestion des agents/skills/workflows/logs/settings via `/console`. Endpoints : `GET /dashboard`, `GET|POST /agents`, `GET|POST /skills`, `GET|POST /workflows`, `GET|POST /settings`, `GET /logs`.
+- **`ui/hermes-console/`** : ancienne `ui/` déplacée ici.
+- **`data/db/`** : ancienne `db/` déplacée ici.
+- **`infra/`** : structure infrastructure — `docker/api/Dockerfile`, `compose/docker-compose.v2.yml`, `migrations/`, `deploy/`.
+- **`shared/`**, **`domains/`**, **`storage/`** : répertoires créés pour outillage partagé, overlays métier et stockage documentaire.
 
 ### Changed
 - **Alignement des rôles agents sur la spec Pantheon OS** : 8 classes Python renommées selon la convention `MythRole` alignée sur le doc de référence. Fichiers renommés (`git mv`) et classes mises à jour : `ArgosObserver` → `ArgosExtractor` (extractor, analysis), `HephaistosValidator` → `HephaistosBuilder` (diagram_builder, production, veto supprimé), `ApollonResearcher` → `ApollonValidator` (validator, meta), `DemeterOptimizer` → `DemeterCollector` (collector, analysis), `HadesAnalyst` → `HadesMemory` (memory_longterm, continuity), `AresExecutor` → `AresSecurity` (security_guard, system, veto ajouté), `PoseidonAnalyst` → `PoseidonDistributor` (distributor, system), `AphroditeMarketer` → `AphroditeStylist` (stylist, production). `config/agent_registry.yaml` mis à jour (rôles, layers, classes, `old_names` rétrocompat). `agents/__init__.py` mis à jour. Couche système créée (Arès + Poséidon). Hadès migré de analyse → continuité (aux côtés de Hestia et Mnémosyne).

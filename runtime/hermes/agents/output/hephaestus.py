@@ -5,7 +5,7 @@ from .._base import AgentBase
 class Hephaestus(AgentBase):
     """Technical production and diagrams — produces schemas, diagrams, Mermaid; prepares figures and legends."""
 
-    agent = "HEPHAESTUS"
+    agent = "@Hephaestus"
     role = "diagram_builder"
     layer = "output"
     veto = False

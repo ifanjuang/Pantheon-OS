@@ -5,7 +5,7 @@ from .._base import AgentBase
 class Hestia(AgentBase):
     """Short-term memory / session context — keeps immediate context, stores user clarifications."""
 
-    agent = "HESTIA"
+    agent = "@Hestia"
     role = "session_memory"
     layer = "memory"
     veto = False

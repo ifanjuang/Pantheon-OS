@@ -1,10 +1,13 @@
 # config/agents.yaml — Agent registry
+# name: display identifier used at runtime and in the Console UI
+#   @AGENT  = major meta agent (orchestration authority)
+#   @Agent  = operational agent (analysis, memory, output, system)
 # enabled: true|false controls whether the agent is loaded at startup
-# Core MVP agents are enabled by default; extended agents are disabled.
 
 agents:
-  # ── Meta layer ────────────────────────────────────────────────────
+  # ── Meta layer (@AGENT — major orchestration authority) ───────────
   ZEUS:
+    name: "@ZEUS"
     layer: meta
     role: orchestrator
     class: runtime.hermes.agents.meta.Zeus
@@ -12,6 +15,7 @@ agents:
     description: "Global orchestration — execution order, merge/fork/child workflows, fallbacks"
 
   ATHENA:
+    name: "@ATHENA"
     layer: meta
     role: planner
     class: runtime.hermes.agents.meta.Athena
@@ -19,6 +23,7 @@ agents:
     description: "Planning and decomposition — task analysis, sub-task breakdown, agent selection"
 
   THEMIS:
+    name: "@THEMIS"
     layer: meta
     role: process_guardian
     class: runtime.hermes.agents.meta.Themis
@@ -27,6 +32,7 @@ agents:
     description: "Process integrity — workflow rule enforcement, output conformance checks"
 
   HERA:
+    name: "@HERA"
     layer: meta
     role: supervisor
     class: runtime.hermes.agents.meta.Hera
@@ -34,14 +40,16 @@ agents:
     description: "Global coherence — final alignment check, contradiction detection"
 
   APOLLO:
+    name: "@APOLLO"
     layer: meta
     role: validator
     class: runtime.hermes.agents.meta.Apollo
     enabled: true
     description: "Final validation — reliability scoring, confidence score, release decision"
 
-  # ── Analysis layer ────────────────────────────────────────────────
+  # ── Analysis layer (@Agent — operational research agents) ─────────
   HERMES:
+    name: "@Hermes"
     layer: analysis
     role: router
     class: runtime.hermes.agents.analysis.Hermes
@@ -49,6 +57,7 @@ agents:
     description: "Research router — source selection, skill activation, multi-source coordination"
 
   DEMETER:
+    name: "@Demeter"
     layer: analysis
     role: collector
     class: runtime.hermes.agents.analysis.Demeter
@@ -56,6 +65,7 @@ agents:
     description: "Collection and ingestion — PDF/file/web fetch, corpus preparation, normalization"
 
   ARGOS:
+    name: "@Argos"
     layer: analysis
     role: extractor
     class: runtime.hermes.agents.analysis.Argos
@@ -63,6 +73,7 @@ agents:
     description: "Factual extraction — facts, figures, citations, verifiable evidence"
 
   PROMETHEUS:
+    name: "@Prometheus"
     layer: analysis
     role: challenger
     class: runtime.hermes.agents.analysis.Prometheus
@@ -70,6 +81,7 @@ agents:
     description: "Contradiction and cross-referencing — source comparison, inconsistency detection"
 
   ARTEMIS:
+    name: "@Artemis"
     layer: analysis
     role: filter
     class: runtime.hermes.agents.analysis.Artemis
@@ -77,6 +89,7 @@ agents:
     description: "Filtering and focus — noise reduction, relevance prioritization"
 
   HECATE:
+    name: "@Hecate"
     layer: analysis
     role: uncertainty_resolver
     class: runtime.hermes.agents.analysis.Hecate
@@ -84,14 +97,16 @@ agents:
     description: "Uncertainty detection — ambiguity, missing info, clarification questions"
 
   METIS:
+    name: "@Metis"
     layer: analysis
     role: optimizer
     class: runtime.hermes.agents.analysis.Metis
     enabled: false
     description: "Tactical optimization — plan improvement, intelligent shortcuts"
 
-  # ── Memory layer ──────────────────────────────────────────────────
+  # ── Memory layer (@Agent) ─────────────────────────────────────────
   HESTIA:
+    name: "@Hestia"
     layer: memory
     role: session_memory
     class: runtime.hermes.agents.memory.Hestia
@@ -99,6 +114,7 @@ agents:
     description: "Session memory — immediate context, user clarifications, run continuity"
 
   MNEMOSYNE:
+    name: "@Mnemosyne"
     layer: memory
     role: knowledge_library
     class: runtime.hermes.agents.memory.Mnemosyne
@@ -106,14 +122,16 @@ agents:
     description: "Structured library — internal references, reusable patterns, organizational memory"
 
   HADES:
+    name: "@Hades"
     layer: memory
     role: vector_retrieval
     class: runtime.hermes.agents.memory.Hades
     enabled: true
     description: "Deep memory — semantic retrieval, pgvector chunks, long-term search"
 
-  # ── Output layer ──────────────────────────────────────────────────
+  # ── Output layer (@Agent) ─────────────────────────────────────────
   KAIROS:
+    name: "@Kairos"
     layer: output
     role: synthesizer
     class: runtime.hermes.agents.output.Kairos
@@ -121,6 +139,7 @@ agents:
     description: "Contextual synthesis — essential selection, information hierarchization"
 
   DAEDALUS:
+    name: "@Daedalus"
     layer: output
     role: builder
     class: runtime.hermes.agents.output.Daedalus
@@ -128,6 +147,7 @@ agents:
     description: "Deliverable construction — dossiers, briefs, reports with citations and annexes"
 
   IRIS:
+    name: "@Iris"
     layer: output
     role: communicator
     class: runtime.hermes.agents.output.Iris
@@ -135,6 +155,7 @@ agents:
     description: "Communication and tone — context reformulation, recipient adaptation"
 
   APHRODITE:
+    name: "@Aphrodite"
     layer: output
     role: stylist
     class: runtime.hermes.agents.output.Aphrodite
@@ -142,14 +163,16 @@ agents:
     description: "Polish and impact — presentation improvement, form enhancement"
 
   HEPHAESTUS:
+    name: "@Hephaestus"
     layer: output
     role: diagram_builder
     class: runtime.hermes.agents.output.Hephaestus
     enabled: false
     description: "Technical production — schemas, Mermaid diagrams, figures"
 
-  # ── System layer ──────────────────────────────────────────────────
+  # ── System layer (@Agent) ─────────────────────────────────────────
   ARES:
+    name: "@Ares"
     layer: system
     role: fast_executor
     class: runtime.hermes.agents.system.Ares
@@ -157,6 +180,7 @@ agents:
     description: "Fast execution — simple tasks, degraded mode fallback"
 
   POSEIDON:
+    name: "@Poseidon"
     layer: system
     role: distributor
     class: runtime.hermes.agents.system.Poseidon

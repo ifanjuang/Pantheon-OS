@@ -5,7 +5,7 @@ from .._base import AgentBase
 class Daedalus(AgentBase):
     """Deliverable construction — builds dossiers, briefs, reports; creates intro/sections/subsections with citations."""
 
-    agent = "DAEDALUS"
+    agent = "@Daedalus"
     role = "builder"
     layer = "output"
     veto = False
