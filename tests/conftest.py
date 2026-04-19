@@ -8,6 +8,19 @@ Stratégie :
 - Tokens JWT créés directement (sans appel HTTP au login)
 """
 
+# api/ must be at sys.path[0] so api/core/ (settings, auth…) takes precedence
+# over the root-level core/ package (meta-agent classes). pytest inserts rootdir
+# at position 0, so we must always re-insert api to beat it.
+import sys as _sys
+from pathlib import Path as _Path
+_api = str(_Path(__file__).parents[1] / "api")
+while _api in _sys.path:
+    _sys.path.remove(_api)
+_sys.path.insert(0, _api)
+# Evict any root-level core cached before our path fix
+for _key in [k for k in list(_sys.modules) if k == "core" or k.startswith("core.")]:
+    del _sys.modules[_key]
+
 import pytest
 from pathlib import Path
 from httpx import ASGITransport, AsyncClient

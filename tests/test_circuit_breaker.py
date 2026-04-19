@@ -21,9 +21,9 @@ class TestCircuitBreakerClosed:
         cb = CircuitBreaker("test", failure_threshold=3, recovery_timeout=10)
         cb.record_failure()
         cb.record_failure()
-        assert cb._failure_count == 2
+        assert cb._failures == 2
         cb.record_success()
-        assert cb._failure_count == 0
+        assert cb._failures == 0
         assert cb.state == "closed"
 
 
@@ -73,7 +73,7 @@ class TestCircuitBreakerHalfOpen:
         assert cb.state == "half_open"
         cb.record_success()
         assert cb.state == "closed"
-        assert cb._failure_count == 0
+        assert cb._failures == 0
 
     def test_failure_in_half_open_reopens(self):
         cb = CircuitBreaker("test", failure_threshold=2, recovery_timeout=0.1)
@@ -89,11 +89,11 @@ class TestCircuitBreakerGlobalInstances:
     def test_llm_breaker_exists(self):
         from core.circuit_breaker import llm_breaker
 
-        assert llm_breaker._name == "llm"
-        assert llm_breaker._failure_threshold == 5
+        assert llm_breaker.name == "llm"
+        assert llm_breaker.failure_threshold == 5
 
     def test_embed_breaker_exists(self):
         from core.circuit_breaker import embed_breaker
 
-        assert embed_breaker._name == "embed"
-        assert embed_breaker._failure_threshold == 3
+        assert embed_breaker.name == "embed"
+        assert embed_breaker.failure_threshold == 3

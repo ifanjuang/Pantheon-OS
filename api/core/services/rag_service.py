@@ -55,6 +55,30 @@ DEFAULT_CHUNK = {"chunk_size": 256, "chunk_overlap": 32}
 _RRF_K = 60
 
 
+def _rrf_fusion(semantic: list[dict], fts: list[dict], top_k: int, k: int = _RRF_K) -> list[dict]:
+    """RRF Python — utilisé dans les tests unitaires. La prod utilise la version SQL native."""
+    scores: dict[str, float] = {}
+    data: dict[str, dict] = {}
+    for rank, hit in enumerate(semantic, 1):
+        cid = hit["chunk_id"]
+        scores[cid] = scores.get(cid, 0.0) + 1.0 / (k + rank)
+        data[cid] = hit
+    for rank, hit in enumerate(fts, 1):
+        cid = hit["chunk_id"]
+        scores[cid] = scores.get(cid, 0.0) + 1.0 / (k + rank)
+        if cid not in data:
+            data[cid] = hit
+    if not scores:
+        return []
+    merged = []
+    for cid in sorted(scores, key=lambda x: scores[x], reverse=True)[:top_k]:
+        hit = dict(data[cid])
+        hit["score"] = scores[cid]
+        hit["score_type"] = "rrf"
+        merged.append(hit)
+    return merged
+
+
 def _db_params() -> dict:
     parsed = urlparse(settings.DATABASE_URL_SYNC)
     return {
