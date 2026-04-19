@@ -24,7 +24,8 @@ export interface TraceEvent {
   type: string;
   run_id: string;
   timestamp: string;
-  agent: string | null;
+  agent: string | null;  // identité lowercase (ex: "zeus")
+  role: string | null;   // responsabilité (ex: "orchestrator")
   payload: Record<string, unknown>;
 }
 

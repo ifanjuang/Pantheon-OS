@@ -603,17 +603,17 @@ async def resume_orchestra(
 # ── SSE Streaming ────────────────────────────────────────────────────
 
 _NODE_LABELS = {
-    "preprocess": ("preprocess", "Normalisation Hermès..."),
-    "zeus_distribute": ("zeus", "Zeus organise les sous-tâches..."),
-    "workflow_precheck": ("precheck", "Gate Precheck — dimensionnement du plan..."),
-    "dispatch_subtasks": ("executing", "Exécution des agents (cascade / arène / parallèle)..."),
-    "veto_check": ("veto", "Veto structuré (Thémis / Héphaïstos / Apollon)..."),
-    "execute_complements": ("executing", "Compléments en cours..."),
-    "zeus_judge": ("judging", "Zeus juge les résultats..."),
-    "score_decision": ("scoring", "Scoring multi-critères (qualité / cohérence / confiance / risque)..."),
-    "synthesize": ("synthesis", "Synthèse en cours..."),
-    "hera_supervise": ("hera", "HERA — vérification cohérence globale..."),
-    "write_memories": ("memories", "Écriture mémoires Hestia / Mnémosyne..."),
+    "preprocess":          ("hermes.preprocess",  "Hermès — normalisation et qualification..."),
+    "workflow_precheck":   ("hermes.precheck",    "Hermès — gate precheck dimensionnement..."),
+    "zeus_distribute":     ("zeus.distribute",    "Zeus — organisation des sous-tâches..."),
+    "dispatch_subtasks":   ("agent.execute",      "Exécution agents (cascade / arène / parallèle)..."),
+    "execute_complements": ("agent.execute",      "Compléments en cours..."),
+    "zeus_judge":          ("zeus.judge",         "Zeus — jugement des résultats..."),
+    "veto_check":          ("themis.veto",        "Thémis — veto structuré (couche 0 + LLM)..."),
+    "score_decision":      ("hera.score",         "Héra — scoring multi-critères..."),
+    "synthesize":          ("kairos.synthesize",  "Kairos — synthèse finale actable..."),
+    "hera_supervise":      ("hera.supervise",     "Héra — vérification cohérence globale..."),
+    "write_memories":      ("hestia.memories",    "Hestia — écriture mémoires projet / agence..."),
 }
 
 

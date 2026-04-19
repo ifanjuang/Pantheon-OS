@@ -2,24 +2,40 @@
 import type { RunSummary, TraceEvent } from "@/lib/types";
 import { fmtTime, fmtDuration } from "@/lib/api";
 
+// agent lowercase → couleur Tailwind (convention agent.event : on extrait agent.split(".")[0])
 const AGENT_COLOR: Record<string, string> = {
-  orchestra: "text-zinc-400",
-  hermes:    "text-violet-400",
-  zeus:      "text-blue-400",
-  athena:    "text-emerald-400",
-  themis:    "text-orange-400",
-  hephaistos:"text-orange-300",
-  apollon:   "text-fuchsia-400",
-  ares:      "text-red-400",
-  hestia:    "text-amber-400",
-  mnemosyne: "text-cyan-400",
-  chronos:   "text-teal-400",
-  argos:     "text-lime-400",
-  promethee: "text-yellow-400",
-  dionysos:  "text-pink-400",
-  iris:      "text-sky-400",
-  aphrodite: "text-rose-400",
-  dedale:    "text-indigo-400",
+  // meta
+  zeus:       "text-blue-400",
+  hera:       "text-purple-400",
+  artemis:    "text-green-400",
+  kairos:     "text-yellow-300",
+  // perception
+  hermes:     "text-violet-400",
+  argos:      "text-lime-400",
+  // analyse
+  athena:     "text-emerald-400",
+  hephaistos: "text-orange-300",
+  promethee:  "text-yellow-400",
+  apollon:    "text-fuchsia-400",
+  dionysos:   "text-pink-400",
+  hades:      "text-slate-400",
+  poseidon:   "text-blue-300",
+  // cadrage
+  themis:     "text-orange-400",
+  chronos:    "text-teal-400",
+  ares:       "text-red-400",
+  demeter:    "text-lime-600",
+  // continuité
+  hestia:     "text-amber-400",
+  mnemosyne:  "text-cyan-400",
+  // communication
+  iris:       "text-sky-400",
+  aphrodite:  "text-rose-400",
+  // production
+  dedale:     "text-indigo-400",
+  // système
+  agent:      "text-zinc-300",
+  orchestra:  "text-zinc-400",
 };
 
 function agentColor(agent: string | null): string {
@@ -106,6 +122,11 @@ export default function TraceViewer({ run, events, loading }: Props) {
 function EventRow({ event: ev }: { event: TraceEvent }) {
   const color = agentColor(ev.agent);
   const dot = eventDot(ev.type);
+  const agentLabel = ev.agent
+    ? ev.role
+      ? `${ev.agent.toUpperCase()} · ${ev.role}`
+      : ev.agent.toUpperCase()
+    : null;
   const payloadStr = Object.entries(ev.payload)
     .filter(([, v]) => v != null && v !== "" && v !== false)
     .map(([k, v]) => `${k}:${JSON.stringify(v)}`.slice(0, 60))
@@ -113,7 +134,7 @@ function EventRow({ event: ev }: { event: TraceEvent }) {
 
   return (
     <div className="flex items-start gap-2 py-1 group">
-      {/* Timeline dot + line */}
+      {/* Timeline dot */}
       <div className="flex flex-col items-center flex-shrink-0 mt-1.5">
         <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dot}`} />
       </div>
@@ -121,14 +142,21 @@ function EventRow({ event: ev }: { event: TraceEvent }) {
       {/* Time */}
       <span className="text-zinc-700 text-xs flex-shrink-0 w-14">{fmtTime(ev.timestamp)}</span>
 
-      {/* Type */}
+      {/* Type (event name) */}
       <span className={`text-xs flex-shrink-0 font-medium ${color}`}>
         {ev.type}
       </span>
 
-      {/* Payload */}
+      {/* Agent · role — visible au survol */}
+      {agentLabel && (
+        <span className="text-zinc-600 text-xs flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          {agentLabel}
+        </span>
+      )}
+
+      {/* Payload — visible au survol */}
       {payloadStr && (
-        <span className="text-zinc-600 text-xs truncate min-w-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="text-zinc-500 text-xs truncate min-w-0 opacity-0 group-hover:opacity-100 transition-opacity">
           {payloadStr}
         </span>
       )}
