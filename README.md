@@ -1,20 +1,20 @@
 # Pantheon OS
 
-> Intelligence opérationnelle multi-agents pour organisations à haute technicité.
-> Gestion documentaire, RAG sémantique, orchestration multi-agents, suivi de projet, planification et finances — sur l'ensemble du cycle de vie des dossiers.
+> Multi-agent operational intelligence for high-expertise organizations.
+> Document management, semantic RAG, multi-agent orchestration, project tracking, planning and finance — across the full lifecycle of cases.
 
-**Stack :** FastAPI · PostgreSQL + pgvector · LangGraph · MinIO · Ollama / OpenAI · ARQ / Redis · Docker Compose
+**Stack:** FastAPI · PostgreSQL + pgvector · LangGraph · MinIO · Ollama / OpenAI · ARQ / Redis · Docker Compose
 
-→ Développer : [CLAUDE.md](CLAUDE.md) | Changelog : [CHANGELOG.md](CHANGELOG.md)
+→ Develop: [CLAUDE.md](CLAUDE.md) | Changelog: [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
-## Démarrage rapide
+## Quick Start
 
 ```bash
 cp .env.example .env
-# Renseigner : DATABASE_URL, JWT_SECRET_KEY, ADMIN_EMAIL, ADMIN_PASSWORD
-# Choisir le domaine actif : DOMAIN=btp|droit|audit|conseil|medecine|it
+# Fill in: DATABASE_URL, JWT_SECRET_KEY, ADMIN_EMAIL, ADMIN_PASSWORD
+# Choose the active domain: DOMAIN=btp|droit|audit|conseil|medecine|it
 
 docker compose up -d
 docker compose exec api alembic upgrade head
@@ -24,74 +24,74 @@ docker compose exec api alembic upgrade head
 
 ---
 
-## Le Panthéon — 22 agents
+## The Pantheon — 22 Agents
 
-Convention : `{"agent": "ZEUS", "role": "orchestrator"}` — identité (mythe) ≠ responsabilité (rôle).
+Convention: `{"agent": "ZEUS", "role": "orchestrator"}` — identity (myth) ≠ responsibility (role).
 
-| Couche | Agent | Classe | Rôle | Veto |
+| Layer | Agent | Class | Role | Veto |
 |---|---|---|---|---|
 | **Meta** | Zeus | `ZeusOrchestrator` | orchestrator | |
-| | Héra | `HeraSupervisor` | supervisor | |
-| | Artémis | `ArtemisFilter` | filter | |
+| | Hera | `HeraSupervisor` | supervisor | |
+| | Artemis | `ArtemisFilter` | filter | |
 | | Kairos | `KairosSynthesizer` | synthesizer | |
-| | Apollon | `ApollonValidator` | validator | |
-| **Perception** | Hermès | `HermesRouter` | router | |
-| **Analyse** | Athéna | `AthenaPlanner` | planner | |
+| | Apollo | `ApollonValidator` | validator | |
+| **Perception** | Hermes | `HermesRouter` | router | |
+| **Analysis** | Athena | `AthenaPlanner` | planner | |
 | | Argos | `ArgosExtractor` | extractor | |
-| | Prométhée | `PrometheeChallenger` | challenger | |
-| | Dionysos | `DionysosCreative` | creative | |
-| | Déméter | `DemeterCollector` | collector | |
-| | Hécate | `HecateResolver` | uncertainty_resolver | |
-| **Cadrage** | Thémis | `ThemisValidator` | legal_validator | ✅ |
+| | Prometheus | `PrometheeChallenger` | challenger | |
+| | Dionysus | `DionysosCreative` | creative | |
+| | Demeter | `DemeterCollector` | collector | |
+| | Hecate | `HecateResolver` | uncertainty_resolver | |
+| **Framing** | Themis | `ThemisValidator` | legal_validator | ✅ |
 | | Chronos | `ChronosPlanner` | time_planner | |
-| **Système** | Arès | `AresSecurity` | security_guard | ✅ |
-| | Poséidon | `PoseidonDistributor` | distributor | |
-| **Continuité** | Hestia | `HestiaMemory` | memory_project | |
-| | Mnémosyne | `MnemosyneMemory` | memory_agency | |
-| | Hadès | `HadesMemory` | memory_longterm | |
+| **System** | Ares | `AresSecurity` | security_guard | ✅ |
+| | Poseidon | `PoseidonDistributor` | distributor | |
+| **Continuity** | Hestia | `HestiaMemory` | memory_project | |
+| | Mnemosyne | `MnemosyneMemory` | memory_agency | |
+| | Hades | `HadesMemory` | memory_longterm | |
 | **Communication** | Iris | `IrisCommunicator` | communicator | |
 | | Iris (clarifier) | `IrisClarifier` | clarifier | |
-| | Métis | `MetisEditor` | editor | |
-| **Production** | Dédale | `DedaleBuilder` | builder | |
-| | Héphaïstos | `HephaistosBuilder` | diagram_builder | |
+| | Metis | `MetisEditor` | editor | |
+| **Production** | Daedalus | `DedaleBuilder` | builder | |
+| | Hephaestus | `HephaistosBuilder` | diagram_builder | |
 | | Aphrodite | `AphroditeStylist` | stylist | |
 
-Source de vérité : [`config/agent_registry.yaml`](config/agent_registry.yaml)
+Source of truth: [`config/agent_registry.yaml`](config/agent_registry.yaml)
 
 ---
 
-## Criticité C1-C5
+## Criticality C1-C5
 
-| Niveau | Nature | Mode | Max agents |
+| Level | Nature | Mode | Max agents |
 |---|---|---|---|
-| **C1** | Information | Agent unique, pas de Zeus | 1 |
-| **C2** | Question | 1-2 agents spécialisés | 2 |
-| **C3** | Décision locale réversible | Zeus optionnel, Arès peut agir | 4 |
-| **C4** | Décision engageante | Zeus + validation humaine (HITL) | 6 |
-| **C5** | Risque majeur | Zeus + HITL + veto obligatoire | 8 |
+| **C1** | Information | Single agent, no Zeus | 1 |
+| **C2** | Question | 1-2 specialized agents | 2 |
+| **C3** | Reversible local decision | Zeus optional, Ares can act | 4 |
+| **C4** | Binding decision | Zeus + human validation (HITL) | 6 |
+| **C5** | Major risk | Zeus + HITL + mandatory veto | 8 |
 
 ---
 
-## Les 3 mémoires
+## The 3 Memories
 
-| Mémoire | Agent | Scope | Durée |
+| Memory | Agent | Scope | Duration |
 |---|---|---|---|
-| **Agence** | Mnémosyne | `scope='agence'` — patterns, leçons, précédents | Permanente |
-| **Projet** | Hestia | `scope='projet'` — décisions, contraintes, dettes D0-D3 | Durée affaire |
-| **Fonctionnelle** | Hermès + Chronos | Redis TTL `memory:fn:{thread_id}:*` | Session (1 h) |
+| **Agency** | Mnemosyne | `scope='agence'` — patterns, lessons, precedents | Permanent |
+| **Project** | Hestia | `scope='projet'` — decisions, constraints, debts D0-D3 | Case lifetime |
+| **Functional** | Hermes + Chronos | Redis TTL `memory:fn:{thread_id}:*` | Session (1 h) |
 
 ---
 
-## Domaines
+## Domains
 
-Le domaine actif est sélectionné via `.env` :
+The active domain is selected via `.env`:
 
 ```bash
 DOMAIN=btp        # btp | droit | audit | conseil | medecine | it
-DOMAIN_LABEL="Architecture & Maîtrise d'Œuvre"
+DOMAIN_LABEL="Architecture & Project Management"
 ```
 
-Chaque domaine injecte automatiquement dans tous les SOUL.md : contexte métier, sources web prioritaires, mots-clés de criticité et patterns de veto spécifiques (`agents/domains/{domain}.yaml`).
+Each domain automatically injects into all SOUL.md files: business context, priority web sources, criticality keywords, and domain-specific veto patterns (`agents/domains/{domain}.yaml`).
 
 ---
 
@@ -99,69 +99,69 @@ Chaque domaine injecte automatiquement dans tous les SOUL.md : contexte métier,
 
 ```
 ARCEUS/
-├── core/                   # Meta-agents (Zeus, Héra, Artémis, Kairos, Hermès, Athéna)
-│   ├── _base.py            # AgentBase — contrat commun (agent ≠ role)
-│   └── {myth}/SOUL.md      # Personnalité de chaque meta-agent
-├── agents/                 # 16 agents spécialisés
-│   ├── domains/            # Overlays domaine (btp|droit|audit|conseil|medecine|it)
+├── core/                   # Meta-agents (Zeus, Hera, Artemis, Kairos, Hermes, Athena)
+│   ├── _base.py            # AgentBase — common contract (agent ≠ role)
+│   └── {myth}/SOUL.md      # Personality of each meta-agent
+├── agents/                 # 16 specialized agents
+│   ├── domains/            # Domain overlays (btp|droit|audit|conseil|medecine|it)
 │   └── {myth}/SOUL.md
 ├── config/
-│   └── agent_registry.yaml # Registre unique : role, layer, class, triggers, veto
+│   └── agent_registry.yaml # Single registry: role, layer, class, triggers, veto
 ├── api/
 │   ├── main.py
 │   └── modules/
 │       ├── auth/           # JWT, RBAC (admin/moe/collaborateur/lecteur)
-│       ├── affaires/       # Dossiers + contexte enrichi + domaine
-│       ├── documents/      # Upload, ingest RAG
-│       ├── agent/          # Boucle ReAct, mémoire, outils RAG+web
+│       ├── affaires/       # Cases + enriched context + domain
+│       ├── documents/      # Upload, RAG ingest
+│       ├── agent/          # ReAct loop, memory, RAG+web tools
 │       ├── orchestra/      # LangGraph Zeus, C1-C5, HITL, SSE streaming
-│       ├── meeting/        # Analyse CR, extraction actions, OJ
-│       ├── guards/         # Criticité / réversibilité / boucle / veto
-│       ├── memory/         # Mémoire fonctionnelle Redis TTL
-│       ├── monitoring/     # KPIs (durée, coût, vetos, scoring)
-│       └── control/        # Dashboard WebSocket — runs, trace, erreurs
+│       ├── meeting/        # Meeting analysis, action extraction, agenda
+│       ├── guards/         # Criticality / reversibility / loop / veto
+│       ├── memory/         # Functional memory Redis TTL
+│       ├── monitoring/     # KPIs (duration, cost, vetos, scoring)
+│       └── control/        # WebSocket dashboard — runs, trace, errors
 ├── alembic/versions/       # Migrations 0001→0027
-└── ui/                     # Dashboard Next.js (RunList, TraceViewer)
+└── ui/                     # Next.js dashboard (RunList, TraceViewer)
 ```
 
 ---
 
 ## Modules
 
-| Module | Statut | Description |
+| Module | Status | Description |
 |---|---|---|
-| `auth` | ✅ | JWT, RBAC 4 rôles |
-| `admin` | ✅ | Config YAML, setup wizard, healthcheck |
-| `affaires` | ✅ | CRUD + contexte enrichi + domaine multi-secteur |
-| `documents` | ✅ | Upload + RAG + trigger Thémis |
-| `agent` | ✅ | ReAct, mémoire dynamique, outils |
+| `auth` | ✅ | JWT, RBAC 4 roles |
+| `admin` | ✅ | YAML config, setup wizard, healthcheck |
+| `affaires` | ✅ | CRUD + enriched context + multi-sector domain |
+| `documents` | ✅ | Upload + RAG + Themis trigger |
+| `agent` | ✅ | ReAct, dynamic memory, tools |
 | `orchestra` | ✅ | LangGraph Zeus, C1-C5, HITL, veto, SSE |
-| `meeting` | ✅ | Analyse CR, actions, ordre du jour |
-| `guards` | ✅ | Criticité, réversibilité, veto structuré |
-| `memory` | ✅ | Mémoire fonctionnelle Redis TTL |
-| `monitoring` | ✅ | KPIs observabilité, scoring décisionnel |
-| `control` | ✅ | Dashboard WebSocket temps réel |
-| `evaluation` | ✅ | OpenClaw — harness d'éval reproductible |
-| `decisions` | ⬜ | CRUD project_decisions, dette D0-D3 |
-| `planning` | ⬜ | Gantt, lots, impacts cascade |
-| `finance` | ⬜ | Situations, avenants, budget |
-| `communications` | ⬜ | Registre courrier |
+| `meeting` | ✅ | Meeting analysis, actions, agenda |
+| `guards` | ✅ | Criticality, reversibility, structured veto |
+| `memory` | ✅ | Functional memory Redis TTL |
+| `monitoring` | ✅ | Observability KPIs, decision scoring |
+| `control` | ✅ | Real-time WebSocket dashboard |
+| `evaluation` | ✅ | OpenClaw — reproducible evaluation harness |
+| `decisions` | ⬜ | CRUD project_decisions, debt D0-D3 |
+| `planning` | ⬜ | Gantt, work packages, cascade impacts |
+| `finance` | ⬜ | Progress billing, amendments, budget |
+| `communications` | ⬜ | Mail registry |
 
 ---
 
-## Variables d'environnement clés
+## Key Environment Variables
 
 ```bash
 DATABASE_URL=postgresql+asyncpg://arceus:password@db:5432/arceus
-LLM_PROVIDER=ollama           # ou "openai"
+LLM_PROVIDER=ollama           # or "openai"
 OLLAMA_BASE_URL=http://ollama:11434
 OLLAMA_MODEL=mistral:7b
 EMBEDDING_PROVIDER=ollama
 OLLAMA_EMBEDDING_MODEL=nomic-embed-text
 EMBEDDING_DIM=768
 REDIS_URL=redis://redis:6379/0
-DOMAIN=btp                    # domaine actif
-DOMAIN_LABEL="Architecture & Maîtrise d'Œuvre"
-ADMIN_EMAIL=admin@agence.fr
+DOMAIN=btp                    # active domain
+DOMAIN_LABEL="Architecture & Project Management"
+ADMIN_EMAIL=admin@agency.com
 ADMIN_PASSWORD=changeme
 ```
