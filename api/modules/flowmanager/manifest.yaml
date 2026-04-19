@@ -1,0 +1,5 @@
+name: flowmanager
+version: "1.0.0"
+description: "Gestion dynamique des définitions de workflows multi-agents (CRUD, versioning, déclenchement)"
+prefix: /flows
+depends_on: [auth, orchestra]

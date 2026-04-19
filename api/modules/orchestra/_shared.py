@@ -91,22 +91,33 @@ COGNITIVE_LIMITS: dict[str, dict] = {
 # Clé absente = toujours activable. Valeur vide = jamais automatique.
 # Valeur = liste des criticités (ou patterns) déclenchant cet agent.
 AGENT_TRIGGERS: dict[str, list[str]] = {
-    # Agents existants
+    # Agents analyse
     "promethee": ["C4", "C5"],               # contre-analyse : C4/C5 seulement
     "dionysos":  ["C4", "C5", "exploration"], # créativité : C4/C5 ou pattern exploration
-    "themis":    ["C4", "C5"],               # validation finale/critique uniquement (table)
+    "demeter":   ["C3", "C4", "C5"],         # collecte contexte : planification C3+
+    # Agents cadrage / validation
+    "themis":    ["C4", "C5"],               # validation légale : C4/C5 uniquement
+    "ares":      ["C3", "C4", "C5"],         # sécurité systémique : veto C3+
+    # Agents continuité
     "hestia":    ["C3", "C4", "C5"],         # mémoire projet : pas C1/C2
-    "mnemosyne": ["C4", "C5"],               # capitalisation agence : C4/C5 seulement
-    "aphrodite": [],                         # communication externe — jamais décisionnel auto
+    "mnemosyne": ["C4", "C5"],               # mémoire agence : C4/C5 seulement
+    "hades":     ["C4", "C5"],               # mémoire longue durée : criticité haute
+    # Agents communication
     "iris":      ["C4", "C5"],               # correspondance formelle : C4/C5
+    "aphrodite": [],                         # styliste production — jamais décisionnel auto
+    # Agents production
     "dedale":    ["C4", "C5"],               # production dossiers complets : C4/C5
-    # Nouveaux agents Pantheon OS
+    "hephaistos":["C1", "C2", "C3", "C4", "C5"],  # diagrammes : toujours activable
+    # Agents système
+    "poseidon":  ["C4", "C5"],               # distribution charge : systèmes complexes
+    # Meta-agents Pantheon OS
     "hera":      ["C3", "C4", "C5"],         # supervision : post-synthèse C3+
     "artemis":   ["C1", "C2", "C3", "C4", "C5"],  # filtrage : sur demande Zeus (trim)
-    "hades":     ["C4", "C5"],               # risques : uniquement criticité haute
-    "demeter":   ["C3", "C4", "C5"],         # ressources : planification C3+
-    "poseidon":  ["C4", "C5"],               # cascade : systèmes complexes uniquement
     "kairos":    ["C1", "C2", "C3", "C4", "C5"],  # synthèse : toujours activable
+    # Agents v2 — incertitude, édition, clarification
+    "hecate":        ["C1", "C2", "C3", "C4", "C5"],  # analyse incertitude : always-on
+    "metis":         ["C2", "C3", "C4", "C5"],         # révision stylistique
+    "iris_clarifier":["C1", "C2", "C3", "C4", "C5"],  # reformulation questions
 }
 
 # Routing automatique selon criticité
@@ -118,34 +129,37 @@ CRITICITE_ROUTING = {
     "C5": {"hitl": True, "zeus": True, "veto_check": True},
 }
 VALID_AGENTS = {
-    # Perception / Interface
-    "hermes",
-    "argos",
+    # Meta
+    "hermes",          # router
+    "hera",            # supervisor
+    "artemis",         # filter
+    "kairos",          # synthesizer
+    "apollon",         # validator (meta)
     # Analyse
-    "athena",
-    "hephaistos",
-    "promethee",
-    "apollon",
-    "dionysos",
-    # Cadrage
-    "themis",
-    "chronos",
-    "ares",
+    "athena",          # planner
+    "argos",           # extractor
+    "promethee",       # challenger
+    "dionysos",        # creative
+    "demeter",         # collector
+    "hecate",          # uncertainty_resolver
+    # Cadrage / Validation
+    "themis",          # legal_validator (veto)
+    "chronos",         # time_planner
+    # Système
+    "ares",            # security_guard (veto)
+    "poseidon",        # distributor
     # Continuité
-    "hestia",
-    "mnemosyne",
+    "hestia",          # memory_project
+    "mnemosyne",       # memory_agency
+    "hades",           # memory_longterm
     # Communication
-    "iris",
-    "aphrodite",
+    "iris",            # communicator
+    "iris_clarifier",  # clarifier
+    "metis",           # editor
     # Production
-    "dedale",
-    # Pantheon OS — nouveaux agents
-    "hera",       # Supervision cohérence globale
-    "artemis",    # Filtrage & recentrage
-    "hades",      # Risques & scénarios négatifs
-    "demeter",    # Optimisation ressources
-    "poseidon",   # Flux & effets cascade
-    "kairos",     # Synthèse finale
+    "dedale",          # builder
+    "hephaistos",      # diagram_builder
+    "aphrodite",       # stylist
 }
 
 

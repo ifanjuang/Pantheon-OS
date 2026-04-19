@@ -1,0 +1,15 @@
+flow:
+  name: reponse_rapide
+  version: "1.0.0"
+  description: >
+    Pipeline léger pour questions simples (C1-C2).
+    Pas d'orchestration Zeus, un seul agent de traitement.
+  criticite_min: C1
+  criticite_max: C2
+  steps:
+    - HECATE               # vérification légère
+    - APOLLON              # recherche directe
+    - KAIROS               # synthèse courte
+    - IRIS                 # output
+  on_hecate_block:
+    - IRIS_CLARIFIER

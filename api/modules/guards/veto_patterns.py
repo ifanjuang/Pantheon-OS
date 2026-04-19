@@ -80,7 +80,12 @@ _THEMIS = [
 ]
 
 _HEPHAISTOS = [
-    # Non-conformité technique / DTU
+    # Héphaïstos est diagram_builder — pas de veto technique propre
+    # Les patterns DTU/sécurité sont portés par Arès (security_guard)
+]
+
+_ARES = [
+    # Non-conformité technique / DTU — sécurité chantier
     (
         r"\bnon[- ]conforme\s+(au[x]?\s+)?DTU\b",
         "Obtenir un avis technique ou une dérogation auprès du bureau de contrôle",
@@ -129,6 +134,7 @@ _COMPILED: dict[str, list[tuple[re.Pattern, str]]] = {
     "_generic": [(re.compile(p, re.IGNORECASE), cond) for p, cond in _GENERIC],
     "themis": [(re.compile(p, re.IGNORECASE), cond) for p, cond in _THEMIS],
     "hephaistos": [(re.compile(p, re.IGNORECASE), cond) for p, cond in _HEPHAISTOS],
+    "ares": [(re.compile(p, re.IGNORECASE), cond) for p, cond in _ARES],
     "apollon": [(re.compile(p, re.IGNORECASE), cond) for p, cond in _APOLLON],
 }
 
