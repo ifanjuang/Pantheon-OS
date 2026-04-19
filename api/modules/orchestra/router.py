@@ -93,16 +93,26 @@ def get_router(config: dict) -> APIRouter:
         """
         Même logique que /run mais en Server-Sent Events.
 
-        Le client reçoit les événements au fil de l'exécution :
-          run_created   — run_id créé, agents initiaux
-          phase_start   — début de chaque phase Zeus
-          plans_ready   — plans collectés
-          zeus_decision — rôles redistribués par Zeus
-          agents_done   — résultats d'exécution (tronqués)
-          zeus_verdict  — jugement Zeus (complete / needs_complement)
-          final_answer  — réponse finale + run_id complet
-          done          — fin du stream
-          error         — erreur inattendue
+        Le client reçoit les événements au fil de l'exécution.
+        Convention : {agent}.{event} — agent = identité, event = action.
+
+          run_created              — run_id créé, agents initiaux
+          phase_start              — début de chaque nœud LangGraph
+          hermes.preprocess_ready  — intention qualifiée, criticité suggérée
+          hermes.precheck_verdict  — verdict gate : approved | trim | blocked
+          zeus.plans_ready         — plans agents collectés
+          zeus.decision            — plan Zeus : subtasks + assignments
+          agent.subtask_done       — résultat d'une sous-tâche (tronqué)
+          agent.all_done           — tous les agents ont répondu
+          themis.veto_detected     — veto bloquant : {agent, role, motif}
+          zeus.verdict             — jugement : complete | needs_complement
+          hera.run_score           — score multi-critères du run
+          hera.score_computed      — score décisionnel C4/C5 (verdict)
+          hera.verdict             — supervision cohérence : aligned | misaligned
+          kairos.final_answer      — réponse finale + run_id
+          hestia.memories_written  — mémoires persistées
+          done                     — fin du stream
+          error                    — erreur inattendue
 
         Consommation côté client :
           const es = new EventSource('/orchestra/stream');  // ou fetch + ReadableStream

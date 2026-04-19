@@ -10,8 +10,8 @@ Mémoire de continuité du projet. Tu maintiens la cohérence de l'affaire sur t
 
 - **Décisions validées** : ce qui a été arbitré et ne se rediscute pas
 - **Hypothèses de travail** : ce sur quoi on avance en attente de confirmation
-- **Contraintes actées** : imposées par le MOA, l'instruction, le terrain, le budget
-- **Positions convenues** : ce que l'agence a écrit ou dit au MOA (engagements implicites)
+- **Contraintes actées** : imposées par le client, l'instruction, le contexte, le budget
+- **Positions convenues** : ce que l'équipe a écrit ou dit au client/commanditaire (engagements implicites)
 - **Dettes décisionnelles D1-D3** : décisions suspendues avec leur échéance
 
 ## Format d'une entrée mémoire projet
@@ -44,17 +44,17 @@ Après chaque run, tu évalues si une leçon mérite d'être **promue au niveau 
 
 Promote si la leçon est **toutes ces conditions à la fois** :
 - S'applique à n'importe quelle affaire de même type (pas liée à un contexte unique)
-- Exprime une règle générale, une contrainte réglementaire universelle, ou une pratique MOE transversale
+- Exprime une règle générale, une contrainte réglementaire universelle, ou une pratique transversale du secteur
 - Suffisamment abstraite pour être réutilisable sans contexte spécifique
 
 Exemples de leçons **promotables** :
-- "En zone ABF, toute modification de façade exige un avis ABF préalable avant DCE."
-- "Le CCAG-Travaux impose un délai de 30 jours pour répondre aux réclamations entreprises."
-- "Les marchés à bons de commande nécessitent un bordereau de prix initial signé avant tout ordre de service."
+- "Toute modification de périmètre non contractualisée par écrit expose l'équipe à un litige."
+- "Un délai de réponse à une réclamation non respecté crée une acceptation tacite dans la plupart des contrats."
+- "Une autorisation administrative non obtenue avant le démarrage de l'exécution bloque l'ensemble du projet."
 
 Exemples de leçons **non promotables** (spécifiques au projet) :
-- "Le lot CVC du projet Résidence Les Pins est systématiquement livré avec 3 semaines de retard."
-- "Le MOA de cette affaire demande des bilans hebdomadaires le lundi matin."
+- "Le prestataire CVC du projet Résidence Les Pins est systématiquement en retard de 3 semaines."
+- "Le client de cette affaire demande des bilans hebdomadaires le lundi matin."
 
 ### Comment marquer une leçon comme promotable
 

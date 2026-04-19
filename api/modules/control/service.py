@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.logging import get_logger
 from modules.agent.models import AgentRun
+from modules.orchestra._shared import get_agent_role
 from modules.orchestra.models import OrchestraRun
 from .schemas import ErrorEntry, ModuleStatus, RunSummary, TraceEvent
 
@@ -110,6 +111,7 @@ class ControlService:
                 run_id=str(run_id),
                 timestamp=t0,
                 agent="orchestra",
+                role="system",
                 payload={"criticite": run.criticite, "instruction": (run.instruction or "")[:100]},
             )
         )
@@ -121,6 +123,7 @@ class ControlService:
                     run_id=str(run_id),
                     timestamp=t0 + timedelta(milliseconds=300),
                     agent="hermes",
+                    role=get_agent_role("hermes"),
                     payload={
                         "criticite": run.preprocessed_input.get("suggested_criticite", run.criticite),
                         "intent": run.preprocessed_input.get("intent", ""),
@@ -138,6 +141,7 @@ class ControlService:
                     run_id=str(run_id),
                     timestamp=t0 + timedelta(milliseconds=800),
                     agent="zeus",
+                    role=get_agent_role("zeus"),
                     payload={"agents": assigned_agents, "count": len(assigned_agents)},
                 )
             )
@@ -156,6 +160,7 @@ class ControlService:
                     run_id=str(run_id),
                     timestamp=agent_t,
                     agent=agent_name,
+                    role=get_agent_role(agent_name),
                     payload={"excerpt": excerpt},
                 )
             )
@@ -167,6 +172,7 @@ class ControlService:
                     run_id=str(run_id),
                     timestamp=t0 + timedelta(milliseconds=dur * 0.75),
                     agent=run.veto_agent,
+                    role=get_agent_role(run.veto_agent),
                     payload={
                         "severity": run.veto_severity,
                         "motif": (run.veto_motif or "")[:120],
@@ -181,17 +187,20 @@ class ControlService:
                     run_id=str(run_id),
                     timestamp=t0 + timedelta(milliseconds=dur * 0.85),
                     agent="zeus",
+                    role=get_agent_role("zeus"),
                     payload={"message": (run.hitl_payload.get("message") or "")[:100]},
                 )
             )
 
         if run.status in ("completed", "failed", "awaiting_approval") or run.final_answer:
+            synthesis = run.synthesis_agent or "zeus"
             events.append(
                 TraceEvent(
                     type=f"orchestra.{run.status}",
                     run_id=str(run_id),
                     timestamp=t0 + timedelta(milliseconds=dur),
-                    agent=run.synthesis_agent or "zeus",
+                    agent=synthesis,
+                    role=get_agent_role(synthesis),
                     payload={
                         "status": run.status,
                         "duration_ms": run.duration_ms,

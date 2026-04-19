@@ -31,6 +31,7 @@ class TraceEvent(BaseModel):
     run_id: str
     timestamp: datetime
     agent: str | None
+    role: str | None = None
     payload: dict[str, Any]
 
 

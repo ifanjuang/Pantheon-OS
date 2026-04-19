@@ -83,10 +83,10 @@ function RunRow({
         {run.criticite}
       </span>
 
-      {/* Agents */}
+      {/* Agents — uppercase = identité, convention Pantheon OS */}
       <span className="flex-1 text-zinc-400 text-xs truncate min-w-0">
         {run.agents_involved.length > 0
-          ? run.agents_involved.join(" · ")
+          ? run.agents_involved.map((a) => a.toUpperCase()).join(" · ")
           : run.instruction_excerpt.slice(0, 30)}
       </span>
 

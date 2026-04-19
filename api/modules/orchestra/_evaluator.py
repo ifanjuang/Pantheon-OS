@@ -15,6 +15,7 @@ from ._shared import (
     _parse_json_response,
     _zeus_system,
     _get_soul,
+    get_agent_role,
     log,
 )
 
@@ -265,6 +266,7 @@ async def veto_check(state: OrchestraState) -> dict:
         log.warning(
             "orchestra.veto_blocking",
             agent=worst_veto.agent,
+            role=get_agent_role(worst_veto.agent),
             criticite=criticite,
             condition_levee=(worst_veto.condition_levee or "")[:120],
         )
@@ -287,6 +289,7 @@ async def veto_check(state: OrchestraState) -> dict:
         log.info(
             "orchestra.veto_traced",
             agent=worst_veto.agent,
+            role=get_agent_role(worst_veto.agent),
             severity=worst_veto.severity,
             criticite=criticite,
         )

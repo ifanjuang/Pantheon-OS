@@ -1,8 +1,8 @@
-# ARCEUS — Contexte projet pour agents Claude Code
+# Pantheon OS — Contexte projet pour agents Claude Code
 
 ## Vue d'ensemble
 
-ARCEUS est un système d'intelligence opérationnelle pour agences MOE (Maîtrise d'Œuvre). Il centralise la gestion documentaire, le RAG sémantique, l'orchestration multi-agents, le suivi de chantier, la planification et les finances sur l'ensemble du cycle de vie des projets de construction.
+**Pantheon OS** est un système d'intelligence opérationnelle multi-agents pour organisations professionnelles à haute technicité (MOE/BTP, droit, audit, conseil, médecine, IT…). Il centralise la gestion documentaire, le RAG sémantique, l'orchestration multi-agents, le suivi de projet, la planification et les finances sur l'ensemble du cycle de vie des dossiers.
 
 Stack : **FastAPI** (async) · **PostgreSQL + pgvector** · **LangGraph** · **MinIO** · **Ollama/OpenAI** · **ARQ/Redis** · **Docker Compose**
 
@@ -29,49 +29,72 @@ ARCEUS/
 │   └── modules/
 │       ├── auth/                   # Login, register, seed admin
 │       ├── admin/                  # Config YAML, setup wizard, healthcheck
-│       ├── affaires/               # Dossiers MOE + contexte projet enrichi
+│       ├── affaires/               # Dossiers projet + contexte enrichi + domaine
 │       ├── documents/              # Upload, ingest RAG, trigger Thémis
 │       ├── agent/                  # Boucle ReAct, mémoire, outils RAG+web
 │       ├── orchestra/              # LangGraph Zeus, C1-C5, HITL, SSE streaming
 │       ├── meeting/                # Analyse CR, extraction actions, OJ
 │       ├── preprocessing/          # Hermès++ : cleaning, intent, precheck gate
-│       ├── guards/                 # Criticality / reversibility / loop / structured_veto
+│       ├── guards/                 # Criticality / reversibility / loop / veto
 │       ├── memory/                 # Mémoire fonctionnelle Redis TTL (session)
 │       ├── monitoring/             # KPIs observabilité (durée, coût, vetos, scoring)
 │       └── evaluation/             # OpenClaw — harness d'éval reproductible
-├── agents/                         # SOUL.md de chaque agent du panthéon
-│   ├── zeus/ hermes/ argos/
-│   ├── athena/ hephaistos/ promethee/ apollon/ dionysos/
-│   ├── themis/ chronos/ ares/
-│   ├── hestia/ mnemosyne/
-│   └── iris/ aphrodite/ dedale/
-├── alembic/versions/               # Migrations séquentielles 0001→0009
+├── core/                           # Meta-agents (layer: meta + perception)
+│   ├── _base.py                    # AgentBase — contrat commun (agent ≠ role)
+│   ├── __init__.py                 # Exports: ZeusOrchestrator, HeraSupervisor, …
+│   ├── zeus_orchestrator.py        # class ZeusOrchestrator
+│   ├── hera_supervisor.py          # class HeraSupervisor
+│   ├── artemis_filter.py           # class ArtemisFilter
+│   ├── kairos_synthesizer.py       # class KairosSynthesizer
+│   ├── hermes_router.py            # class HermesRouter
+│   ├── athena_planner.py           # class AthenaPlanner
+│   └── zeus/ hera/ artemis/ …     # SOUL.md de chaque meta-agent
+├── agents/                         # Agents spécialisés (analysis → production)
+│   ├── __init__.py                 # Exports: HephaistosValidator, ThemisValidator, …
+│   ├── hephaistos_validator.py     # class HephaistosValidator
+│   ├── themis_validator.py         # class ThemisValidator
+│   ├── apollon_researcher.py       # … (16 classes au total)
+│   ├── argos/ hephaistos/ …        # SOUL.md de chaque agent spécialisé
+│   └── domains/                    # Overlays domaine (btp|droit|audit|conseil|medecine|it)
+├── config/
+│   └── agent_registry.yaml         # Registre unique : role, layer, class, triggers, veto
+├── alembic/versions/               # Migrations séquentielles 0001→0027
 ├── modules.yaml                    # Registre modules actifs
 └── docker-compose.yml              # DB + API + MinIO + Redis + Ollama + OpenWebUI
 ```
 
 ---
 
-## Le Panthéon — 15 agents + Zeus
+## Le Panthéon — 22 agents
 
-| Famille | Agent | Rôle |
-|---|---|---|
-| **Perception** | Hermès | Interface, routage, qualification C1-C5 |
-| | Argos | Observation visuelle, constat objectif (photos, plans) |
-| **Analyse** | Athéna | Structuration des problèmes, scénarios |
-| | Héphaïstos | Faisabilité technique, DTU, matériaux, fiches produits — **veto technique** |
-| | Prométhée | Contre-analyse, détection biais, critique logique |
-| | Apollon | Recherche web + RAG, vérification normative, cohérence finale |
-| | Dionysos | Pensée latérale, rupture créative |
-| **Cadrage** | Thémis | Réglementation + contrat MOE + déontologie — **veto contractuel** |
-| | Chronos | Temps, planning, délais légaux, impacts cascade |
-| | Arès | Action terrain rapide, décisions réversibles C3 |
-| **Continuité** | Hestia | Mémoire projet (décisions, hypothèses, dettes D0-D3) |
-| | Mnémosyne | Mémoire agence (patterns, leçons, précédents) |
-| **Communication** | Iris | Emails humains, correspondance, relances |
-| | Aphrodite | Marketing, réseaux sociaux, storytelling |
-| **Production** | Dédale | Dossiers complets (PC, DCE, DOE, marchés) |
-| **Orchestrateur** | Zeus | Arbitrage stratégique, distribution, jugement, veto global |
+Convention de nommage : `{"agent": "ZEUS", "role": "orchestrator"}` — identité ≠ responsabilité.
+
+| Layer | Agent | Classe Python | Rôle fonctionnel | Veto |
+|---|---|---|---|---|
+| **Meta** | Zeus | `ZeusOrchestrator` | orchestrator | — |
+| | Héra | `HeraSupervisor` | supervisor | — |
+| | Artémis | `ArtemisFilter` | filter | — |
+| | Kairos | `KairosSynthesizer` | synthesizer | — |
+| **Perception** | Hermès | `HermesRouter` | router | — |
+| | Argos | `ArgosObserver` | observer | — |
+| **Analyse** | Athéna | `AthenaPlanner` | planner | — |
+| | Héphaïstos | `HephaistosValidator` | technical_validator | ✅ |
+| | Prométhée | `PrometheeChallenger` | challenger | — |
+| | Apollon | `ApollonResearcher` | researcher | — |
+| | Dionysos | `DionysosCreative` | creative | — |
+| | Hadès | `HadesAnalyst` | risk_analyst | — |
+| | Poséidon | `PoseidonAnalyst` | cascade_analyst | — |
+| **Cadrage** | Thémis | `ThemisValidator` | legal_validator | ✅ |
+| | Chronos | `ChronosPlanner` | time_planner | — |
+| | Arès | `AresExecutor` | executor | — |
+| | Déméter | `DemeterOptimizer` | optimizer | — |
+| **Continuité** | Hestia | `HestiaMemory` | memory_project | — |
+| | Mnémosyne | `MnemosyneMemory` | memory_agency | — |
+| **Communication** | Iris | `IrisCommunicator` | communicator | — |
+| | Aphrodite | `AphroditeMarketer` | marketer | — |
+| **Production** | Dédale | `DedaleBuilder` | builder | — |
+
+Source de vérité : `config/agent_registry.yaml`
 
 ---
 
@@ -80,13 +103,13 @@ ARCEUS/
 | Table | Description |
 |---|---|
 | `users` | Comptes utilisateurs, rôle RBAC |
-| `affaires` | Dossiers MOE + contexte (typology, region, budget, phase, ABF, zones) |
+| `affaires` | Dossiers projet + contexte (typology, region, budget, phase, ABF, zones) + `domain` |
 | `affaire_permissions` | Override de rôle par affaire |
 | `documents` | Fichiers uploadés (PDF/DOCX/TXT/images) |
 | `chunks` | Fragments RAG, vecteur `vector(768)`, index HNSW |
 | `agent_runs` | Traces d'exécution agent (steps, sources RAG, durée) |
 | `agent_memory` | Leçons apprises — `scope` : `agence` ou `projet` |
-| `orchestra_runs` | Orchestrations Zeus : plans, assignments, résultats, HITL, criticité |
+| `orchestra_runs` | Orchestrations Zeus : plans, assignments, résultats, HITL, criticité, `run_score`, `hera_verdict` |
 | `project_decisions` | Décisions structurées C1-C5 avec dette D0-D3 |
 | `meeting_crs` | Comptes-rendus analysés |
 | `meeting_actions` | Actions extraites avec priorité, statut, échéance |
@@ -96,13 +119,13 @@ ARCEUS/
 
 ## Criticité C1-C5
 
-| Niveau | Nature | Mode |
-|---|---|---|
-| C1 | Information | Agent unique, pas de Zeus |
-| C2 | Question | 1-2 agents |
-| C3 | Décision locale réversible | Zeus optionnel, Arès peut agir |
-| C4 | Décision engageante | Zeus + HITL humain |
-| C5 | Risque majeur | Zeus + HITL + veto check |
+| Niveau | Nature | Mode | Max agents | Max subtasks |
+|---|---|---|---|---|
+| C1 | Information | Agent unique, pas de Zeus | 1 | 1 |
+| C2 | Question | 1-2 agents | 2 | 2 |
+| C3 | Décision locale réversible | Zeus optionnel, Arès peut agir | 4 | 3 |
+| C4 | Décision engageante | Zeus + HITL humain | 6 | 5 |
+| C5 | Risque majeur | Zeus + HITL + veto check | 8 | 6 |
 
 ---
 
@@ -112,13 +135,99 @@ ARCEUS/
 |---|---|---|---|
 | **Agence** | `scope='agence'`, `affaire_id=NULL` | Mnémosyne | Permanente |
 | **Projet** | `scope='projet'`, `affaire_id=<uuid>` | Hestia | Durée affaire |
-| **Fonctionnelle** | Redis TTL (`memory:fn:{thread_id}:*`) / module `memory` | Hermès + Chronos | Session (TTL 1h) |
+| **Fonctionnelle** | Redis TTL (`memory:fn:{thread_id}:*`) | Hermès + Chronos | Session (TTL 1h) |
+
+---
+
+## Conventions de nommage — Pantheon OS
+
+### Agents : identité ≠ responsabilité
+
+```python
+# Classe Python — convention MythRole
+class ZeusOrchestrator(AgentBase):
+    agent = "ZEUS"          # identité (stable, branding)
+    role  = "orchestrator"  # responsabilité (stable, logique système)
+
+# JSON standard (logs, events, API)
+{"agent": "ZEUS", "role": "orchestrator"}
+```
+
+### SSE Events — convention `{agent}.{event}`
+
+| Event | Emetteur | Payload clé |
+|---|---|---|
+| `hermes.preprocess_ready` | Hermès | intent, suggested_criticite |
+| `hermes.precheck_verdict` | Hermès | verdict, criticite |
+| `zeus.plans_ready` | Zeus | plans par agent |
+| `zeus.decision` | Zeus | subtasks, assignments |
+| `zeus.verdict` | Zeus | complete \| needs_complement |
+| `agent.subtask_done` | (tout agent) | task_id, results |
+| `agent.all_done` | (tout agent) | results tronqués |
+| `themis.veto_detected` | Thémis | agent, role, motif, severity |
+| `hera.run_score` | Héra | quality, coherence, confidence, risk |
+| `hera.score_computed` | Héra | score_id, verdict, total |
+| `hera.verdict` | Héra | aligned \| misaligned \| degraded |
+| `kairos.final_answer` | Kairos | answer, run_id |
+| `hestia.memories_written` | Hestia | count, wiki_page_id |
+
+Events système (non agentiques) : `run_created`, `phase_start`, `done`, `error`
+
+### Résolution SOUL.md
+
+`_resolve_soul_path(name)` cherche dans l'ordre :
+1. `core/{name}/SOUL.md` — meta-agents (zeus, hera, artemis, kairos, hermes, athena)
+2. `agents/{name}/SOUL.md` — agents spécialisés
+
+### DB — convention `agent_name`
+
+Les colonnes `agent_name` en DB utilisent le **lowercase** (`"zeus"`, `"hephaistos"`).
+La correspondance uppercase↔lowercase est garantie par `old_names` dans `agent_registry.yaml`.
+
+---
+
+## Généralisation multi-domaine
+
+Le domaine actif est configuré via `.env` :
+
+```bash
+DOMAIN=btp        # btp | droit | audit | conseil | medecine | it
+DOMAIN_LABEL="Architecture & Maîtrise d'Œuvre"
+```
+
+Chaque domaine a un fichier `agents/domains/{domain}.yaml` avec :
+- `context_injection` — injecté automatiquement dans tous les SOUL.md
+- `trusted_sources` — sources web prioritaires pour Apollon
+- `criticality_keywords` — mots-clés haussant la criticité
+- `veto_patterns` — patterns regex par agent (fusionnés avec les patterns statiques)
 
 ---
 
 ## Conventions de code
 
-### Créer un nouveau module
+### Créer un nouvel agent
+
+```
+core/   (meta-agents)          agents/   (agents spécialisés)
+  {myth}_{role}.py               {myth}_{role}.py
+  {myth}/SOUL.md                 {myth}/SOUL.md
+```
+
+```python
+from core._base import AgentBase
+
+class MythRole(AgentBase):
+    agent    = "MYTH"
+    role     = "role_stable"
+    layer    = "meta|analysis|framing|continuity|communication|production"
+    veto     = False
+    triggers = ["C3", "C4", "C5"]
+    _soul_dir = Path(__file__).parent / "myth"
+```
+
+Puis ajouter dans `config/agent_registry.yaml` et `api/modules/orchestra/_shared.py:VALID_AGENTS`.
+
+### Créer un nouveau module API
 
 ```
 api/modules/{nom}/
@@ -129,8 +238,6 @@ api/modules/{nom}/
 ├── service.py          # Logique métier pure
 └── router.py           # def get_router(config: dict) -> APIRouter
 ```
-
-Le `registry.py` charge automatiquement `router.get_router(config)` et monte le router sur le `prefix` du manifest.
 
 ### Règles importantes
 
@@ -182,6 +289,8 @@ OLLAMA_EMBEDDING_MODEL=nomic-embed-text
 EMBEDDING_DIM=768
 REDIS_URL=redis://redis:6379/0
 AGENTS_DIR=/agents
+DOMAIN=btp                   # domaine actif (btp|droit|audit|conseil|medecine|it)
+DOMAIN_LABEL="Architecture & Maîtrise d'Œuvre"
 ADMIN_EMAIL=admin@agence.fr
 ADMIN_PASSWORD=changeme
 ```
@@ -211,6 +320,8 @@ ADMIN_PASSWORD=changeme
 | 0017 | orchestra_runs scoring + mémoires (score_id, score_verdict, memories_written, wiki_page_id) |
 | 0018 | orchestra_runs preprocessing + precheck (preprocessed_input JSONB, precheck_verdict, precheck_reasoning) |
 | 0019 | guards : project_decisions (condition_levee, reversible) + orchestra_runs (veto_severity, veto_condition_levee) |
+| 0026 | orchestra_runs intelligence : run_score JSONB, hera_verdict, hera_feedback, fallback_level |
+| 0027 | affaires.domain VARCHAR + affaires.domain_metadata JSONB |
 
 ---
 

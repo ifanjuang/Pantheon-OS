@@ -1,0 +1,211 @@
+# Pantheon OS — Registre des agents
+#
+# Source unique de vérité pour l'identité et les responsabilités des agents.
+#
+# Champs :
+#   role      — identifiant fonctionnel stable (snake_case)
+#   layer     — couche architecturale (perception | analysis | framing | continuity | communication | production | meta)
+#   class     — nom de classe Python cible (convention MythRole)
+#   triggers  — criticités activant cet agent automatiquement ([] = jamais auto)
+#   veto      — l'agent peut-il émettre un veto bloquant ?
+#   old_names — anciens noms internes (rétrocompat, migration)
+#
+# Convention événements SSE : {agent_lowercase}.{event_name}
+# Convention logs            : {agent_lowercase}.{action}
+# Convention JSON            : {"agent": "ZEUS", "role": "orchestrator"}
+
+# ── Meta-agents ──────────────────────────────────────────────────────────────
+
+ZEUS:
+  role: orchestrator
+  layer: meta
+  class: ZeusOrchestrator
+  soul_dir: core
+  triggers: [C3, C4, C5]
+  veto: false
+  old_names: [zeus, orchestrator, agent_manager]
+
+HERA:
+  role: supervisor
+  layer: meta
+  class: HeraSupervisor
+  soul_dir: core
+  triggers: [C3, C4, C5]
+  veto: false
+  old_names: [hera]
+
+ARTEMIS:
+  role: filter
+  layer: meta
+  class: ArtemisFilter
+  soul_dir: core
+  triggers: [C1, C2, C3, C4, C5]
+  veto: false
+  old_names: [artemis]
+
+KAIROS:
+  role: synthesizer
+  layer: meta
+  class: KairosSynthesizer
+  soul_dir: core
+  triggers: [C1, C2, C3, C4, C5]
+  veto: false
+  old_names: [kairos]
+
+# ── Perception ────────────────────────────────────────────────────────────────
+
+HERMES:
+  role: router
+  layer: perception
+  class: HermesRouter
+  soul_dir: core
+  triggers: [C1, C2, C3, C4, C5]
+  veto: false
+  old_names: [hermes]
+
+ARGOS:
+  role: observer
+  layer: perception
+  class: ArgosObserver
+  triggers: [C1, C2, C3, C4, C5]
+  veto: false
+  old_names: [argos]
+
+# ── Analyse ───────────────────────────────────────────────────────────────────
+
+ATHENA:
+  role: planner
+  layer: analysis
+  class: AthenaPlanner
+  soul_dir: core
+  triggers: [C1, C2, C3, C4, C5]
+  veto: false
+  old_names: [athena, planner, task_planner]
+
+HEPHAISTOS:
+  role: technical_validator
+  layer: analysis
+  class: HephaistosValidator
+  triggers: [C1, C2, C3, C4, C5]
+  veto: true
+  old_names: [hephaistos]
+
+PROMETHEE:
+  role: challenger
+  layer: analysis
+  class: PrometheeChallenger
+  triggers: [C4, C5]
+  veto: false
+  old_names: [promethee, prometheus]
+
+APOLLON:
+  role: researcher
+  layer: analysis
+  class: ApollonResearcher
+  triggers: [C1, C2, C3, C4, C5]
+  veto: false
+  old_names: [apollon, apollo, validator, reviewer]
+
+DIONYSOS:
+  role: creative
+  layer: analysis
+  class: DionysosCreative
+  triggers: [C4, C5]
+  veto: false
+  old_names: [dionysos]
+
+HADES:
+  role: risk_analyst
+  layer: analysis
+  class: HadesAnalyst
+  triggers: [C4, C5]
+  veto: false
+  old_names: [hades]
+
+POSEIDON:
+  role: cascade_analyst
+  layer: analysis
+  class: PoseidonAnalyst
+  triggers: [C4, C5]
+  veto: false
+  old_names: [poseidon]
+
+# ── Cadrage ───────────────────────────────────────────────────────────────────
+
+THEMIS:
+  role: legal_validator
+  layer: framing
+  class: ThemisValidator
+  triggers: [C4, C5]
+  veto: true
+  old_names: [themis]
+
+CHRONOS:
+  role: time_planner
+  layer: framing
+  class: ChronosPlanner
+  triggers: [C1, C2, C3, C4, C5]
+  veto: false
+  old_names: [chronos]
+
+ARES:
+  role: executor
+  layer: framing
+  class: AresExecutor
+  triggers: [C3, C4, C5]
+  veto: false
+  old_names: [ares]
+
+DEMETER:
+  role: optimizer
+  layer: framing
+  class: DemeterOptimizer
+  triggers: [C3, C4, C5]
+  veto: false
+  old_names: [demeter]
+
+# ── Continuité ────────────────────────────────────────────────────────────────
+
+HESTIA:
+  role: memory_project
+  layer: continuity
+  class: HestiaMemory
+  triggers: [C3, C4, C5]
+  veto: false
+  old_names: [hestia]
+
+MNEMOSYNE:
+  role: memory_agency
+  layer: continuity
+  class: MnemosyneMemory
+  triggers: [C4, C5]
+  veto: false
+  old_names: [mnemosyne]
+
+# ── Communication ─────────────────────────────────────────────────────────────
+
+IRIS:
+  role: communicator
+  layer: communication
+  class: IrisCommunicator
+  triggers: [C4, C5]
+  veto: false
+  old_names: [iris]
+
+APHRODITE:
+  role: marketer
+  layer: communication
+  class: AphroditeMarketer
+  triggers: []
+  veto: false
+  old_names: [aphrodite]
+
+# ── Production ────────────────────────────────────────────────────────────────
+
+DEDALE:
+  role: builder
+  layer: production
+  class: DedaleBuilder
+  triggers: [C4, C5]
+  veto: false
+  old_names: [dedale, daedalus]

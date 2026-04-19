@@ -45,6 +45,7 @@ from ._shared import (
     VALID_AGENTS,
     DEFAULT_AGENTS,
     DEFAULT_SYNTHESIS_AGENT,
+    get_agent_role,
     log,
 )
 
@@ -602,17 +603,17 @@ async def resume_orchestra(
 # ── SSE Streaming ────────────────────────────────────────────────────
 
 _NODE_LABELS = {
-    "preprocess": ("preprocess", "Normalisation Hermès..."),
-    "zeus_distribute": ("zeus", "Zeus organise les sous-tâches..."),
-    "workflow_precheck": ("precheck", "Gate Precheck — dimensionnement du plan..."),
-    "dispatch_subtasks": ("executing", "Exécution des agents (cascade / arène / parallèle)..."),
-    "veto_check": ("veto", "Veto structuré (Thémis / Héphaïstos / Apollon)..."),
-    "execute_complements": ("executing", "Compléments en cours..."),
-    "zeus_judge": ("judging", "Zeus juge les résultats..."),
-    "score_decision": ("scoring", "Scoring multi-critères (qualité / cohérence / confiance / risque)..."),
-    "synthesize": ("synthesis", "Synthèse en cours..."),
-    "hera_supervise": ("hera", "HERA — vérification cohérence globale..."),
-    "write_memories": ("memories", "Écriture mémoires Hestia / Mnémosyne..."),
+    "preprocess":          ("hermes.preprocess",  "Hermès — normalisation et qualification..."),
+    "workflow_precheck":   ("hermes.precheck",    "Hermès — gate precheck dimensionnement..."),
+    "zeus_distribute":     ("zeus.distribute",    "Zeus — organisation des sous-tâches..."),
+    "dispatch_subtasks":   ("agent.execute",      "Exécution agents (cascade / arène / parallèle)..."),
+    "execute_complements": ("agent.execute",      "Compléments en cours..."),
+    "zeus_judge":          ("zeus.judge",         "Zeus — jugement des résultats..."),
+    "veto_check":          ("themis.veto",        "Thémis — veto structuré (couche 0 + LLM)..."),
+    "score_decision":      ("hera.score",         "Héra — scoring multi-critères..."),
+    "synthesize":          ("kairos.synthesize",  "Kairos — synthèse finale actable..."),
+    "hera_supervise":      ("hera.supervise",     "Héra — vérification cohérence globale..."),
+    "write_memories":      ("hestia.memories",    "Hestia — écriture mémoires projet / agence..."),
 }
 
 
@@ -671,7 +672,7 @@ async def stream_orchestra(
                 if node_name == "preprocess":
                     pp = updates.get("preprocessed_input", {}) or {}
                     yield _sse(
-                        "preprocess_ready",
+                        "hermes.preprocess_ready",
                         {
                             "intent": pp.get("intent"),
                             "confidence": pp.get("confidence"),
@@ -683,7 +684,7 @@ async def stream_orchestra(
 
                 elif node_name == "zeus_distribute":
                     yield _sse(
-                        "plans_ready",
+                        "zeus.plans_ready",
                         {
                             "plans": {
                                 agent: {"plan": summary, "expected_output": ""}
@@ -692,7 +693,7 @@ async def stream_orchestra(
                         },
                     )
                     yield _sse(
-                        "zeus_decision",
+                        "zeus.decision",
                         {
                             "reasoning": updates.get("zeus_reasoning", ""),
                             "subtasks": updates.get("subtasks", []),
@@ -704,7 +705,7 @@ async def stream_orchestra(
                 elif node_name == "workflow_precheck":
                     precheck_verdict = updates.get("precheck_verdict", "approved")
                     yield _sse(
-                        "precheck_verdict",
+                        "hermes.precheck_verdict",
                         {
                             "verdict": precheck_verdict,
                             "reasoning": updates.get("precheck_reasoning", ""),
@@ -714,7 +715,7 @@ async def stream_orchestra(
                     )
                     if precheck_verdict in ("clarification", "blocked") and updates.get("final_answer"):
                         yield _sse(
-                            "final_answer",
+                            "kairos.final_answer",
                             {
                                 "answer": updates.get("final_answer", ""),
                                 "run_id": str(run_id),
@@ -727,7 +728,7 @@ async def stream_orchestra(
                     if subtask_results:
                         for task_id, task_res in subtask_results.items():
                             yield _sse(
-                                "subtask_done",
+                                "agent.subtask_done",
                                 {
                                     "task_id": task_id,
                                     "agents": list(task_res.keys()),
@@ -735,7 +736,7 @@ async def stream_orchestra(
                                 },
                             )
                     yield _sse(
-                        "agents_done",
+                        "agent.all_done",
                         {
                             "results": {
                                 agent: result[:500] for agent, result in updates.get("agent_results", {}).items()
@@ -745,10 +746,12 @@ async def stream_orchestra(
 
                 elif node_name == "veto_check":
                     if updates.get("veto_agent"):
+                        veto_agent = updates.get("veto_agent", "")
                         yield _sse(
-                            "veto_detected",
+                            "themis.veto_detected",
                             {
-                                "agent": updates.get("veto_agent", ""),
+                                "agent": veto_agent,
+                                "role": get_agent_role(veto_agent),
                                 "severity": updates.get("veto_severity", ""),
                                 "motif": updates.get("veto_motif", ""),
                                 "condition_levee": updates.get("veto_condition_levee", ""),
@@ -757,7 +760,7 @@ async def stream_orchestra(
 
                 elif node_name == "zeus_judge":
                     yield _sse(
-                        "zeus_verdict",
+                        "zeus.verdict",
                         {
                             "verdict": updates.get("verdict", "complete"),
                             "complement_requested": updates.get("verdict") == "needs_complement",
@@ -767,12 +770,12 @@ async def stream_orchestra(
                 elif node_name == "score_decision":
                     if updates.get("run_score"):
                         yield _sse(
-                            "run_score",
+                            "hera.run_score",
                             {"score": updates.get("run_score", {})},
                         )
                     if updates.get("score_id"):
                         yield _sse(
-                            "score_computed",
+                            "hera.score_computed",
                             {
                                 "score_id": updates.get("score_id", ""),
                                 "verdict": updates.get("score_verdict", ""),
@@ -782,7 +785,7 @@ async def stream_orchestra(
 
                 elif node_name == "hera_supervise":
                     yield _sse(
-                        "hera_verdict",
+                        "hera.verdict",
                         {
                             "verdict": updates.get("hera_verdict", "aligned"),
                             "feedback": updates.get("hera_feedback", ""),
@@ -791,7 +794,7 @@ async def stream_orchestra(
 
                 elif node_name == "synthesize":
                     yield _sse(
-                        "final_answer",
+                        "kairos.final_answer",
                         {
                             "answer": updates.get("final_answer", ""),
                             "run_id": str(run_id),
@@ -800,7 +803,7 @@ async def stream_orchestra(
 
                 elif node_name == "write_memories":
                     yield _sse(
-                        "memories_written",
+                        "hestia.memories_written",
                         {
                             "count": updates.get("memories_written", 0),
                             "wiki_page_id": updates.get("wiki_page_id", ""),
