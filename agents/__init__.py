@@ -1,42 +1,42 @@
-"""Pantheon OS — agents spécialisés (analysis | framing | continuity | communication | production)."""
-from .argos_observer import ArgosObserver
-from .hephaistos_validator import HephaistosValidator
+"""Pantheon OS — agents spécialisés (analysis | continuity | communication | production | system | meta)."""
+from .argos_extractor import ArgosExtractor
+from .hephaistos_builder import HephaistosBuilder
 from .promethee_challenger import PrometheeChallenger
-from .apollon_researcher import ApollonResearcher
+from .apollon_validator import ApollonValidator
 from .dionysos_creative import DionysosCreative
-from .hades_analyst import HadesAnalyst
+from .hades_memory import HadesMemory
 from .hecate_resolver import HecateResolver
-from .poseidon_analyst import PoseidonAnalyst
+from .poseidon_distributor import PoseidonDistributor
 from .themis_validator import ThemisValidator
 from .chronos_planner import ChronosPlanner
-from .ares_executor import AresExecutor
-from .demeter_optimizer import DemeterOptimizer
+from .ares_security import AresSecurity
+from .demeter_collector import DemeterCollector
 from .hestia_memory import HestiaMemory
 from .mnemosyne_memory import MnemosyneMemory
 from .iris_communicator import IrisCommunicator
 from .iris_clarifier import IrisClarifier
 from .metis_editor import MetisEditor
-from .aphrodite_marketer import AphroditeMarketer
+from .aphrodite_stylist import AphroditeStylist
 from .dedale_builder import DedaleBuilder
 
 __all__ = [
-    "ArgosObserver",
-    "HephaistosValidator",
+    "ArgosExtractor",
+    "HephaistosBuilder",
     "PrometheeChallenger",
-    "ApollonResearcher",
+    "ApollonValidator",
     "DionysosCreative",
-    "HadesAnalyst",
+    "HadesMemory",
     "HecateResolver",
-    "PoseidonAnalyst",
+    "PoseidonDistributor",
     "ThemisValidator",
     "ChronosPlanner",
-    "AresExecutor",
-    "DemeterOptimizer",
+    "AresSecurity",
+    "DemeterCollector",
     "HestiaMemory",
     "MnemosyneMemory",
     "IrisCommunicator",
     "IrisClarifier",
     "MetisEditor",
-    "AphroditeMarketer",
+    "AphroditeStylist",
     "DedaleBuilder",
 ]

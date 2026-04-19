@@ -64,12 +64,12 @@ HERMES:
   old_names: [hermes]
 
 ARGOS:
-  role: observer
-  layer: perception
-  class: ArgosObserver
+  role: extractor
+  layer: analysis
+  class: ArgosExtractor
   triggers: [C1, C2, C3, C4, C5]
   veto: false
-  old_names: [argos]
+  old_names: [argos, argos_observer, observer]
 
 # ── Analyse ───────────────────────────────────────────────────────────────────
 
@@ -83,12 +83,12 @@ ATHENA:
   old_names: [athena, planner, task_planner]
 
 HEPHAISTOS:
-  role: technical_validator
-  layer: analysis
-  class: HephaistosValidator
+  role: diagram_builder
+  layer: production
+  class: HephaistosBuilder
   triggers: [C1, C2, C3, C4, C5]
-  veto: true
-  old_names: [hephaistos]
+  veto: false
+  old_names: [hephaistos, hephaistos_validator, technical_validator]
 
 PROMETHEE:
   role: challenger
@@ -99,12 +99,12 @@ PROMETHEE:
   old_names: [promethee, prometheus]
 
 APOLLON:
-  role: researcher
-  layer: analysis
-  class: ApollonResearcher
+  role: validator
+  layer: meta
+  class: ApollonValidator
   triggers: [C1, C2, C3, C4, C5]
   veto: false
-  old_names: [apollon, apollo, validator, reviewer]
+  old_names: [apollon, apollo, apollon_researcher, researcher, reviewer]
 
 DIONYSOS:
   role: creative
@@ -115,12 +115,12 @@ DIONYSOS:
   old_names: [dionysos]
 
 HADES:
-  role: risk_analyst
-  layer: analysis
-  class: HadesAnalyst
+  role: memory_longterm
+  layer: continuity
+  class: HadesMemory
   triggers: [C4, C5]
   veto: false
-  old_names: [hades]
+  old_names: [hades, hades_analyst, risk_analyst]
 
 HECATE:
   role: uncertainty_resolver
@@ -131,12 +131,12 @@ HECATE:
   old_names: [hecate]
 
 POSEIDON:
-  role: cascade_analyst
-  layer: analysis
-  class: PoseidonAnalyst
+  role: distributor
+  layer: system
+  class: PoseidonDistributor
   triggers: [C4, C5]
   veto: false
-  old_names: [poseidon]
+  old_names: [poseidon, poseidon_analyst, cascade_analyst]
 
 # ── Cadrage ───────────────────────────────────────────────────────────────────
 
@@ -157,20 +157,20 @@ CHRONOS:
   old_names: [chronos]
 
 ARES:
-  role: executor
-  layer: framing
-  class: AresExecutor
+  role: security_guard
+  layer: system
+  class: AresSecurity
   triggers: [C3, C4, C5]
-  veto: false
-  old_names: [ares]
+  veto: true
+  old_names: [ares, ares_executor, executor]
 
 DEMETER:
-  role: optimizer
-  layer: framing
-  class: DemeterOptimizer
+  role: collector
+  layer: analysis
+  class: DemeterCollector
   triggers: [C3, C4, C5]
   veto: false
-  old_names: [demeter]
+  old_names: [demeter, demeter_optimizer, optimizer]
 
 # ── Continuité ────────────────────────────────────────────────────────────────
 
@@ -217,12 +217,12 @@ METIS:
   old_names: [metis]
 
 APHRODITE:
-  role: marketer
-  layer: communication
-  class: AphroditeMarketer
+  role: stylist
+  layer: production
+  class: AphroditeStylist
   triggers: []
   veto: false
-  old_names: [aphrodite]
+  old_names: [aphrodite, aphrodite_marketer, marketer]
 
 # ── Production ────────────────────────────────────────────────────────────────
 
