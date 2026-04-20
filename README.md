@@ -1,167 +1,297 @@
-# Pantheon OS
+Here’s a clean, aligned README.md based on the actual runtime architecture (not the legacy one). It removes ambiguities, matches what is implemented, and positions the system correctly for OpenWebUI + Hermes runtime.
 
-> Multi-agent operational intelligence for high-expertise organizations.
-> Document management, semantic RAG, multi-agent orchestration, project tracking, planning and finance — across the full lifecycle of cases.
+⸻
 
-**Stack:** FastAPI · PostgreSQL + pgvector · LangGraph · MinIO · Ollama / OpenAI · ARQ / Redis · Docker Compose
+Pantheon OS
 
-→ Develop: [CLAUDE.md](CLAUDE.md) | Changelog: [CHANGELOG.md](CHANGELOG.md)
+Multi-agent operational intelligence platform for high-expertise environments
+(architecture, project management, legal, consulting, audit, IT)
 
----
+Pantheon OS combines structured data, document intelligence (RAG), and multi-agent orchestration into a single execution layer.
 
-## Quick Start
+⸻
 
-```bash
+Core Idea
+
+This is not a chatbot.
+
+Pantheon OS is a runtime system where:
+
+* agents are modular execution units
+* workflows define reasoning pipelines
+* tools and skills extend capabilities
+* OpenWebUI is only the interface layer
+
+The system executes controlled reasoning, not free-form prompting.
+
+⸻
+
+Stack
+
+* FastAPI (API + runtime host)
+* PostgreSQL + pgvector (data + semantic memory)
+* OpenWebUI (chat interface)
+* Ollama or OpenAI (LLM provider)
+* Docker Compose (deployment)
+
+Optional (V2):
+
+* Redis / ARQ (async jobs)
+* MinIO (object storage)
+* LangGraph (complex orchestration)
+
+⸻
+
+Quick Start
+
 cp .env.example .env
-# Fill in: DATABASE_URL, JWT_SECRET_KEY, ADMIN_EMAIL, ADMIN_PASSWORD
-# Choose the active domain: DOMAIN=btp|droit|audit|conseil|medecine|it
-
+# Configure:
+# - DB_PASSWORD
+# - JWT_SECRET_KEY
+# - LLM_PROVIDER (ollama or openai)
 docker compose up -d
 docker compose exec api alembic upgrade head
-# API  → http://localhost:8000
-# Docs → http://localhost:8000/docs  (DEBUG=true)
-```
 
----
+Access:
 
-## The Pantheon — 22 Agents
+* API → http://localhost:8000
+* Docs → http://localhost:8000/docs
+* UI (OpenWebUI) → http://localhost:3000
 
-Convention: `{"agent": "ZEUS", "role": "orchestrator"}` — identity (myth) ≠ responsibility (role).
+⸻
 
-| Layer | Agent | Class | Role | Veto |
-|---|---|---|---|---|
-| **Meta** | Zeus | `ZeusOrchestrator` | orchestrator | |
-| | Hera | `HeraSupervisor` | supervisor | |
-| | Artemis | `ArtemisFilter` | filter | |
-| | Kairos | `KairosSynthesizer` | synthesizer | |
-| | Apollo | `ApollonValidator` | validator | |
-| **Perception** | Hermes | `HermesRouter` | router | |
-| **Analysis** | Athena | `AthenaPlanner` | planner | |
-| | Argos | `ArgosExtractor` | extractor | |
-| | Prometheus | `PrometheeChallenger` | challenger | |
-| | Dionysus | `DionysosCreative` | creative | |
-| | Demeter | `DemeterCollector` | collector | |
-| | Hecate | `HecateResolver` | uncertainty_resolver | |
-| **Framing** | Themis | `ThemisValidator` | legal_validator | ✅ |
-| | Chronos | `ChronosPlanner` | time_planner | |
-| **System** | Ares | `AresSecurity` | security_guard | ✅ |
-| | Poseidon | `PoseidonDistributor` | distributor | |
-| **Continuity** | Hestia | `HestiaMemory` | memory_project | |
-| | Mnemosyne | `MnemosyneMemory` | memory_agency | |
-| | Hades | `HadesMemory` | memory_longterm | |
-| **Communication** | Iris | `IrisCommunicator` | communicator | |
-| | Iris (clarifier) | `IrisClarifier` | clarifier | |
-| | Metis | `MetisEditor` | editor | |
-| **Production** | Daedalus | `DedaleBuilder` | builder | |
-| | Hephaestus | `HephaistosBuilder` | diagram_builder | |
-| | Aphrodite | `AphroditeStylist` | stylist | |
+Architecture
 
-Source of truth: [`config/agent_registry.yaml`](config/agent_registry.yaml)
+The system is split into three layers:
 
----
+core/        → runtime engine (no business logic)
+modules/     → agents, skills, tools, workflows (plug-and-play)
+platform/    → API, UI, infrastructure
 
-## Criticality C1-C5
+1. Core (Hermes Runtime)
 
-| Level | Nature | Mode | Max agents |
-|---|---|---|---|
-| **C1** | Information | Single agent, no Zeus | 1 |
-| **C2** | Question | 1-2 specialized agents | 2 |
-| **C3** | Reversible local decision | Zeus optional, Ares can act | 4 |
-| **C4** | Binding decision | Zeus + human validation (HITL) | 6 |
-| **C5** | Major risk | Zeus + HITL + mandatory veto | 8 |
+Pure execution engine:
 
----
+* AgentBase, SkillBase, ToolBase, WorkflowBase
+* WorkflowEngine (async execution)
+* HermesRouter (intent → workflow)
+* SessionState (context per run)
+* ManifestLoader (auto-discovery)
+* VetoEngine (risk control)
+* Observability (logs, traces)
 
-## The 3 Memories
+No domain logic lives here.
 
-| Memory | Agent | Scope | Duration |
-|---|---|---|---|
-| **Agency** | Mnemosyne | `scope='agence'` — patterns, lessons, precedents | Permanent |
-| **Project** | Hestia | `scope='projet'` — decisions, constraints, debts D0-D3 | Case lifetime |
-| **Functional** | Hermes + Chronos | Redis TTL `memory:fn:{thread_id}:*` | Session (1 h) |
+⸻
 
----
+2. Modules (Execution Units)
 
-## Domains
+All intelligence is defined as self-contained modules.
 
-The active domain is selected via `.env`:
+modules/
+├── agents/
+├── skills/
+├── tools/
+└── workflows/
 
-```bash
-DOMAIN=btp        # btp | droit | audit | conseil | medecine | it
-DOMAIN_LABEL="Architecture & Project Management"
-```
+Each module is:
 
-Each domain automatically injects into all SOUL.md files: business context, priority web sources, criticality keywords, and domain-specific veto patterns (`agents/domains/{domain}.yaml`).
+* isolated
+* discoverable
+* configurable
+* optionally enabled/disabled
 
----
+Agent structure
 
-## Architecture
+modules/agents/meta/zeus_orchestrator/
+├── agent.py
+├── manifest.yaml
+├── config.yaml
+├── SOUL.md
 
-```
-ARCEUS/
-├── core/                   # Meta-agents (Zeus, Hera, Artemis, Kairos, Hermes, Athena)
-│   ├── _base.py            # AgentBase — common contract (agent ≠ role)
-│   └── {myth}/SOUL.md      # Personality of each meta-agent
-├── agents/                 # 16 specialized agents
-│   ├── domains/            # Domain overlays (btp|droit|audit|conseil|medecine|it)
-│   └── {myth}/SOUL.md
-├── config/
-│   └── agent_registry.yaml # Single registry: role, layer, class, triggers, veto
-├── api/
-│   ├── main.py
-│   └── modules/
-│       ├── auth/           # JWT, RBAC (admin/moe/collaborateur/lecteur)
-│       ├── affaires/       # Cases + enriched context + domain
-│       ├── documents/      # Upload, RAG ingest
-│       ├── agent/          # ReAct loop, memory, RAG+web tools
-│       ├── orchestra/      # LangGraph Zeus, C1-C5, HITL, SSE streaming
-│       ├── meeting/        # Meeting analysis, action extraction, agenda
-│       ├── guards/         # Criticality / reversibility / loop / veto
-│       ├── memory/         # Functional memory Redis TTL
-│       ├── monitoring/     # KPIs (duration, cost, vetos, scoring)
-│       └── control/        # WebSocket dashboard — runs, trace, errors
-├── alembic/versions/       # Migrations 0001→0027
-└── ui/                     # Next.js dashboard (RunList, TraceViewer)
-```
+Example manifest
 
----
+id: zeus
+name: "@ZEUS"
+layer: meta
+role: orchestrator
+enabled: true
+veto: false
+class: modules.agents.meta.zeus_orchestrator.agent.Zeus
 
-## Modules
+Agents are loaded automatically at startup.
 
-| Module | Status | Description |
-|---|---|---|
-| `auth` | ✅ | JWT, RBAC 4 roles |
-| `admin` | ✅ | YAML config, setup wizard, healthcheck |
-| `affaires` | ✅ | CRUD + enriched context + multi-sector domain |
-| `documents` | ✅ | Upload + RAG + Themis trigger |
-| `agent` | ✅ | ReAct, dynamic memory, tools |
-| `orchestra` | ✅ | LangGraph Zeus, C1-C5, HITL, veto, SSE |
-| `meeting` | ✅ | Meeting analysis, actions, agenda |
-| `guards` | ✅ | Criticality, reversibility, structured veto |
-| `memory` | ✅ | Functional memory Redis TTL |
-| `monitoring` | ✅ | Observability KPIs, decision scoring |
-| `control` | ✅ | Real-time WebSocket dashboard |
-| `evaluation` | ✅ | OpenClaw — reproducible evaluation harness |
-| `decisions` | ⬜ | CRUD project_decisions, debt D0-D3 |
-| `planning` | ⬜ | Gantt, work packages, cascade impacts |
-| `finance` | ⬜ | Progress billing, amendments, budget |
-| `communications` | ⬜ | Mail registry |
+⸻
 
----
+3. Platform
 
-## Key Environment Variables
+platform/
+├── api/        → FastAPI (modular apps)
+├── ui/         → OpenWebUI + admin console
+├── data/       → database + runtime state
+├── infra/      → docker, deployment
 
-```bash
-DATABASE_URL=postgresql+asyncpg://arceus:password@db:5432/arceus
-LLM_PROVIDER=ollama           # or "openai"
-OLLAMA_BASE_URL=http://ollama:11434
-OLLAMA_MODEL=mistral:7b
-EMBEDDING_PROVIDER=ollama
-OLLAMA_EMBEDDING_MODEL=nomic-embed-text
-EMBEDDING_DIM=768
-REDIS_URL=redis://redis:6379/0
-DOMAIN=btp                    # active domain
-DOMAIN_LABEL="Architecture & Project Management"
-ADMIN_EMAIL=admin@agency.com
-ADMIN_PASSWORD=changeme
-```
+⸻
+
+Runtime Model
+
+Agent
+
+An agent is defined by:
+
+* identity (@ZEUS)
+* role (orchestrator)
+* layer (meta, analysis, memory, output, system)
+* behavior (SOUL.md)
+
+Base contract:
+
+class AgentBase:
+    agent: str
+    role: str
+    layer: str
+
+⸻
+
+Workflow
+
+A workflow is a deterministic pipeline of agents.
+
+Example:
+
+id: research
+steps:
+  - hecate
+  - hermes
+  - argos
+  - prometheus
+  - kairos
+  - iris
+fallback: simple_answer
+
+Workflows define execution logic, not agents.
+
+⸻
+
+Skills and Tools
+
+* Skills = reusable reasoning capabilities (extraction, validation, synthesis)
+* Tools = external actions (PDF, web, DB, storage)
+
+They are injected dynamically during execution.
+
+⸻
+
+API Modules
+
+FastAPI is modular via modules.yaml.
+
+Example:
+
+modules:
+  - name: auth
+    enabled: true
+  - name: agent
+    enabled: true
+  - name: hermes_console
+    enabled: true
+
+Each module is a self-contained app:
+
+platform/api/apps/{module}/
+├── manifest.yaml
+├── models.py
+├── schemas.py
+├── service.py
+└── router.py
+
+⸻
+
+OpenWebUI Integration
+
+OpenWebUI connects via OpenAI-compatible API:
+
+OPENAI_API_BASE_URL=http://api:8000/v1
+OPENAI_API_KEY=<JWT_SECRET_KEY>
+
+This allows:
+
+* chat interface
+* tool usage
+* multi-agent execution
+
+Without exposing internal complexity.
+
+⸻
+
+Data Model (MVP)
+
+Core tables:
+
+* users → authentication
+* affaires → projects / cases
+* documents → uploaded files
+* chunks → vectorized content
+* agent_runs → execution traces
+* agent_memory → learned knowledge
+
+⸻
+
+Configuration
+
+Single source of truth:
+
+config/
+├── runtime.yaml
+├── settings.yaml
+├── sources.yaml
+├── ui.yaml
+├── domains.yaml
+
+Modules contain their own local config.
+
+⸻
+
+Design Principles
+
+1. Modularity first
+    Everything is a module (agent, skill, tool, workflow)
+2. Runtime > prompts
+    Execution logic replaces prompt engineering
+3. Separation of concerns
+    * core = engine
+    * modules = intelligence
+    * platform = delivery
+4. Deterministic orchestration
+    Workflows control reasoning, not LLM improvisation
+5. Scalable architecture
+    MVP runs without Redis or LangGraph
+    V2 enables distributed execution
+
+⸻
+
+Roadmap
+
+MVP (current)
+
+* Core runtime
+* Modular agents
+* Basic workflows
+* RAG
+* OpenWebUI integration
+
+V2
+
+* Dynamic workflow generation
+* Strategy engine
+* Observability + scoring
+* Async execution (Redis / ARQ)
+* Multi-tenant + domain overlays
+
+⸻
+
+License
+
+Private / internal use (adapt as needed)
+
+⸻
