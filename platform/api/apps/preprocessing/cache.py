@@ -40,7 +40,7 @@ def _cosine(a: list[float], b: list[float]) -> float:
 
 async def _get_redis():
     """Retourne le client Redis de FunctionalMemoryService (singleton partagé)."""
-    from modules.memory.service import FunctionalMemoryService
+    from apps.memory.service import FunctionalMemoryService
 
     return await FunctionalMemoryService._get_client()
 

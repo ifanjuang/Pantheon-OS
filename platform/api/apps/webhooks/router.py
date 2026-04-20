@@ -34,10 +34,10 @@ from core.logging import get_logger
 from core.queue import get_queue
 from core.settings import settings
 from database import get_db
-from modules.affaires.models import Affaire
-from modules.agent.service import run_agent
-from modules.orchestra.service import run_orchestra
-from modules.webhooks.telegram import is_chat_allowed, tg_send
+from apps.affaires.models import Affaire
+from apps.agent.service import run_agent
+from apps.orchestra.service import run_orchestra
+from apps.webhooks.telegram import is_chat_allowed, tg_send
 
 log = get_logger("webhooks.router")
 
@@ -99,7 +99,7 @@ def get_router(config: dict) -> APIRouter:
     @router.get("/health")
     async def health(_auth=Depends(_check_webhook_secret)):
         """Healthcheck pour Paperclip."""
-        return {"status": "ok", "service": "arceus"}
+        return {"status": "ok", "service": "pantheon"}
 
     @router.post("/heartbeat", response_model=HeartbeatResponse)
     async def heartbeat(

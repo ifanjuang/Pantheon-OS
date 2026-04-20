@@ -17,9 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.auth import get_current_user, require_role
 from core.logging import get_logger
 from database import get_db
-from modules.affaires.cockpit import get_cockpit
-from modules.affaires.schemas import AffaireCreate, AffaireResponse, AffaireUpdate
-from modules.affaires.service import (
+from apps.affaires.cockpit import get_cockpit
+from apps.affaires.schemas import AffaireCreate, AffaireResponse, AffaireUpdate
+from apps.affaires.service import (
     create_affaire,
     delete_affaire,
     get_affaire,

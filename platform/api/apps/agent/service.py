@@ -24,9 +24,9 @@ from core.logging import get_logger
 from core.services.llm_service import LlmService
 from core.settings import settings
 from database import AsyncSessionLocal
-from modules.agent.models import AgentRun
-from modules.agent.memory import extract_and_store_memories, get_agent_memories, get_unified_memory
-from modules.agent.tools import DEFINITIONS, execute_tool, _DB_TOOLS
+from apps.agent.models import AgentRun
+from apps.agent.memory import extract_and_store_memories, get_agent_memories, get_unified_memory
+from apps.agent.tools import DEFINITIONS, execute_tool, _DB_TOOLS
 
 log = get_logger("agent.service")
 
@@ -141,7 +141,7 @@ def _build_system_prompt(agent_name: str) -> str:
 async def _build_affaire_context(db: AsyncSession, affaire_id: UUID) -> str:
     """Charge les métadonnées de l'affaire et les formate pour injection dans le prompt."""
     try:
-        from modules.affaires.models import Affaire
+        from apps.affaires.models import Affaire
         from sqlalchemy import select
 
         result = await db.execute(select(Affaire).where(Affaire.id == affaire_id))

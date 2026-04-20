@@ -13,13 +13,13 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from core.auth import get_current_user
 from core.logging import get_logger
-from modules.preprocessing.schemas import (
+from apps.preprocessing.schemas import (
     PrecheckDecision,
     PrecheckRequest,
     PreprocessRequest,
     PreprocessedInput,
 )
-from modules.preprocessing.service import PreprocessingService
+from apps.preprocessing.service import PreprocessingService
 
 log = get_logger("preprocessing.router")
 

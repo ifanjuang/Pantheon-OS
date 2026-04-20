@@ -36,7 +36,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.logging import get_logger
 from database import AsyncSessionLocal
-from modules.orchestra.models import OrchestraRun
+from apps.orchestra.models import OrchestraRun
 
 # ── Imports partagés (re-exportés pour router.py / worker.py) ────────
 from ._shared import (

@@ -14,9 +14,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.auth import create_access_token, get_current_user, require_role
 from core.logging import get_logger
 from database import get_db
-from modules.auth.models import User
-from modules.auth.schemas import LoginRequest, RegisterRequest, TokenResponse, UserResponse
-from modules.auth.service import authenticate_user, create_user, get_user_by_email
+from apps.auth.models import User
+from apps.auth.schemas import LoginRequest, RegisterRequest, TokenResponse, UserResponse
+from apps.auth.service import authenticate_user, create_user, get_user_by_email
 
 log = get_logger("auth.router")
 

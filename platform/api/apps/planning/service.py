@@ -18,7 +18,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from modules.planning.models import Jalon, LienDependance, Lot, Tache
+from apps.planning.models import Jalon, LienDependance, Lot, Tache
 
 
 # ══════════════════════════════════════════════════════════════════════

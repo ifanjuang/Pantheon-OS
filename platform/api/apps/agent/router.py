@@ -15,9 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.auth import get_current_user, require_role
 from core.logging import get_logger
 from database import get_db
-from modules.agent.models import AgentRun
-from modules.agent.schemas import AgentRunRequest, AgentRunResponse
-from modules.agent.service import run_agent
+from apps.agent.models import AgentRun
+from apps.agent.schemas import AgentRunRequest, AgentRunResponse
+from apps.agent.service import run_agent
 
 log = get_logger("agent.router")
 

@@ -23,10 +23,10 @@ jobs:
         run: pip install ruff==0.8.0
 
       - name: ruff check
-        run: ruff check api/ tests/
+        run: ruff check platform/api/ tests/
 
       - name: ruff format --check
-        run: ruff format --check api/ tests/
+        run: ruff format --check platform/api/ tests/
 
   # ── Tests ──────────────────────────────────────────────────────────
   test:
@@ -37,13 +37,13 @@ jobs:
       postgres:
         image: pgvector/pgvector:pg16
         env:
-          POSTGRES_DB: arceus_test
-          POSTGRES_USER: arceus
+          POSTGRES_DB: pantheon_test
+          POSTGRES_USER: pantheon
           POSTGRES_PASSWORD: testpassword
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U arceus"
+          --health-cmd "pg_isready -U pantheon"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -59,9 +59,9 @@ jobs:
           --health-retries 5
 
     env:
-      DATABASE_URL: postgresql+asyncpg://arceus:testpassword@localhost:5432/arceus_test
-      DATABASE_URL_SYNC: postgresql://arceus:testpassword@localhost:5432/arceus_test
-      ASYNCPG_URL: postgresql://arceus:testpassword@localhost:5432/arceus_test
+      DATABASE_URL: postgresql+asyncpg://pantheon:testpassword@localhost:5432/pantheon_test
+      DATABASE_URL_SYNC: postgresql://pantheon:testpassword@localhost:5432/pantheon_test
+      ASYNCPG_URL: postgresql://pantheon:testpassword@localhost:5432/pantheon_test
       REDIS_URL: redis://localhost:6379/0
       JWT_SECRET_KEY: test-secret-key-minimum-32-characters-long
       ADMIN_EMAIL: admin@test.fr
@@ -73,11 +73,11 @@ jobs:
       OLLAMA_EMBEDDING_MODEL: nomic-embed-text
       EMBEDDING_DIM: 768
       MINIO_ENDPOINT: localhost:9000
-      MINIO_ROOT_USER: arceus
+      MINIO_ROOT_USER: pantheon
       MINIO_ROOT_PASSWORD: testpassword123
-      MINIO_BUCKET: arceus-test
+      MINIO_BUCKET: pantheon-test
       DEBUG: "true"
-      AGENTS_DIR: /home/runner/work/ARCEUS/ARCEUS/agents
+      MODULES_DIR: /home/runner/work/Pantheon-OS/Pantheon-OS/modules
 
     steps:
       - uses: actions/checkout@v4
@@ -88,11 +88,11 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        working-directory: api
+        working-directory: platform/api
         run: pip install -r requirements.txt pytest-cov==6.0.0
 
       - name: Run tests
-        working-directory: api
+        working-directory: platform/api
         env:
           PYTHONPATH: .
         run: |
@@ -108,7 +108,7 @@ jobs:
         if: always()
         with:
           name: coverage-report
-          path: api/coverage.xml
+          path: platform/api/coverage.xml
 
   # ── Sécurité dépendances ───────────────────────────────────────────
   security:
@@ -126,7 +126,7 @@ jobs:
         run: pip install pip-audit==2.7.3
 
       - name: Audit dependencies
-        working-directory: api
+        working-directory: platform/api
         # GHSA-jr27-m4p2-rc6r: pyasn1<0.5.0 pulled by python-jose 3.4.0 (latest);
         # cannot upgrade pyasn1 without replacing the JWT library.
         run: pip-audit -r requirements.txt --ignore-vuln GHSA-jr27-m4p2-rc6r
@@ -143,13 +143,13 @@ jobs:
       postgres:
         image: pgvector/pgvector:pg16
         env:
-          POSTGRES_DB: arceus_test
-          POSTGRES_USER: arceus
+          POSTGRES_DB: pantheon_test
+          POSTGRES_USER: pantheon
           POSTGRES_PASSWORD: testpassword
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U arceus"
+          --health-cmd "pg_isready -U pantheon"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -160,9 +160,9 @@ jobs:
           - 6379:6379
 
     env:
-      DATABASE_URL: postgresql+asyncpg://arceus:testpassword@localhost:5432/arceus_test
-      DATABASE_URL_SYNC: postgresql://arceus:testpassword@localhost:5432/arceus_test
-      ASYNCPG_URL: postgresql://arceus:testpassword@localhost:5432/arceus_test
+      DATABASE_URL: postgresql+asyncpg://pantheon:testpassword@localhost:5432/pantheon_test
+      DATABASE_URL_SYNC: postgresql://pantheon:testpassword@localhost:5432/pantheon_test
+      ASYNCPG_URL: postgresql://pantheon:testpassword@localhost:5432/pantheon_test
       REDIS_URL: redis://localhost:6379/0
       JWT_SECRET_KEY: test-secret-key-minimum-32-characters-long
       ADMIN_EMAIL: admin@test.fr
@@ -173,11 +173,11 @@ jobs:
       EMBEDDING_PROVIDER: ollama
       EMBEDDING_DIM: 768
       MINIO_ENDPOINT: localhost:9000
-      MINIO_ROOT_USER: arceus
+      MINIO_ROOT_USER: pantheon
       MINIO_ROOT_PASSWORD: testpassword123
-      MINIO_BUCKET: arceus-test
+      MINIO_BUCKET: pantheon-test
       DEBUG: "true"
-      AGENTS_DIR: /home/runner/work/ARCEUS/ARCEUS/agents
+      MODULES_DIR: /home/runner/work/Pantheon-OS/Pantheon-OS/modules
 
     steps:
       - uses: actions/checkout@v4
@@ -188,23 +188,23 @@ jobs:
           cache: pip
 
       - name: Install dependencies
-        working-directory: api
+        working-directory: platform/api
         run: pip install -r requirements.txt
 
       - name: OpenClaw — dry-run (validation datasets)
-        working-directory: api
+        working-directory: platform/api
         run: |
-          python -m modules.evaluation.cli run openclaw-chantier --dry-run
-          python -m modules.evaluation.cli run openclaw-litige --dry-run
-          python -m modules.evaluation.cli run openclaw-devis --dry-run
-          python -m modules.evaluation.cli run openclaw-courrier --dry-run
-          python -m modules.evaluation.cli run openclaw-photo --dry-run
+          python -m apps.evaluation.cli run openclaw-chantier --dry-run
+          python -m apps.evaluation.cli run openclaw-litige --dry-run
+          python -m apps.evaluation.cli run openclaw-devis --dry-run
+          python -m apps.evaluation.cli run openclaw-courrier --dry-run
+          python -m apps.evaluation.cli run openclaw-photo --dry-run
 
       - name: OpenClaw — rapport JSON
-        working-directory: api
+        working-directory: platform/api
         run: |
-          python -m modules.evaluation.cli run openclaw-chantier --json > /tmp/eval-chantier.json
-          python -m modules.evaluation.cli run openclaw-litige --json > /tmp/eval-litige.json
+          python -m apps.evaluation.cli run openclaw-chantier --json > /tmp/eval-chantier.json
+          python -m apps.evaluation.cli run openclaw-litige --json > /tmp/eval-litige.json
         continue-on-error: true  # Ne bloque pas tant que le LLM est mocké en CI
 
       - name: Upload eval reports

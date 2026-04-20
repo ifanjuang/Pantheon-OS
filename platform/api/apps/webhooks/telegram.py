@@ -24,8 +24,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.logging import get_logger
 from core.settings import settings
-from modules.affaires.models import Affaire
-from modules.webhooks.models import WebhookSession
+from apps.affaires.models import Affaire
+from apps.webhooks.models import WebhookSession
 
 log = get_logger("webhooks.telegram")
 

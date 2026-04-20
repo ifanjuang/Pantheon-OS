@@ -2,7 +2,7 @@
 Fixtures partagées pour tous les tests ARCEUS.
 
 Stratégie :
-- DB réelle PostgreSQL (arceus_test) — test des requêtes SQL/pgvector
+- DB réelle PostgreSQL (pantheon_test) — test des requêtes SQL/pgvector
 - Services externes mockés : MinIO, Ollama/LLM, events PostgreSQL LISTEN/NOTIFY
 - Chaque test reçoit une session DB annulée après exécution (rollback)
 - Tokens JWT créés directement (sans appel HTTP au login)
@@ -13,7 +13,7 @@ Stratégie :
 # at position 0, so we must always re-insert api to beat it.
 import sys as _sys
 from pathlib import Path as _Path
-_api = str(_Path(__file__).parents[1] / "api")
+_api = str(_Path(__file__).parents[1] / "platform" / "api")
 while _api in _sys.path:
     _sys.path.remove(_api)
 _sys.path.insert(0, _api)
@@ -29,27 +29,27 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from unittest.mock import AsyncMock, MagicMock
 
 # ── Import de tous les modèles AVANT create_all ──────────────────────────────
-from modules.auth.models import AffairePermission, User  # noqa: F401
-from modules.affaires.models import Affaire  # noqa: F401
-from modules.documents.models import Chunk, Document  # noqa: F401
-from modules.agent.models import AgentRun, AgentMemory  # noqa: F401
-from modules.orchestra.models import OrchestraRun  # noqa: F401
-from modules.capture.models import CaptureSession  # noqa: F401
-from modules.decisions.models import ProjectDecision, ProjectTask, ProjectObservation  # noqa: F401
-from modules.planning.models import Lot, Tache, Jalon, LienDependance  # noqa: F401
-from modules.chantier.models import ObservationChantier, NonConformite  # noqa: F401
-from modules.communications.models import Courrier  # noqa: F401
-from modules.finance.models import Avenant, SituationTravaux  # noqa: F401
-from modules.flowmanager.models import WorkflowDefinition  # noqa: F401
+from apps.auth.models import AffairePermission, User  # noqa: F401
+from apps.affaires.models import Affaire  # noqa: F401
+from apps.documents.models import Chunk, Document  # noqa: F401
+from apps.agent.models import AgentRun, AgentMemory  # noqa: F401
+from apps.orchestra.models import OrchestraRun  # noqa: F401
+from apps.capture.models import CaptureSession  # noqa: F401
+from apps.decisions.models import ProjectDecision, ProjectTask, ProjectObservation  # noqa: F401
+from apps.planning.models import Lot, Tache, Jalon, LienDependance  # noqa: F401
+from apps.chantier.models import ObservationChantier, NonConformite  # noqa: F401
+from apps.communications.models import Courrier  # noqa: F401
+from apps.finance.models import Avenant, SituationTravaux  # noqa: F401
+from apps.flowmanager.models import WorkflowDefinition  # noqa: F401
 
 from core.auth import create_access_token
 from core.settings import settings
 from database import Base, get_db
 
 # ── URL base de données de test ──────────────────────────────────────────────
-# Remplace le nom de la base par arceus_test quelle que soit la base source.
+# Remplace le nom de la base par pantheon_test quelle que soit la base source.
 # rsplit sur le dernier "/" évite de corrompre l'utilisateur ou le mot de passe.
-TEST_DB_URL = settings.DATABASE_URL.rsplit("/", 1)[0] + "/arceus_test"
+TEST_DB_URL = settings.DATABASE_URL.rsplit("/", 1)[0] + "/pantheon_test"
 
 
 # ── Engine de test (session scope — créé une seule fois) ─────────────────────
@@ -144,7 +144,7 @@ async def client(db, mocker):
 
 @pytest.fixture
 async def admin_user(db) -> User:
-    from modules.auth.service import create_user
+    from apps.auth.service import create_user
 
     user = await create_user(db, "admin@test.fr", "password123", "Admin Test", "admin")
     await db.commit()
@@ -153,7 +153,7 @@ async def admin_user(db) -> User:
 
 @pytest.fixture
 async def moe_user(db) -> User:
-    from modules.auth.service import create_user
+    from apps.auth.service import create_user
 
     user = await create_user(db, "moe@test.fr", "password123", "MOE Test", "moe")
     await db.commit()
@@ -162,7 +162,7 @@ async def moe_user(db) -> User:
 
 @pytest.fixture
 async def lecteur_user(db) -> User:
-    from modules.auth.service import create_user
+    from apps.auth.service import create_user
 
     user = await create_user(db, "lecteur@test.fr", "password123", "Lecteur Test", "lecteur")
     await db.commit()
@@ -196,7 +196,7 @@ def auth_headers(token: str) -> dict:
 
 @pytest.fixture
 async def affaire(db, admin_user) -> Affaire:
-    from modules.affaires.service import create_affaire
+    from apps.affaires.service import create_affaire
 
     a = await create_affaire(
         db,

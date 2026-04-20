@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from core.auth import get_current_user
 from core.logging import get_logger
-from modules.guards.schemas import (
+from apps.guards.schemas import (
     CriticalityImpacts,
     CriticalityVerdict,
     ReversibilityDecision,
@@ -21,7 +21,7 @@ from modules.guards.schemas import (
     VetoDecision,
     VetoPreviewRequest,
 )
-from modules.guards.service import GuardsService
+from apps.guards.service import GuardsService
 
 log = get_logger("guards.router")
 

@@ -36,14 +36,14 @@ from pydantic import BaseModel, Field
 
 from core.logging import get_logger
 from core.services.llm_service import LlmService
-from modules.guards.schemas import (
+from apps.guards.schemas import (
     CriticalityImpacts,
     CriticalityVerdict,
     LoopGuardVerdict,
     ReversibilityDecision,
     VetoDecision,
 )
-from modules.guards.veto_patterns import fast_veto_check
+from apps.guards.veto_patterns import fast_veto_check
 
 log = get_logger("guards.service")
 

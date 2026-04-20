@@ -17,9 +17,9 @@ from core.auth import get_current_user, require_role
 from core.logging import get_logger
 from core.queue import get_queue
 from database import get_db
-from modules.orchestra.models import OrchestraRun
-from modules.orchestra.schemas import ApprovalRequest, OrchestraRequest, OrchestraResponse
-from modules.orchestra.service import (
+from apps.orchestra.models import OrchestraRun
+from apps.orchestra.schemas import ApprovalRequest, OrchestraRequest, OrchestraResponse
+from apps.orchestra.service import (
     resume_orchestra,
     run_orchestra,
     run_orchestra_hitl,
@@ -44,7 +44,7 @@ def get_router(config: dict) -> APIRouter:
         Pour un résultat en temps réel, utiliser POST /orchestra/stream.
         """
         # Créer le run en DB (status=queued) avant d'enqueuer
-        from modules.orchestra.service import VALID_AGENTS, DEFAULT_AGENTS, CRITICITE_ROUTING
+        from apps.orchestra.service import VALID_AGENTS, DEFAULT_AGENTS, CRITICITE_ROUTING
 
         initial_agents = [a for a in (payload.agents or DEFAULT_AGENTS) if a in VALID_AGENTS] or DEFAULT_AGENTS
         effective_criticite = payload.criticite if payload.criticite in CRITICITE_ROUTING else "C2"

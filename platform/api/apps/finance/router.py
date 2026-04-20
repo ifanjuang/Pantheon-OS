@@ -25,7 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.auth import get_current_user, require_role
 from core.logging import get_logger
 from database import get_db
-from modules.finance.schemas import (
+from apps.finance.schemas import (
     AvenantCreate,
     AvenantResponse,
     AvenantUpdate,
@@ -34,7 +34,7 @@ from modules.finance.schemas import (
     SituationResponse,
     SituationUpdate,
 )
-from modules.finance.service import (
+from apps.finance.service import (
     create_avenant,
     create_situation,
     delete_avenant,

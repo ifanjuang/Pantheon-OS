@@ -26,8 +26,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.auth import get_current_user, require_role
 from core.logging import get_logger
 from database import get_db
-from modules.wiki.models import WikiPage
-from modules.wiki.schemas import (
+from apps.wiki.models import WikiPage
+from apps.wiki.schemas import (
     PrecedentCheckRequest,
     PrecedentResult,
     PromoteDecisionRequest,
@@ -38,7 +38,7 @@ from modules.wiki.schemas import (
     WikiSearchHit,
     WikiSearchRequest,
 )
-from modules.wiki.service import WikiService
+from apps.wiki.service import WikiService
 
 log = get_logger("wiki.router")
 

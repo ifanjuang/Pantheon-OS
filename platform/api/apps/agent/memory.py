@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.logging import get_logger
 from core.services.llm_service import LlmService
 from core.settings import settings
-from modules.agent.models import AgentMemory
+from apps.agent.models import AgentMemory
 
 log = get_logger("agent.memory")
 
@@ -397,7 +397,7 @@ async def _get_session_context(thread_id: str) -> dict:
     if not thread_id:
         return {}
     try:
-        from modules.memory.service import FunctionalMemoryService
+        from apps.memory.service import FunctionalMemoryService
 
         ctx = await FunctionalMemoryService.get_context(thread_id)
         relevant = {"last_verdict", "last_answer_excerpt", "phase_projet", "domaine"}

@@ -133,7 +133,7 @@ async def write_memories(state: OrchestraState) -> dict:
     Les mémoires par agent sont déjà extraites par run_agent() —
     ce nœud se concentre sur la mémoire de synthèse globale.
     """
-    from modules.agent.models import AgentMemory
+    from apps.agent.models import AgentMemory
     from database import AsyncSessionLocal
 
     affaire_id_val = UUID(state["affaire_id"]) if state.get("affaire_id") else None
@@ -190,7 +190,7 @@ async def write_memories(state: OrchestraState) -> dict:
     # ── 2. Promotion wiki pour C4/C5 ──────────────────────────────────
     if criticite in ("C4", "C5") and affaire_id_val:
         try:
-            from modules.wiki.service import WikiService
+            from apps.wiki.service import WikiService
 
             async with AsyncSessionLocal() as db:
                 page = await WikiService.create_page(
@@ -225,7 +225,7 @@ async def write_memories(state: OrchestraState) -> dict:
             parsed = _parse_json_response(raw)
             decisions_raw = parsed.get("decisions", [])
             if decisions_raw:
-                from modules.decisions.models import ProjectDecision
+                from apps.decisions.models import ProjectDecision
 
                 async with AsyncSessionLocal() as db:
                     for d in decisions_raw[:5]:
@@ -266,7 +266,7 @@ async def write_memories(state: OrchestraState) -> dict:
     thread_id = state.get("thread_id") or ""
     if thread_id:
         try:
-            from modules.memory.service import FunctionalMemoryService
+            from apps.memory.service import FunctionalMemoryService
 
             await FunctionalMemoryService.set_context(
                 thread_id,
@@ -353,7 +353,7 @@ async def write_error_memory(
     des orchestrations ayant échoué et puisse les éviter à l'avenir.
     Silencieux en cas d'échec d'écriture — ne bloque jamais l'appelant.
     """
-    from modules.agent.models import AgentMemory
+    from apps.agent.models import AgentMemory
     from database import AsyncSessionLocal
 
     error_type = type(error).__name__

@@ -116,8 +116,8 @@ async def preprocess(state: OrchestraState) -> dict:
     M3 — lit la mémoire fonctionnelle (Redis TTL) pour enrichir l'hint
     affaire si un thread de session précédent existe.
     """
-    from modules.preprocessing.service import PreprocessingService
-    from modules.memory.service import FunctionalMemoryService
+    from apps.preprocessing.service import PreprocessingService
+    from apps.memory.service import FunctionalMemoryService
 
     affaire_hint = state.get("affaire_id") or None
     phase_hint: str | None = None
@@ -181,8 +181,8 @@ async def workflow_precheck(state: OrchestraState) -> dict:
       approved | trim | upgrade  → dispatch_subtasks
       clarification | blocked    → END (final_answer = message)
     """
-    from modules.preprocessing.schemas import PreprocessedInput
-    from modules.preprocessing.service import PreprocessingService
+    from apps.preprocessing.schemas import PreprocessedInput
+    from apps.preprocessing.service import PreprocessingService
 
     preprocessed = None
     raw = state.get("preprocessed_input")

@@ -68,7 +68,7 @@ async def process_capture(
     2. Passe la transcription a l'agent Hermes (routage + structuration).
     3. Stocke le resultat structure et le lien vers l'AgentRun.
     """
-    from modules.capture.models import CaptureSession
+    from apps.capture.models import CaptureSession
 
     capture = await db.get(CaptureSession, capture_id)
     if not capture:
@@ -89,7 +89,7 @@ async def process_capture(
     await db.commit()
 
     try:
-        from modules.agent.service import run_agent
+        from apps.agent.service import run_agent
 
         instruction = (
             "Tu reçois la transcription d'une note vocale enregistrée sur chantier. "

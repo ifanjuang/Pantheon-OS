@@ -19,8 +19,8 @@ from core.logging import get_logger
 from core.services.rag_service import RagService
 from core.services.storage_service import StorageService
 from database import get_db
-from modules.documents.models import Document
-from modules.documents.schemas import DocumentResponse, IngestResponse, SearchRequest, SearchResult
+from apps.documents.models import Document
+from apps.documents.schemas import DocumentResponse, IngestResponse, SearchRequest, SearchResult
 
 log = get_logger("documents.router")
 
@@ -108,7 +108,7 @@ def get_router(config: dict) -> APIRouter:
         # 4. Déclencher Thémis en arrière-plan (analyse du nouveau document)
         async def _run_themis():
             from database import AsyncSessionLocal
-            from modules.agent.service import run_agent
+            from apps.agent.service import run_agent
 
             async with AsyncSessionLocal() as bg_db:
                 await run_agent(

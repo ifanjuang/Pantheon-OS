@@ -113,7 +113,7 @@ def get_router(config: dict) -> APIRouter:
                 detail=f"Workflow '{name}' introuvable ou inactif",
             )
         # Import tardif pour éviter les imports circulaires
-        from modules.orchestra.service import OrchestraService
+        from apps.orchestra.service import OrchestraService
         run_id = await OrchestraService.create_run(
             db=db,
             instruction=body.instruction,

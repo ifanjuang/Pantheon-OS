@@ -17,9 +17,9 @@ from core.auth import get_current_user, require_role
 from core.logging import get_logger
 from core.services.storage_service import StorageService
 from database import get_db
-from modules.capture.models import CaptureSession
-from modules.capture.schemas import CaptureListResponse, CaptureResponse
-from modules.capture.service import transcribe_audio
+from apps.capture.models import CaptureSession
+from apps.capture.schemas import CaptureListResponse, CaptureResponse
+from apps.capture.service import transcribe_audio
 
 log = get_logger("capture.router")
 
@@ -109,7 +109,7 @@ def get_router(config: dict) -> APIRouter:
 
             async def _process():
                 from database import AsyncSessionLocal
-                from modules.capture.service import process_capture
+                from apps.capture.service import process_capture
 
                 async with AsyncSessionLocal() as bg_db:
                     await process_capture(

@@ -22,14 +22,14 @@ from core.auth import get_current_user, require_role
 from core.logging import get_logger
 from core.queue import get_queue
 from database import get_db
-from modules.communications.schemas import (
+from apps.communications.schemas import (
     CommunicationsDashboard,
     CourrierCreate,
     CourrierResponse,
     CourrierUpdate,
     DraftJobResponse,
 )
-from modules.communications.service import (
+from apps.communications.service import (
     create_courrier,
     delete_courrier,
     get_courrier,

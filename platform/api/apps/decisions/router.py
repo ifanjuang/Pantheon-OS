@@ -41,8 +41,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.auth import get_current_user, require_role
 from core.logging import get_logger
 from database import get_db
-from modules.decisions.models import ProjectDecision, ProjectObservation, ProjectTask
-from modules.decisions.schemas import (
+from apps.decisions.models import ProjectDecision, ProjectObservation, ProjectTask
+from apps.decisions.schemas import (
     DecisionCreateRequest,
     DecisionKPIs,
     DecisionResponse,
@@ -57,7 +57,7 @@ from modules.decisions.schemas import (
     TaskUpdateRequest,
     TimelineBucket,
 )
-from modules.decisions.service import DecisionsService
+from apps.decisions.service import DecisionsService
 
 log = get_logger("decisions.router")
 

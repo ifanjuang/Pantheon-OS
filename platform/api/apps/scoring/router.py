@@ -20,15 +20,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.auth import get_current_user, require_role
 from core.logging import get_logger
 from database import get_db
-from modules.scoring.models import DecisionScore
-from modules.scoring.schemas import (
+from apps.scoring.models import DecisionScore
+from apps.scoring.schemas import (
     DecisionScoreResponse,
     ScoreAutoRequest,
     ScoreManualRequest,
     ScoreSummary,
     ScoringStats,
 )
-from modules.scoring.service import ScoringService
+from apps.scoring.service import ScoringService
 
 log = get_logger("scoring.router")
 

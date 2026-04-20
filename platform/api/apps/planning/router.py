@@ -39,7 +39,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.auth import get_current_user, require_role
 from core.logging import get_logger
 from database import get_db
-from modules.planning.schemas import (
+from apps.planning.schemas import (
     CriticalPathResult,
     GanttResponse,
     JalonCreate,
@@ -57,7 +57,7 @@ from modules.planning.schemas import (
     TacheResponse,
     TacheUpdate,
 )
-from modules.planning.service import (
+from apps.planning.service import (
     compute_critical_path,
     create_jalon,
     create_lien,

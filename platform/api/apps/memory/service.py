@@ -185,7 +185,7 @@ class FunctionalMemoryService:
         Retourne (promoted, memory_id). Ne consomme pas la mémoire
         fonctionnelle (laisse Redis expirer par TTL).
         """
-        from modules.agent.models import AgentMemory
+        from apps.agent.models import AgentMemory
 
         try:
             aid = affaire_id if isinstance(affaire_id, UUID) else UUID(str(affaire_id))

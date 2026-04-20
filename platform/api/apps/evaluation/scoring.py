@@ -20,7 +20,7 @@ d'exécution du graphe et ne font aucun I/O.
 
 from typing import Any
 
-from modules.evaluation.schemas import CaseCheck, CaseResult, EvalCase
+from apps.evaluation.schemas import CaseCheck, CaseResult, EvalCase
 
 
 _REL_AGENTS_WEIGHT = 0.5

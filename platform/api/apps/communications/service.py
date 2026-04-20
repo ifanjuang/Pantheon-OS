@@ -14,7 +14,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from modules.communications.models import Courrier
+from apps.communications.models import Courrier
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -85,7 +85,7 @@ async def process_draft_response(db: AsyncSession, courrier_id: UUID) -> None:
     Lance Iris pour rédiger un brouillon de réponse au courrier entrant.
     Stocke le résultat dans courrier.draft_iris.
     """
-    from modules.agent.service import run_agent  # late import
+    from apps.agent.service import run_agent  # late import
 
     courrier = await get_courrier(db, courrier_id)
     if not courrier or courrier.draft_iris:

@@ -45,5 +45,5 @@ def configure_logging() -> None:
     logging.basicConfig(format="%(message)s", stream=sys.stdout, level=logging.WARNING)
 
 
-def get_logger(name: str = "arceus"):
+def get_logger(name: str = "hermes"):
     return structlog.get_logger(name)

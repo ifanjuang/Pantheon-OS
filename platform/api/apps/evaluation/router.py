@@ -18,8 +18,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.auth import require_role
 from database import get_db
-from modules.evaluation.schemas import EvalDataset, EvalReport
-from modules.evaluation.service import list_datasets, load_dataset, run_eval
+from apps.evaluation.schemas import EvalDataset, EvalReport
+from apps.evaluation.service import list_datasets, load_dataset, run_eval
 
 
 def get_router(config: dict) -> APIRouter:

@@ -30,7 +30,7 @@ from typing import Optional
 
 from core.logging import get_logger
 from core.services.llm_service import LlmService
-from modules.preprocessing.schemas import PreprocessedInput, PrecheckDecision
+from apps.preprocessing.schemas import PreprocessedInput, PrecheckDecision
 
 log = get_logger("preprocessing.service")
 
@@ -128,7 +128,7 @@ class PreprocessingService:
         Fallback silencieux : en cas d'erreur LLM ou Redis, retourne la
         demande brute avec confidence=0.3 pour ne pas bloquer le graphe Zeus.
         """
-        from modules.preprocessing.cache import SemanticPreprocessCache
+        from apps.preprocessing.cache import SemanticPreprocessCache
         from core.services.rag_service import RagService
 
         # ── O4 : tentative cache sémantique ──────────────────────────────

@@ -24,7 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.logging import get_logger
 from core.services.llm_service import LlmService
 from core.settings import settings
-from modules.meeting.models import MeetingAction, MeetingAgenda, MeetingCR
+from apps.meeting.models import MeetingAction, MeetingAgenda, MeetingCR
 
 log = get_logger("meeting.service")
 
@@ -225,8 +225,8 @@ async def generate_agenda(
     - les derniers runs agents (contexte récent)
     - les informations du projet
     """
-    from modules.affaires.models import Affaire
-    from modules.agent.models import AgentRun
+    from apps.affaires.models import Affaire
+    from apps.agent.models import AgentRun
 
     # Contexte projet
     affaire = await db.get(Affaire, affaire_id)

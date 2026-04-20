@@ -262,7 +262,7 @@ async def _rag_search(db: AsyncSession, affaire_id: UUID, args: dict) -> tuple[s
 
 
 async def _list_documents(db: AsyncSession, affaire_id: UUID) -> str:
-    from modules.documents.models import Document
+    from apps.documents.models import Document
 
     result = await db.execute(
         select(Document.id, Document.nom, Document.couche, Document.type_doc, Document.created_at)
@@ -278,7 +278,7 @@ async def _list_documents(db: AsyncSession, affaire_id: UUID) -> str:
 
 
 async def _get_affaire_info(db: AsyncSession, affaire_id: UUID) -> str:
-    from modules.affaires.models import Affaire
+    from apps.affaires.models import Affaire
 
     affaire = await db.get(Affaire, affaire_id)
     if not affaire:

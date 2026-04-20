@@ -24,13 +24,13 @@ import structlog
 import yaml
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from modules.evaluation.schemas import (
+from apps.evaluation.schemas import (
     CaseResult,
     EvalCase,
     EvalDataset,
     EvalReport,
 )
-from modules.evaluation.scoring import score_case
+from apps.evaluation.scoring import score_case
 
 
 log = structlog.get_logger(__name__)
@@ -108,7 +108,7 @@ async def _run_case(
     """Exécute un cas via run_orchestra puis score le résultat."""
     # Import local pour éviter cycle (orchestra importe aussi des schémas eval
     # éventuellement à l'avenir).
-    from modules.orchestra.service import run_orchestra
+    from apps.orchestra.service import run_orchestra
 
     t_start = time.monotonic()
     try:

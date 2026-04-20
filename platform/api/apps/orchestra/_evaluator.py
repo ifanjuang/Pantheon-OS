@@ -88,8 +88,8 @@ async def _call_veto_explicit(
     Utilisé pour la chaîne séquencée C4/C5 : force Thémis et Héphaïstos à
     examiner la décision même s'ils n'étaient pas dans la liste initiale Zeus.
     """
-    from modules.guards.schemas import VetoDecision
-    from modules.guards.veto_patterns import fast_veto_check
+    from apps.guards.schemas import VetoDecision
+    from apps.guards.veto_patterns import fast_veto_check
 
     soul = _get_soul(agent_name)
     prompt = _SEQUENTIAL_VETO_PROMPT.format(
@@ -160,7 +160,7 @@ async def zeus_judge(state: OrchestraState) -> dict:
     # Loop guard (M2 — guards module) : empêche les boucles
     # d'enrichissement infinies. Le seuil max_complements dépend de la
     # criticité : C1/C2 = 0, C3 = 1, C4 = 2, C5 = 3.
-    from modules.guards.service import GuardsService, MAX_COMPLEMENTS_BY_CRITICITE
+    from apps.guards.service import GuardsService, MAX_COMPLEMENTS_BY_CRITICITE
 
     _criticite = state.get("criticite", "C3")
     _max = MAX_COMPLEMENTS_BY_CRITICITE.get(_criticite, 1)
@@ -195,7 +195,7 @@ async def veto_check(state: OrchestraState) -> dict:
     """
     import asyncio
     from langgraph.types import interrupt
-    from modules.guards.service import GuardsService
+    from apps.guards.service import GuardsService
 
     criticite = state.get("criticite", "C2")
     routing = CRITICITE_ROUTING.get(criticite, CRITICITE_ROUTING["C2"])
@@ -362,7 +362,7 @@ async def score_decision(state: OrchestraState) -> dict:
         return updates
 
     # ── Score décisionnel complet C4/C5 (ScoringService) ─────────────
-    from modules.scoring.service import ScoringService
+    from apps.scoring.service import ScoringService
     from database import AsyncSessionLocal
 
     sujet = state["instruction"][:512]

@@ -30,8 +30,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.auth import require_role
 from core.logging import get_logger
 from database import get_db
-from modules.admin.engine import AdminEngine
-from modules.admin.setup_engine import SetupEngine
+from apps.admin.engine import AdminEngine
+from apps.admin.setup_engine import SetupEngine
 import yaml
 
 log = get_logger("admin.router")
@@ -79,7 +79,7 @@ def get_router(config: dict) -> APIRouter:
 
     @router.get("/", response_class=HTMLResponse, include_in_schema=False)
     async def config_ui():
-        from modules.admin.ui import render_html
+        from apps.admin.ui import render_html
 
         return HTMLResponse(render_html())
 

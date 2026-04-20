@@ -15,7 +15,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from modules.finance.models import Avenant, SituationTravaux
+from apps.finance.models import Avenant, SituationTravaux
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -122,8 +122,8 @@ async def get_dashboard(db: AsyncSession, affaire_id: UUID) -> dict:
     base contractuelle (lots) + avenants + situations.
     """
     # Importer les modèles externes ici pour éviter les circulaires
-    from modules.affaires.models import Affaire
-    from modules.planning.models import Lot
+    from apps.affaires.models import Affaire
+    from apps.planning.models import Lot
 
     affaire = await db.get(Affaire, affaire_id)
     budget_moa = float(affaire.budget_moa) if affaire and affaire.budget_moa else None

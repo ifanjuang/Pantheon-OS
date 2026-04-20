@@ -20,11 +20,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def get_cockpit(db: AsyncSession, affaire_id: UUID) -> dict:
-    from modules.planning.service import get_health as _planning_health
-    from modules.chantier.service import get_dashboard as _chantier_dashboard
-    from modules.communications.service import get_dashboard as _comms_dashboard
-    from modules.finance.service import get_dashboard as _finance_dashboard
-    from modules.decisions.models import ProjectDecision
+    from apps.planning.service import get_health as _planning_health
+    from apps.chantier.service import get_dashboard as _chantier_dashboard
+    from apps.communications.service import get_dashboard as _comms_dashboard
+    from apps.finance.service import get_dashboard as _finance_dashboard
+    from apps.decisions.models import ProjectDecision
 
     # ── Appels parallèles ─────────────────────────────────────────────
     planning_res, chantier_res, comms_res, finance_res = await asyncio.gather(

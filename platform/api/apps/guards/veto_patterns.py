@@ -25,7 +25,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
-from modules.guards.schemas import VetoDecision
+from apps.guards.schemas import VetoDecision
 
 
 # ── Patterns par agent ────────────────────────────────────────────────

@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from modules.affaires.models import Affaire
+from apps.affaires.models import Affaire
 
 
 async def get_affaire(db: AsyncSession, affaire_id: UUID) -> Affaire | None:

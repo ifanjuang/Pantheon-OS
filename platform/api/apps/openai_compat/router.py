@@ -33,7 +33,7 @@ from core.services.llm_service import LlmService
 from core.services.rag_service import RagService
 from core.settings import settings
 from database import get_db
-from modules.affaires.models import Affaire
+from apps.affaires.models import Affaire
 
 log = get_logger("openai_compat")
 bearer = HTTPBearer(auto_error=False)
@@ -47,7 +47,7 @@ class ChatMessage(BaseModel):
 
 
 class ChatCompletionRequest(BaseModel):
-    model: str  # UUID de l'affaire ou "arceus"
+    model: str  # UUID de l'affaire ou "hermes-mvp"
     messages: list[ChatMessage]
     stream: bool = True
     temperature: float = 0.3
@@ -227,7 +227,7 @@ def get_router(config: dict) -> APIRouter:
                 "id": str(a.id),
                 "object": "model",
                 "created": int(a.created_at.timestamp()),
-                "owned_by": "arceus",
+                "owned_by": "pantheon",
                 "display_name": f"{a.nom} [{a.code}]",
             }
             for a in affaires
@@ -237,10 +237,10 @@ def get_router(config: dict) -> APIRouter:
         if not models:
             models.append(
                 {
-                    "id": "arceus",
+                    "id": "hermes-mvp",
                     "object": "model",
                     "created": int(time.time()),
-                    "owned_by": "arceus",
+                    "owned_by": "pantheon",
                     "display_name": "ARCEUS — Copilote MOE",
                 }
             )

@@ -20,8 +20,8 @@ import json
 import sys
 from typing import Optional
 
-from modules.evaluation.schemas import EvalReport
-from modules.evaluation.service import list_datasets, load_dataset, run_eval
+from apps.evaluation.schemas import EvalReport
+from apps.evaluation.service import list_datasets, load_dataset, run_eval
 
 
 def _print_report(report: EvalReport) -> None:

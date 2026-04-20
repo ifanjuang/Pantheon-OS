@@ -27,7 +27,7 @@ from core.logging import get_logger
 from core.services.llm_service import LlmService
 from core.settings import settings
 from database import AsyncSessionLocal
-from modules.agent.service import run_agent, _build_system_prompt  # noqa: F401 (re-exporté)
+from apps.agent.service import run_agent, _build_system_prompt  # noqa: F401 (re-exporté)
 
 log = get_logger("orchestra.service")
 

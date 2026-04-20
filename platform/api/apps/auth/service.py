@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.logging import get_logger
 from core.settings import settings
-from modules.auth.models import User
+from apps.auth.models import User
 
 log = get_logger("auth.service")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

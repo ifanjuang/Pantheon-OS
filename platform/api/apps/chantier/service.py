@@ -21,7 +21,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from modules.chantier.models import NonConformite, ObservationChantier
+from apps.chantier.models import NonConformite, ObservationChantier
 
 _ARRET_KEYWORDS = (
     "arrêt de chantier",
@@ -95,7 +95,7 @@ async def process_observation_analysis(db: AsyncSession, obs_id: UUID) -> None:
     Appelé par le job ARQ `analyze_chantier_obs_job`.
     Lance l'agent Argos sur l'observation et stocke le constat.
     """
-    from modules.agent.service import run_agent  # late import — évite circulaire
+    from apps.agent.service import run_agent  # late import — évite circulaire
 
     obs = await get_observation(db, obs_id)
     if not obs or obs.statut == "analyse":
@@ -205,7 +205,7 @@ async def process_nc_qualification(db: AsyncSession, nc_id: UUID) -> None:
     Lance Héphaïstos pour qualifier la NC techniquement.
     Détecte automatiquement les mots-clés d'arrêt de chantier.
     """
-    from modules.agent.service import run_agent  # late import
+    from apps.agent.service import run_agent  # late import
 
     nc = await get_nonconformite(db, nc_id)
     if not nc:

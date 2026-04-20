@@ -28,7 +28,7 @@ from core.auth import get_current_user, require_role
 from core.logging import get_logger
 from core.queue import get_queue
 from database import get_db
-from modules.chantier.schemas import (
+from apps.chantier.schemas import (
     AnalyzeJobResponse,
     ChantierDashboard,
     NonConformiteCreate,
@@ -38,7 +38,7 @@ from modules.chantier.schemas import (
     ObservationResponse,
     ObservationUpdate,
 )
-from modules.chantier.service import (
+from apps.chantier.service import (
     create_nonconformite,
     create_observation,
     delete_nonconformite,

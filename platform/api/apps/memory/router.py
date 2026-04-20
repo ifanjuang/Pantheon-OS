@@ -14,13 +14,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.auth import get_current_user
 from core.logging import get_logger
 from database import get_db
-from modules.memory.schemas import (
+from apps.memory.schemas import (
     GetContextResponse,
     PromoteRequest,
     PromoteResponse,
     SetContextRequest,
 )
-from modules.memory.service import FunctionalMemoryService
+from apps.memory.service import FunctionalMemoryService
 
 log = get_logger("memory.router")
 

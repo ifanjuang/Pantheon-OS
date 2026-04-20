@@ -31,8 +31,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.auth import get_current_user, require_role
 from core.logging import get_logger
 from database import get_db
-from modules.meeting.models import MeetingAction, MeetingAgenda, MeetingCR
-from modules.meeting.schemas import (
+from apps.meeting.models import MeetingAction, MeetingAgenda, MeetingCR
+from apps.meeting.schemas import (
     ActionCreateRequest,
     ActionResponse,
     ActionUpdateRequest,
@@ -41,7 +41,7 @@ from modules.meeting.schemas import (
     CRCreateRequest,
     CRResponse,
 )
-from modules.meeting.service import agenda_to_text, analyse_cr, generate_agenda
+from apps.meeting.service import agenda_to_text, analyse_cr, generate_agenda
 
 log = get_logger("meeting.router")
 

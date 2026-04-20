@@ -8,9 +8,9 @@ from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.logging import get_logger
-from modules.agent.models import AgentRun
-from modules.orchestra._shared import get_agent_role
-from modules.orchestra.models import OrchestraRun
+from apps.agent.models import AgentRun
+from apps.orchestra._shared import get_agent_role
+from apps.orchestra.models import OrchestraRun
 from .schemas import ErrorEntry, ModuleStatus, RunSummary, TraceEvent
 
 log = get_logger("control.service")

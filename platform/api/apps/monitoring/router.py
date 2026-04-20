@@ -16,14 +16,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.auth import require_role
 from database import get_db
-from modules.monitoring.schemas import (
+from apps.monitoring.schemas import (
     AgentKPIs,
     GuardsKPIs,
     MonitoringSnapshot,
     OrchestraKPIs,
     ScoringKPIs,
 )
-from modules.monitoring.service import MonitoringService
+from apps.monitoring.service import MonitoringService
 
 
 def get_router(config: dict) -> APIRouter:

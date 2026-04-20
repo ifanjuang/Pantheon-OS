@@ -25,7 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.logging import get_logger
 from core.services.rag_service import RagService
-from modules.wiki.models import WikiPage
+from apps.wiki.models import WikiPage
 
 log = get_logger("wiki.service")
 

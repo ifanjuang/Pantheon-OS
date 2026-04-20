@@ -29,9 +29,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.logging import get_logger
 from core.services.llm_service import LlmService
-from modules.scoring.models import DecisionScore
-from modules.scoring.schemas import AxesDetail, BonusMalus
-from modules.wiki.service import WikiService
+from apps.scoring.models import DecisionScore
+from apps.scoring.schemas import AxesDetail, BonusMalus
+from apps.wiki.service import WikiService
 
 log = get_logger("scoring.service")
 
