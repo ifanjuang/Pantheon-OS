@@ -1,294 +1,282 @@
-# Pantheon OS — Contexte projet pour agents Claude Code
+# Pantheon OS — Project context for Claude Code agents
 
-## Vue d'ensemble
+## Overview
 
-**Pantheon OS** est un système d'intelligence opérationnelle multi-agents pour organisations professionnelles à haute technicité (MOE/BTP, droit, audit, conseil, médecine, IT…). Il centralise la gestion documentaire, le RAG sémantique, l'orchestration multi-agents, le suivi de projet, la planification et les finances sur l'ensemble du cycle de vie des dossiers.
+**Pantheon OS** is a multi-agent intelligence platform for professional organizations (architecture/MOE, legal, audit, consulting, medicine, IT). It centralizes document management, semantic RAG, multi-agent orchestration, project tracking, planning, and finance across the full lifecycle of cases.
 
-Stack : **FastAPI** (async) · **PostgreSQL + pgvector** · **LangGraph** · **MinIO** · **Ollama/OpenAI** · **ARQ/Redis** · **Docker Compose**
+**Stack (MVP):** FastAPI · PostgreSQL + pgvector · Hermes Runtime (agents/skills/workflows) · OpenWebUI · Ollama/OpenAI · Docker Compose
 
 ---
 
 ## Architecture
 
 ```
-ARCEUS/
-├── api/
-│   ├── main.py                     # Startup, lifespan, seed admin
-│   ├── database.py                 # SQLAlchemy async engine + Base
-│   ├── worker.py                   # ARQ worker (jobs background)
-│   ├── core/
-│   │   ├── auth.py                 # JWT, RBAC (admin/moe/collaborateur/lecteur)
-│   │   ├── settings.py             # Pydantic Settings (.env)
-│   │   ├── checkpointer.py         # LangGraph PostgreSQL checkpointer (HITL)
-│   │   ├── queue.py                # ARQ Redis job queue
-│   │   ├── registry.py             # Chargeur dynamique de modules
-│   │   └── services/
-│   │       ├── rag_service.py      # Chunking + embedding + pgvector search
-│   │       ├── llm_service.py      # Chat + extraction structurée
-│   │       └── storage_service.py  # MinIO S3
-│   └── modules/
-│       ├── auth/                   # Login, register, seed admin
-│       ├── admin/                  # Config YAML, setup wizard, healthcheck
-│       ├── affaires/               # Dossiers projet + contexte enrichi + domaine
-│       ├── documents/              # Upload, ingest RAG, trigger Thémis
-│       ├── agent/                  # Boucle ReAct, mémoire, outils RAG+web
-│       ├── orchestra/              # LangGraph Zeus, C1-C5, HITL, SSE streaming
-│       ├── meeting/                # Analyse CR, extraction actions, OJ
-│       ├── preprocessing/          # Hermès++ : cleaning, intent, precheck gate
-│       ├── guards/                 # Criticality / reversibility / loop / veto
-│       ├── memory/                 # Mémoire fonctionnelle Redis TTL (session)
-│       ├── monitoring/             # KPIs observabilité (durée, coût, vetos, scoring)
-│       └── evaluation/             # OpenClaw — harness d'éval reproductible
-├── core/                           # Meta-agents (layer: meta + perception)
-│   ├── _base.py                    # AgentBase — contrat commun (agent ≠ role)
-│   ├── __init__.py                 # Exports: ZeusOrchestrator, HeraSupervisor, …
-│   ├── zeus_orchestrator.py        # class ZeusOrchestrator
-│   ├── hera_supervisor.py          # class HeraSupervisor
-│   ├── artemis_filter.py           # class ArtemisFilter
-│   ├── kairos_synthesizer.py       # class KairosSynthesizer
-│   ├── hermes_router.py            # class HermesRouter
-│   ├── athena_planner.py           # class AthenaPlanner
-│   └── zeus/ hera/ artemis/ …     # SOUL.md de chaque meta-agent
-├── agents/                         # Agents spécialisés (analysis → production)
-│   ├── __init__.py                 # Exports: HephaistosBuilder, ThemisValidator, …
-│   ├── hephaistos_builder.py       # class HephaistosBuilder
-│   ├── themis_validator.py         # class ThemisValidator
-│   ├── apollon_validator.py        # … (19 classes au total)
-│   ├── argos/ hephaistos/ …        # SOUL.md de chaque agent spécialisé
-│   └── domains/                    # Overlays domaine (btp|droit|audit|conseil|medecine|it)
-├── config/
-│   ├── agent_registry.yaml         # Registre unique : role, layer, class, triggers, veto
-│   └── workflows/                  # Définitions YAML de workflows (recherche, décision…)
-├── alembic/versions/               # Migrations séquentielles 0001→0028
-├── modules.yaml                    # Registre modules actifs
-└── docker-compose.yml              # DB + API + MinIO + Redis + Ollama + OpenWebUI
+pantheon-os/
+│
+├── core/                          # Pure runtime framework (no domain logic)
+│   ├── contracts/                 # AgentBase, SkillBase, ToolBase, WorkflowBase, manifests
+│   ├── engine/                    # WorkflowEngine — async step executor
+│   ├── routing/                   # HermesRouter — intent → workflow mapping
+│   ├── state/                     # SessionState — per-run context
+│   ├── registries/                # ManifestLoader — auto-discovery via manifest.yaml
+│   ├── validation/                # CompletenessChecker, CoherenceChecker
+│   ├── policies/                  # VetoEngine — veto pattern matching
+│   ├── observability/             # HermesLogger — structured run logging
+│   └── utils/                     # Shared helpers (truncate, Timer)
+│
+├── modules/                       # Self-contained, discoverable components
+│   ├── agents/
+│   │   ├── meta/                  # zeus_orchestrator, athena_planner, themis_guardian, hera_supervisor, apollo_validator
+│   │   ├── analysis/              # hermes_router, demeter_collector, argos_extractor, prometheus_challenger, artemis_filter, hecate_uncertainty, metis_optimizer
+│   │   ├── memory/                # hestia_session, mnemosyne_library, hades_vector
+│   │   ├── output/                # kairos_synthesizer, daedalus_builder, iris_communicator, aphrodite_stylist, hephaestus_diagrams
+│   │   └── system/                # ares_executor, poseidon_distributor
+│   ├── skills/                    # research/, extraction/, validation/, synthesis/, communication/, document/
+│   ├── tools/                     # file/, pdf/, web/, database/, storage/, diagrams/
+│   └── workflows/                 # base/, dynamic/, templates/
+│
+├── platform/
+│   ├── api/                       # FastAPI server (moved from api/)
+│   │   ├── apps/                  # FastAPI app modules (renamed from modules/)
+│   │   │   ├── auth/              # JWT login, register, seed admin
+│   │   │   ├── admin/             # Config YAML, setup wizard, healthcheck
+│   │   │   ├── affaires/          # Case/project CRUD
+│   │   │   ├── documents/         # Upload, RAG ingest
+│   │   │   ├── agent/             # ReAct loop, memory, RAG tools
+│   │   │   ├── openai_compat/     # OpenAI API v1 compatibility (for OpenWebUI)
+│   │   │   └── hermes_console/    # Console API: agents/skills/workflows/logs
+│   │   ├── core/                  # API-specific: settings, auth, registry, logging, rate_limit
+│   │   ├── main.py                # Entry point (lifespan, CORS, module registry)
+│   │   └── database.py            # SQLAlchemy async engine + Base
+│   ├── ui/
+│   │   ├── openwebui/             # OpenWebUI config
+│   │   └── hermes-console/        # Next.js admin console
+│   ├── data/
+│   │   ├── db/                    # PostgreSQL init SQL
+│   │   ├── vector/                # pgvector data
+│   │   ├── runtime-state/         # Workflow state snapshots
+│   │   └── logs/                  # Application logs
+│   ├── storage/                   # nas/, drive-sync/, notion-sync/, exports/
+│   └── infra/
+│       ├── docker/api/            # Dockerfile for API container
+│       ├── compose/               # docker-compose.v2.yml (V2 full stack)
+│       ├── migrations/            # Alembic migration copies
+│       └── deploy/                # Deployment scripts
+│
+├── config/                        # 5 canonical files (non-secret defaults)
+│   ├── runtime.yaml               # Hermes mode, thresholds, MVP agent list
+│   ├── settings.yaml              # LLM, RAG, API parameters
+│   ├── sources.yaml               # Data source adapters (db, NAS, web, Notion)
+│   ├── ui.yaml                    # Console and OpenWebUI settings
+│   └── domains.yaml               # Domain overlay mapping (active_domain, overlays)
+│
+├── domains/
+│   ├── architecture/              # BTP/MOE overlays (prompts, skills, workflows, policies)
+│   ├── legal/                     # Legal domain
+│   └── medical/                   # Medical domain
+│
+├── shared/
+│   ├── tools/                     # Reusable tools (pdf_reader, web_search, db_query)
+│   ├── schemas/                   # Shared Pydantic schemas
+│   └── templates/                 # Document templates
+│
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   ├── workflow/
+│   └── regression/
+│
+├── docs/
+│   ├── architecture/
+│   ├── agents/
+│   ├── skills/
+│   ├── workflows/
+│   └── runbooks/
+│
+├── alembic/                       # Alembic migrations
+├── docker-compose.yml             # MVP stack
+├── modules.yaml                   # FastAPI app module registry (enabled/disabled)
+├── alembic.ini                    # Alembic config
+└── .env.example                   # Environment template
 ```
 
 ---
 
-## Le Panthéon — 25 agents
+## MVP vs V2
 
-Convention de nommage : `{"agent": "ZEUS", "role": "orchestrator"}` — identité ≠ responsabilité.
-
-| Layer | Agent | Classe Python | Rôle fonctionnel | Veto |
-|---|---|---|---|---|
-| **Meta** | Zeus | `ZeusOrchestrator` | orchestrator | — |
-| | Héra | `HeraSupervisor` | supervisor | — |
-| | Artémis | `ArtemisFilter` | filter | — |
-| | Kairos | `KairosSynthesizer` | synthesizer | — |
-| | Apollon | `ApollonValidator` | validator | — |
-| **Perception** | Hermès | `HermesRouter` | router | — |
-| **Analyse** | Athéna | `AthenaPlanner` | planner | — |
-| | Argos | `ArgosExtractor` | extractor | — |
-| | Prométhée | `PrometheeChallenger` | challenger | — |
-| | Dionysos | `DionysosCreative` | creative | — |
-| | Déméter | `DemeterCollector` | collector | — |
-| | Hécate | `HecateResolver` | uncertainty_resolver | — |
-| **Cadrage** | Thémis | `ThemisValidator` | legal_validator | ✅ |
-| | Chronos | `ChronosPlanner` | time_planner | — |
-| **Système** | Arès | `AresSecurity` | security_guard | ✅ |
-| | Poséidon | `PoseidonDistributor` | distributor | — |
-| **Continuité** | Hestia | `HestiaMemory` | memory_project | — |
-| | Mnémosyne | `MnemosyneMemory` | memory_agency | — |
-| | Hadès | `HadesMemory` | memory_longterm | — |
-| **Communication** | Iris | `IrisCommunicator` | communicator | — |
-| | Iris (clarifier) | `IrisClarifier` | clarifier | — |
-| | Métis | `MetisEditor` | editor | — |
-| **Production** | Dédale | `DedaleBuilder` | builder | — |
-| | Héphaïstos | `HephaistosBuilder` | diagram_builder | — |
-| | Aphrodite | `AphroditeStylist` | stylist | — |
-
-Source de vérité : `config/agent_registry.yaml`
+| Component | MVP | V2 |
+|---|---|---|
+| **OpenWebUI** | ✅ Chat UI + Hermes Console tab | ✅ |
+| **FastAPI** | ✅ API server | ✅ |
+| **Hermes Runtime** | ✅ Agents/skills/workflows | ✅ |
+| **PostgreSQL + pgvector** | ✅ State + vector memory | ✅ |
+| **Ollama / OpenAI** | ✅ LLM provider | ✅ |
+| **LangGraph** | ❌ (not needed for MVP) | ✅ complex state machines |
+| **Redis + ARQ** | ❌ (not needed for MVP) | ✅ background jobs |
+| **MinIO** | ❌ (local storage) | ✅ large file S3 storage |
+| **Advanced observability** | ❌ | ✅ |
 
 ---
 
-## Modèles de données
+## The Pantheon — 22 agents
+
+### Naming convention
+
+```python
+class Zeus(AgentBase):
+    agent = "@ZEUS"         # @AGENT = meta authority (ALL CAPS)
+    role  = "orchestrator"  # stable responsibility (system logic)
+
+class Hermes(AgentBase):
+    agent = "@Hermes"       # @Agent = operational agent (PascalCase)
+    role  = "router"
+```
+
+### MVP agents (enabled at startup)
+
+| Agent | Layer | Role | Description |
+|---|---|---|---|
+| **@ZEUS** | meta | orchestrator | Global orchestration — execution order, merge/fork/child workflows |
+| **@ATHENA** | meta | planner | Planning and decomposition — task analysis, agent selection |
+| **@APOLLO** | meta | validator | Final validation — reliability scoring, release decision |
+| **@Hermes** | analysis | router | Research router — source selection, skill activation |
+| **@Argos** | analysis | extractor | Factual extraction — facts, figures, citations |
+| **@Prometheus** | analysis | challenger | Contradiction detection — source comparison, inconsistency flags |
+| **@Hecate** | analysis | uncertainty_resolver | Uncertainty detection — missing info, clarification questions |
+| **@Hestia** | memory | session_memory | Session memory — immediate context, run continuity |
+| **@Hades** | memory | vector_retrieval | Deep memory — pgvector semantic retrieval |
+| **@Kairos** | output | synthesizer | Contextual synthesis — information hierarchization |
+| **@Daedalus** | output | builder | Deliverable construction — dossiers, briefs, reports |
+| **@Iris** | output | communicator | Communication — context reformulation, tone adaptation |
+
+### Extended agents (V2, disabled by default)
+
+| Agent | Layer | Role |
+|---|---|---|
+| **@THEMIS** | meta | Process integrity guardian (veto) |
+| **@HERA** | meta | Global coherence supervisor |
+| **@Demeter** | analysis | Data collection and ingestion |
+| **@Artemis** | analysis | Filtering and focus (signal/noise) |
+| **@Metis** | analysis | Tactical optimization |
+| **@Mnemosyne** | memory | Structured knowledge library |
+| **@Aphrodite** | output | Polish and presentation |
+| **@Hephaestus** | output | Diagrams and technical production |
+| **@Ares** | system | Fast execution / fallback mode |
+| **@Poseidon** | system | Load management and flow control |
+
+Source of truth: `modules/agents/{layer}/{myth}_{role}/manifest.yaml`
+
+---
+
+## Data model (MVP tables)
 
 | Table | Description |
 |---|---|
-| `users` | Comptes utilisateurs, rôle RBAC |
-| `affaires` | Dossiers projet + contexte (typology, region, budget, phase, ABF, zones) + `domain` |
-| `affaire_permissions` | Override de rôle par affaire |
-| `documents` | Fichiers uploadés (PDF/DOCX/TXT/images) |
-| `chunks` | Fragments RAG, vecteur `vector(768)`, index HNSW |
-| `agent_runs` | Traces d'exécution agent (steps, sources RAG, durée) |
-| `agent_memory` | Leçons apprises — `scope` : `agence` ou `projet` |
-| `orchestra_runs` | Orchestrations Zeus : plans, assignments, résultats, HITL, criticité, `run_score`, `hera_verdict` |
-| `project_decisions` | Décisions structurées C1-C5 avec dette D0-D3 |
-| `meeting_crs` | Comptes-rendus analysés |
-| `meeting_actions` | Actions extraites avec priorité, statut, échéance |
-| `meeting_agendas` | Ordres du jour générés |
+| `users` | User accounts, RBAC role |
+| `affaires` | Project cases + context (domain, typology, region, budget, phase) |
+| `affaire_permissions` | Per-case role override |
+| `documents` | Uploaded files (PDF/DOCX/TXT/images) |
+| `chunks` | RAG fragments, `vector(768)`, HNSW index |
+| `agent_runs` | Agent execution traces (steps, RAG sources, duration) |
+| `agent_memory` | Learned lessons — `scope`: `agence` or `projet` |
 
 ---
 
-## Criticité C1-C5
+## Module structure
 
-| Niveau | Nature | Mode | Max agents | Max subtasks |
-|---|---|---|---|---|
-| C1 | Information | Agent unique, pas de Zeus | 1 | 1 |
-| C2 | Question | 1-2 agents | 2 | 2 |
-| C3 | Décision locale réversible | Zeus optionnel, Arès peut agir | 4 | 3 |
-| C4 | Décision engageante | Zeus + HITL humain | 6 | 5 |
-| C5 | Risque majeur | Zeus + HITL + veto check | 8 | 6 |
-
----
-
-## Les 3 mémoires
-
-| Mémoire | Scope DB | Agent | Durée |
-|---|---|---|---|
-| **Agence** | `scope='agence'`, `affaire_id=NULL` | Mnémosyne | Permanente |
-| **Projet** | `scope='projet'`, `affaire_id=<uuid>` | Hestia | Durée affaire |
-| **Fonctionnelle** | Redis TTL (`memory:fn:{thread_id}:*`) | Hermès + Chronos | Session (TTL 1h) |
-
----
-
-## Conventions de nommage — Pantheon OS
-
-### Agents : identité ≠ responsabilité
-
-```python
-# Classe Python — convention MythRole
-class ZeusOrchestrator(AgentBase):
-    agent = "ZEUS"          # identité (stable, branding)
-    role  = "orchestrator"  # responsabilité (stable, logique système)
-
-# JSON standard (logs, events, API)
-{"agent": "ZEUS", "role": "orchestrator"}
-```
-
-### SSE Events — convention `{agent}.{event}`
-
-| Event | Emetteur | Payload clé |
-|---|---|---|
-| `hermes.preprocess_ready` | Hermès | intent, suggested_criticite |
-| `hermes.precheck_verdict` | Hermès | verdict, criticite |
-| `zeus.plans_ready` | Zeus | plans par agent |
-| `zeus.decision` | Zeus | subtasks, assignments |
-| `zeus.verdict` | Zeus | complete \| needs_complement |
-| `agent.subtask_done` | (tout agent) | task_id, results |
-| `agent.all_done` | (tout agent) | results tronqués |
-| `themis.veto_detected` | Thémis | agent, role, motif, severity |
-| `hera.run_score` | Héra | quality, coherence, confidence, risk |
-| `hera.score_computed` | Héra | score_id, verdict, total |
-| `hera.verdict` | Héra | aligned \| misaligned \| degraded |
-| `kairos.final_answer` | Kairos | answer, run_id |
-| `hestia.memories_written` | Hestia | count, wiki_page_id |
-
-Events système (non agentiques) : `run_created`, `phase_start`, `done`, `error`
-
-### Résolution SOUL.md
-
-`_resolve_soul_path(name)` cherche dans l'ordre :
-1. `core/{name}/SOUL.md` — meta-agents (zeus, hera, artemis, kairos, hermes, athena)
-2. `agents/{name}/SOUL.md` — agents spécialisés
-
-### DB — convention `agent_name`
-
-Les colonnes `agent_name` en DB utilisent le **lowercase** (`"zeus"`, `"hephaistos"`).
-La correspondance uppercase↔lowercase est garantie par `old_names` dans `agent_registry.yaml`.
-
----
-
-## Généralisation multi-domaine
-
-Le domaine actif est configuré via `.env` :
-
-```bash
-DOMAIN=btp        # btp | droit | audit | conseil | medecine | it
-DOMAIN_LABEL="Architecture & Maîtrise d'Œuvre"
-```
-
-Chaque domaine a un fichier `agents/domains/{domain}.yaml` avec :
-- `context_injection` — injecté automatiquement dans tous les SOUL.md
-- `trusted_sources` — sources web prioritaires pour Apollon
-- `criticality_keywords` — mots-clés haussant la criticité
-- `veto_patterns` — patterns regex par agent (fusionnés avec les patterns statiques)
-
----
-
-## Conventions de code
-
-### Créer un nouvel agent
+### Agent module (`modules/agents/{layer}/{myth}_{role}/`)
 
 ```
-core/   (meta-agents)          agents/   (agents spécialisés)
-  {myth}_{role}.py               {myth}_{role}.py
-  {myth}/SOUL.md                 {myth}/SOUL.md
+zeus_orchestrator/
+├── agent.py          # AgentBase subclass
+├── manifest.yaml     # id, name, layer, role, enabled, veto, description
+├── config.yaml       # max_tokens, temperature, timeout_s
+├── SOUL.md           # System prompt (brand identity)
+└── tests/
+    └── test_agent.py
 ```
 
 ```python
-from core._base import AgentBase
+from pathlib import Path
+from core.contracts.agent import AgentBase
 
-class MythRole(AgentBase):
-    agent    = "MYTH"
-    role     = "role_stable"
-    layer    = "meta|analysis|framing|continuity|communication|production"
-    veto     = False
-    triggers = ["C3", "C4", "C5"]
-    _soul_dir = Path(__file__).parent / "myth"
+
+class Zeus(AgentBase):
+    agent = "@ZEUS"
+    role = "orchestrator"
+    layer = "meta"
+    veto = False
+    _soul_dir = Path(__file__).parent
 ```
 
-Puis ajouter dans `config/agent_registry.yaml` et `api/modules/orchestra/_shared.py:VALID_AGENTS`.
-
-### FlowManager — Gestion dynamique des workflows
-
-Le module `flowmanager` gère le cycle de vie des définitions de workflows multi-agents.
-
-**Endpoints** : `GET/POST /flows`, `GET/PATCH/DELETE /flows/{name}`, `POST /flows/{name}/trigger`
-
-**Workflow YAML** (stocké dans `config/workflows/*.yaml`) :
-```yaml
-flow:
-  name: recherche_documentaire
-  version: "1.0.0"
-  steps:
-    - ATHENA
-    - HECATE
-    - [ARGOS, PROMETHEE]   # parallèle
-    - KAIROS
-    - IRIS
-  on_hecate_block:
-    - IRIS_CLARIFIER
-```
-
-`FlowManagerService.seed_from_disk(db)` charge automatiquement les YAML de `config/workflows/` absents de la DB au démarrage.
-
-**Nouveaux agents liés** :
-- `HecateResolver` — analyse d'incertitude avant le pipeline ; produit un rapport `{uncertainty_score, blocking, missing_fields, clarification_questions}`
-- `IrisClarifier` — transforme le rapport Hécate en questions utilisateur lisibles
-- `MetisEditor` — révision stylistique post-synthèse (après Kairos, avant Iris)
-
-### Créer un nouveau module API
+### FastAPI app module (`platform/api/apps/{name}/`)
 
 ```
-api/modules/{nom}/
+auth/
 ├── __init__.py
-├── manifest.yaml       # name, version, description, prefix, depends_on
-├── models.py           # Modèles SQLAlchemy (héritent de database.Base)
-├── schemas.py          # Schémas Pydantic request/response
-├── service.py          # Logique métier pure
-└── router.py           # def get_router(config: dict) -> APIRouter
+├── manifest.yaml     # name, version, prefix, depends_on
+├── models.py         # SQLAlchemy models (inherit database.Base)
+├── schemas.py        # Pydantic request/response schemas
+├── service.py        # Business logic
+└── router.py         # def get_router(config: dict) -> APIRouter
 ```
 
-### Règles importantes
+---
 
-- **Toujours** hériter de `database.Base` pour les modèles SQLAlchemy
-- **Toujours** déclarer les nouvelles tables dans `alembic/env.py`
-- **Toujours** créer une migration Alembic pour tout changement de schéma
-- Imports circulaires → imports tardifs dans les fonctions
-- Services partagés (`RagService`, `LlmService`, `StorageService`) → classmethods
-- Auth : `Depends(get_current_user)`, `Depends(require_role("admin", "moe"))`
+## Hermes Console API (`/console`)
 
-### Pattern SQLAlchemy 2.0
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/console/dashboard` | user | Summary stats |
+| GET | `/console/agents` | user | List all agents |
+| POST | `/console/agents/{name}/toggle` | admin/moe | Enable/disable agent |
+| GET | `/console/skills` | user | List all skills |
+| POST | `/console/skills/{id}/toggle` | admin/moe | Enable/disable skill |
+| GET | `/console/workflows` | user | List all workflows |
+| POST | `/console/workflows/{id}/toggle` | admin/moe | Enable/disable workflow |
+| GET | `/console/settings` | user | Get runtime settings |
+| POST | `/console/settings` | admin | Update runtime settings |
+| GET | `/console/logs` | user | Get recent logs |
 
+---
+
+## Config files (5 canonical, source of truth)
+
+| File | Purpose |
+|---|---|
+| `config/runtime.yaml` | Hermes mode, max_agents, thresholds, MVP agent list |
+| `config/settings.yaml` | LLM, embeddings, RAG, API parameters |
+| `config/sources.yaml` | Data source adapters (pgvector, NAS, web, Notion) |
+| `config/ui.yaml` | Console and OpenWebUI settings |
+| `config/domains.yaml` | Active domain, overlay paths, trusted sources |
+
+Agent/skill/workflow enable state lives in each `modules/{type}/{name}/config.yaml`.
+
+---
+
+## Important rules
+
+- Always inherit `database.Base` for SQLAlchemy models
+- Always declare new tables in `alembic/env.py`
+- Always create an Alembic migration for schema changes
+- Circular imports → late imports inside functions
+- Shared services (`RagService`, `LlmService`) → classmethods
+- Auth: `Depends(get_current_user)`, `Depends(require_role("admin", "moe"))`
+- **No LangGraph in MVP** — use simple async pipelines
+- **No Redis/ARQ in MVP** — use FastAPI `BackgroundTasks` if needed
+- Agent source of truth: `modules/agents/{layer}/{myth}_{role}/` — not YAML registries
+
+---
+
+## Code patterns
+
+### SQLAlchemy 2.0
 ```python
 result = await db.execute(select(Model).where(Model.field == value))
 items = result.scalars().all()
 ```
 
-### Pattern pgvector (cosine)
-
+### pgvector (cosine similarity)
 ```python
 rows = await db.execute(
     text("SELECT ... 1 - (embedding <=> :vec::vector) AS score FROM chunks WHERE ..."),
@@ -298,73 +286,79 @@ rows = await db.execute(
 
 ---
 
-## Lancer le projet
+## Launch
 
 ```bash
 cp .env.example .env
+# Edit .env — change DB_PASSWORD and JWT_SECRET_KEY at minimum
 docker compose up -d
 docker compose exec api alembic upgrade head
-# API : http://localhost:8000 | Docs : http://localhost:8000/docs (DEBUG=true)
+# API docs:  http://localhost:8000/docs  (DEBUG=true only)
+# Chat UI:   http://localhost:3000
+# Console:   http://localhost:3000 → Hermes Console tab
+```
+
+### V2 stack
+```bash
+docker compose -f docker-compose.yml -f platform/infra/compose/docker-compose.v2.yml up -d
 ```
 
 ---
 
-## Variables d'environnement clés
+## Key environment variables
 
 ```bash
-DATABASE_URL=postgresql+asyncpg://arceus:password@db:5432/arceus
-LLM_PROVIDER=ollama          # ou "openai"
+# Database
+DATABASE_URL=postgresql+asyncpg://pantheon:password@db:5432/pantheon
+DATABASE_URL_SYNC=postgresql://pantheon:password@db:5432/pantheon
+
+# Auth
+JWT_SECRET_KEY=your-secret-min-32-chars
+ADMIN_EMAIL=admin@yourorg.com
+ADMIN_PASSWORD=strongpassword
+
+# LLM (choose one)
+LLM_PROVIDER=ollama
 OLLAMA_BASE_URL=http://ollama:11434
 OLLAMA_MODEL=mistral:7b
+# or: LLM_PROVIDER=openai  OPENAI_API_KEY=sk-...
+
+# Embeddings
 EMBEDDING_PROVIDER=ollama
 OLLAMA_EMBEDDING_MODEL=nomic-embed-text
 EMBEDDING_DIM=768
-REDIS_URL=redis://redis:6379/0
-AGENTS_DIR=/agents
-DOMAIN=btp                   # domaine actif (btp|droit|audit|conseil|medecine|it)
+
+# Domain
+DOMAIN=architecture
 DOMAIN_LABEL="Architecture & Maîtrise d'Œuvre"
-ADMIN_EMAIL=admin@agence.fr
-ADMIN_PASSWORD=changeme
+
+# Runtime
+DEBUG=true
 ```
 
 ---
 
-## Migrations Alembic — séquence
+## Alembic migrations
 
-| Migration | Contenu |
+Run `alembic upgrade head` after each schema change.
+
+| Migration | Content |
 |---|---|
 | 0001 | users, affaires, permissions, documents, chunks |
 | 0002 | agent_runs |
 | 0003 | orchestra_runs |
 | 0004 | agent_memory |
-| 0005 | agent_runs.sources |
-| 0006 | orchestra_runs HITL |
-| 0007 | meeting (crs, actions, agendas) |
-| 0008 | agent_memory.scope + orchestra_runs.criticite + project_decisions |
-| 0009 | affaires contexte enrichi (typology, region, budget, phase, ABF, zones) |
-| 0010 | index GIN full-text sur chunks.contenu (hybrid search RRF) |
-| 0011 | webhook_sessions (canal externe → affaire) |
-| 0012 | traçabilité orchestra (subtasks, veto) + agent error_message + memory category |
-| 0013 | capture_sessions + chunks.tsv tsvector + trigger auto-update |
-| 0014 | wiki_pages (synthesis cache, vector pgvector, HNSW cosine) |
-| 0015 | decision_scores (scoring décisionnel 100 pts / 5 axes) |
-| 0016 | enrichissement project_decisions + project_tasks + project_observations |
-| 0017 | orchestra_runs scoring + mémoires (score_id, score_verdict, memories_written, wiki_page_id) |
-| 0018 | orchestra_runs preprocessing + precheck (preprocessed_input JSONB, precheck_verdict, precheck_reasoning) |
-| 0019 | guards : project_decisions (condition_levee, reversible) + orchestra_runs (veto_severity, veto_condition_levee) |
-| 0026 | orchestra_runs intelligence : run_score JSONB, hera_verdict, hera_feedback, fallback_level |
-| 0027 | affaires.domain VARCHAR + affaires.domain_metadata JSONB |
-| 0028 | workflow_definitions (FlowManager — CRUD workflows multi-agents) |
+| 0005–0028 | V2 features (guards, wiki, scoring, etc.) |
 
 ---
 
-## Changelog & Releases
+## Changelog
 
-Le fichier `CHANGELOG.md` à la racine documente toutes les modifications notables.
+`CHANGELOG.md` at root documents all notable changes.
 
-**Règle obligatoire** : tout commit contenant un changement fonctionnel (feat, fix, refactor impactant) doit ajouter une entrée dans la section `[Unreleased]` du CHANGELOG. Lors d'une release (merge vers main d'un lot cohérent), la section `[Unreleased]` est renommée avec le nouveau numéro de version et la date.
+**Rule**: every functional commit must add an entry in `[Unreleased]`. On release, rename with version + date.
 
-Convention SemVer :
-- **MAJOR** : rupture d'API ou changement de schéma DB non rétrocompatible
-- **MINOR** : nouvelle fonctionnalité, nouveau module, nouveau pattern
-- **PATCH** : correctif, optimisation, refactoring interne
+SemVer:
+- **MAJOR**: breaking API or non-retrocompatible DB schema change
+- **MINOR**: new feature, module, or pattern
+- **PATCH**: bug fix, optimization, internal refactoring

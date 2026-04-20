@@ -1,0 +1,8 @@
+id: artemis
+name: "@Artemis"
+layer: analysis
+role: filter
+enabled: false
+veto: false
+description: "Filtering and focus — noise reduction, relevance prioritization"
+class: modules.agents.analysis.artemis_filter.agent.Artemis

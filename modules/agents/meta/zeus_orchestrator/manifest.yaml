@@ -1,0 +1,8 @@
+id: zeus
+name: "@ZEUS"
+layer: meta
+role: orchestrator
+enabled: true
+veto: false
+description: "Global orchestration — execution order, merge/fork/child workflows, fallbacks"
+class: modules.agents.meta.zeus_orchestrator.agent.Zeus

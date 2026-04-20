@@ -1,0 +1,8 @@
+id: ares
+name: "@Ares"
+layer: system
+role: fast_executor
+enabled: false
+veto: false
+description: "Fast execution — simple tasks, degraded mode fallback"
+class: modules.agents.system.ares_executor.agent.Ares

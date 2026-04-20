@@ -1,0 +1,8 @@
+id: prometheus
+name: "@Prometheus"
+layer: analysis
+role: challenger
+enabled: true
+veto: false
+description: "Contradiction and cross-referencing — source comparison, inconsistency detection"
+class: modules.agents.analysis.prometheus_challenger.agent.Prometheus

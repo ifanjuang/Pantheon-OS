@@ -1,8 +1,9 @@
-# modules.yaml — registre global des modules
-# Ordre = ordre de chargement (respecter les dépendances déclarées dans manifest.yaml)
-# Désactiver un module : enabled: false  (pas de redémarrage requis en dev)
+# modules.yaml — API module registry
+# MVP modules are enabled. V2/domain modules are disabled.
+# Load order = dependency order.
 
 modules:
+  # ── Core ─────────────────────────────────────────────────────────
   - name: auth
     enabled: true
 
@@ -21,68 +22,62 @@ modules:
   - name: openai_compat
     enabled: true
 
-  - name: webhooks
+  # ── Hermes Console (new) ─────────────────────────────────────────
+  - name: hermes_console
     enabled: true
+
+  # ── V2 modules (disabled for MVP) ───────────────────────────────
+  - name: webhooks
+    enabled: false
 
   - name: orchestra
-    enabled: true
+    enabled: false
 
   - name: meeting
-    enabled: true
+    enabled: false
 
   - name: capture
-    enabled: true
+    enabled: false
 
   - name: wiki
-    enabled: true
+    enabled: false
 
   - name: scoring
-    enabled: true
+    enabled: false
 
   - name: decisions
-    enabled: true
+    enabled: false
 
   - name: preprocessing
-    enabled: true
+    enabled: false
 
   - name: guards
-    enabled: true
+    enabled: false
 
   - name: memory
-    enabled: true
+    enabled: false
 
   - name: monitoring
-    enabled: true
+    enabled: false
 
   - name: control
-    enabled: true
+    enabled: false
 
   - name: flowmanager
-    enabled: true
+    enabled: false
 
   - name: evaluation
-    enabled: true
+    enabled: false
 
+  # ── Domain modules (disabled for MVP) ───────────────────────────
   - name: chantier
-    enabled: true
+    enabled: false
 
   - name: planning
-    enabled: true
-
-  - name: budget
-    enabled: false
-
-  - name: events_engine
-    enabled: false
-
-  - name: rag
     enabled: false
 
   - name: finance
-    enabled: true
+    enabled: false
 
   - name: communications
-    enabled: true
-
-  - name: notifications
     enabled: false

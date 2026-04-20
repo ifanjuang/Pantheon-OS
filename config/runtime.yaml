@@ -1,0 +1,26 @@
+# config/runtime.yaml — Hermes Runtime operational settings
+# Source of truth for agent execution behaviour.
+
+runtime:
+  mode: balanced          # fast | balanced | expert
+  max_agents_per_run: 8
+  uncertainty_threshold: 0.7
+  confidence_threshold: 0.6
+  max_retry_per_step: 2
+  default_workflow: research
+
+# MVP enabled agents (auto-discovery via modules/agents/*/manifest.yaml)
+# Listed here only for documentation — actual enable/disable via manifest.yaml config.yaml
+mvp_agents:
+  - zeus          # meta — orchestration
+  - athena        # meta — planning
+  - apollo        # meta — validation
+  - hermes        # analysis — routing
+  - argos         # analysis — extraction
+  - prometheus    # analysis — challenge
+  - hecate        # analysis — uncertainty
+  - hestia        # memory — session
+  - hades         # memory — vector
+  - kairos        # output — synthesis
+  - daedalus      # output — build
+  - iris          # output — communication

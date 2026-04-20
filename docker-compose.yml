@@ -1,116 +1,75 @@
 version: '3.9'
 
+# ── Pantheon OS — MVP Stack ──────────────────────────────────────────
+# Services: OpenWebUI · FastAPI · PostgreSQL+pgvector · Ollama
+# V2 (Redis, MinIO, ARQ workers): see infra/compose/docker-compose.v2.yml
+
 services:
 
-  # ── Base de données PostgreSQL + pgvector ───────────────────────
+  # ── PostgreSQL + pgvector ─────────────────────────────────────────
   db:
     image: pgvector/pgvector:pg16
     environment:
-      POSTGRES_DB: arceus
-      POSTGRES_USER: arceus
+      POSTGRES_DB: pantheon
+      POSTGRES_USER: pantheon
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./platform/data/db/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U arceus"]
+      test: ["CMD-SHELL", "pg_isready -U pantheon"]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
-  # ── API FastAPI ─────────────────────────────────────────────────
+  # ── FastAPI — Hermes Runtime API ──────────────────────────────────
   api:
-    build: ./api
+    build:
+      context: .
+      dockerfile: platform/infra/docker/api/Dockerfile
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://arceus:${DB_PASSWORD}@db:5432/arceus
-      DATABASE_URL_SYNC: postgresql://arceus:${DB_PASSWORD}@db:5432/arceus
-      ASYNCPG_URL: postgresql://arceus:${DB_PASSWORD}@db:5432/arceus
+      DATABASE_URL: postgresql+asyncpg://pantheon:${DB_PASSWORD}@db:5432/pantheon
+      DATABASE_URL_SYNC: postgresql://pantheon:${DB_PASSWORD}@db:5432/pantheon
+      ASYNCPG_URL: postgresql://pantheon:${DB_PASSWORD}@db:5432/pantheon
     ports:
       - "${API_PORT:-8000}:8000"
     depends_on:
       db:
         condition: service_healthy
-      minio:
-        condition: service_healthy
     volumes:
-      - ./api:/app
+      - ./platform/api:/app
+      - ./core:/core:ro
+      - ./modules:/modules:ro
+      - ./config:/config:ro
+      - ./domains:/domains:ro
       - ./modules.yaml:/app/modules.yaml:ro
-      - ./agents:/agents:ro
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload --workers 1
     restart: unless-stopped
 
-  # ── Redis — broker ARQ (background jobs) ───────────────────────
-  redis:
-    image: redis:7-alpine
-    command: redis-server --save 60 1 --loglevel warning
-    volumes:
-      - redis_data:/data
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
-  # ── ARQ Worker — exécute les jobs orchestra/agent en arrière-plan
-  worker:
-    build: ./api
-    env_file: .env
-    environment:
-      DATABASE_URL: postgresql+asyncpg://arceus:${DB_PASSWORD}@db:5432/arceus
-      DATABASE_URL_SYNC: postgresql://arceus:${DB_PASSWORD}@db:5432/arceus
-      REDIS_URL: redis://redis:6379/0
-    volumes:
-      - ./api:/app
-      - ./agents:/agents:ro
-    command: python worker.py
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-
-  # ── OpenWebUI — interface utilisateur ──────────────────────────
+  # ── OpenWebUI — Chat interface ────────────────────────────────────
   openwebui:
     image: ghcr.io/open-webui/open-webui:v0.5.20
     environment:
       OPENAI_API_BASE_URL: http://api:8000/v1
-      OPENAI_API_KEY: ${JWT_SECRET_KEY}   # token interne
+      OPENAI_API_KEY: ${JWT_SECRET_KEY}
       WEBUI_SECRET_KEY: ${JWT_SECRET_KEY}
+      DATABASE_URL: postgresql://pantheon:${DB_PASSWORD}@db:5432/pantheon
+      VECTOR_DB: pgvector
+      PGVECTOR_DB_URL: postgresql://pantheon:${DB_PASSWORD}@db:5432/pantheon
     volumes:
       - openwebui_data:/app/backend/data
     ports:
       - "3000:8080"
     depends_on:
       - api
+      - db
     restart: unless-stopped
 
-  # ── MinIO — stockage fichiers S3-compatible ─────────────────────
-  minio:
-    image: minio/minio:RELEASE.2025-04-03T14-56-28Z
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    volumes:
-      - minio_data:/data
-    ports:
-      - "9000:9000"   # API S3
-      - "9001:9001"   # Console Web
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
-  # ── Ollama — IA locale (optionnel, désactiver si mode OpenAI) ───
+  # ── Ollama — Local LLM (optional, disable for OpenAI mode) ────────
   ollama:
     image: ollama/ollama:0.6.5
     volumes:
@@ -118,7 +77,7 @@ services:
     ports:
       - "11434:11434"
     restart: unless-stopped
-    # GPU NVIDIA — décommenter si disponible :
+    # GPU NVIDIA — uncomment if available:
     # deploy:
     #   resources:
     #     reservations:
@@ -127,7 +86,7 @@ services:
     #           count: 1
     #           capabilities: [gpu]
 
-  # ── Adminer — interface DB (dev uniquement) ─────────────────────
+  # ── Adminer — DB UI (dev profile only) ───────────────────────────
   adminer:
     image: adminer
     ports:
@@ -136,67 +95,7 @@ services:
       - db
     profiles: [dev]
 
-  # ── Portainer — gestion visuelle Docker / stacks ───────────────
-  portainer:
-    image: portainer/portainer-ce:2.21.5
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - portainer_data:/data
-    ports:
-      - "9090:9000"    # UI web  → http://localhost:9090
-      - "9443:9443"    # HTTPS (optionnel)
-    restart: unless-stopped
-
-  # ── Paperclip — orchestrateur d'agents IA (Option A) ──────────────
-  # UI : http://localhost:4000
-  # Configure les agents ARCEUS via les webhooks /webhooks/*
-  paperclip:
-    image: paperclipai/paperclip:1.0.0
-    profiles: [paperclip]
-    environment:
-      DATABASE_URL: postgresql://arceus:${DB_PASSWORD}@db:5432/arceus
-      ARCEUS_API_URL: http://api:8000
-      ARCEUS_WEBHOOK_SECRET: ${JWT_SECRET_KEY}
-      PORT: 4000
-    ports:
-      - "4000:4000"
-    depends_on:
-      db:
-        condition: service_healthy
-      api:
-        condition: service_started
-    restart: unless-stopped
-
-  # ── Evolution API — pont WhatsApp self-hosted (optionnel) ───────
-  # Activer avec : docker compose --profile whatsapp-evolution up -d
-  evolution-api:
-    image: atendai/evolution-api:v2.2.3
-    profiles: [whatsapp-evolution]
-    environment:
-      SERVER_URL: http://evolution-api:8080
-      AUTHENTICATION_API_KEY: ${EVOLUTION_API_KEY:-changeme-evolution}
-      DATABASE_PROVIDER: postgresql
-      DATABASE_CONNECTION_URI: postgresql://arceus:${DB_PASSWORD}@db:5432/arceus
-      QRCODE_LIMIT: 30
-    volumes:
-      - evolution_data:/evolution/instances
-    ports:
-      - "8082:8080"
-    depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
 volumes:
-  redis_data:
   postgres_data:
   openwebui_data:
-  minio_data:
   ollama_data:
-  evolution_data:
-  portainer_data:
-  paperclip_data:

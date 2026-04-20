@@ -1,0 +1,51 @@
+# config/policies.yaml — Operational policies and constraints
+# Defines veto patterns, safety rules, and domain-specific constraints.
+
+veto:
+  # Agents with veto authority
+  agents: [THEMIS]
+
+  # Global patterns that trigger Themis veto regardless of workflow
+  global_patterns:
+    - pattern: "(contrat|réglementaire|légal|juridique).*(risque|violation|infraction)"
+      severity: high
+      message: "Risque juridique ou contractuel détecté — validation humaine requise"
+
+    - pattern: "(données personnelles|RGPD|DPO|confidentialité).*(divulgation|partage|export)"
+      severity: high
+      message: "Risque RGPD — ne pas exporter sans consentement explicite"
+
+safety:
+  # Prevent outputs containing these patterns
+  blocked_output_patterns:
+    - "mot de passe|password|secret|token|api.key"
+
+  # Maximum response length (characters) before truncation warning
+  max_response_length: 50000
+
+  # Require human confirmation for these workflow IDs
+  hitl_workflows: []  # No HITL in MVP — add workflow IDs for V2
+
+rate_limits:
+  # Requests per minute by endpoint category
+  llm_calls: 20
+  search_calls: 50
+  standard_calls: 200
+
+domains:
+  # Active domain — determines injected context and trusted sources
+  # Options: architecture | legal | medical | audit | consulting | it
+  active: architecture
+
+  # Domain-specific trusted sources for web research
+  trusted_sources:
+    architecture:
+      - "legifrance.gouv.fr"
+      - "architectes.org"
+      - "construction.gouv.fr"
+    legal:
+      - "legifrance.gouv.fr"
+      - "doctrine.fr"
+    medical:
+      - "has-sante.fr"
+      - "ameli.fr"

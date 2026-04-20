@@ -1,0 +1,7 @@
+id: hybrid_research
+name: "Recherche hybride"
+enabled: true
+description: "Combines local DB, pgvector, and optional web search for comprehensive research"
+agents: [hermes, hades, argos]
+inputs: [query, context]
+outputs: [results, sources]

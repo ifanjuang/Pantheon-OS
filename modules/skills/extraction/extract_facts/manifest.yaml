@@ -1,0 +1,7 @@
+id: extract_facts
+name: "Extraction de faits"
+enabled: true
+description: "Extracts facts, figures, and citations from document content"
+agents: [argos]
+inputs: [content, sources]
+outputs: [facts, citations]

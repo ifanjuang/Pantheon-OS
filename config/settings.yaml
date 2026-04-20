@@ -1,0 +1,30 @@
+# config/settings.yaml — LLM, RAG, and API runtime parameters
+# Override via .env for secrets. This file contains non-secret defaults only.
+
+llm:
+  provider: ollama          # ollama | openai
+  model: mistral:7b
+  temperature: 0.2
+  max_tokens: 4096
+  timeout_s: 120
+
+embeddings:
+  provider: ollama
+  model: nomic-embed-text
+  dim: 768
+  batch_size: 32
+
+rag:
+  chunk_size: 512
+  chunk_overlap: 64
+  top_k: 8
+  score_threshold: 0.6
+  rerank: false
+
+api:
+  port: 8000
+  workers: 1
+  debug: true
+  rate_limit_llm: "20/minute"
+  rate_limit_standard: "200/minute"
+  rate_limit_read: "1000/minute"

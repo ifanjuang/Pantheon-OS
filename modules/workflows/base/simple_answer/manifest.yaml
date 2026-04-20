@@ -1,0 +1,6 @@
+id: simple_answer
+name: "Réponse simple"
+enabled: true
+description: "Direct answer without deep research — fast path for simple queries"
+steps: [kairos, iris]
+fallback: null

@@ -1,0 +1,8 @@
+id: apollo
+name: "@APOLLO"
+layer: meta
+role: validator
+enabled: true
+veto: false
+description: "Final validation — reliability scoring, confidence score, release decision"
+class: modules.agents.meta.apollo_validator.agent.Apollo

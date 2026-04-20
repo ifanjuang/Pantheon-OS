@@ -1,0 +1,25 @@
+# config/sources.yaml — Data source adapters configuration
+
+sources:
+  local_db:
+    enabled: true
+    adapter: pgvector
+    priority: 1
+
+  nas:
+    enabled: false
+    adapter: local_fs
+    base_path: /storage/nas
+    priority: 2
+
+  web:
+    enabled: false
+    adapter: web_search
+    priority: 3
+    max_results: 10
+
+  notion:
+    enabled: false
+    adapter: notion_sync
+    base_path: /storage/notion-sync
+    priority: 4

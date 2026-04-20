@@ -1,0 +1,6 @@
+id: clarification
+name: "Demande de clarification"
+enabled: true
+description: "Clarification workflow — uncertainty detection, precise question formulation"
+steps: [hecate, iris]
+fallback: null

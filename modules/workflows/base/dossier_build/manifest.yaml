@@ -1,0 +1,6 @@
+id: dossier_build
+name: "Construction de dossier"
+enabled: true
+description: "Full dossier workflow — planning, research, extraction, synthesis, document build"
+steps: [athena, hermes, argos, prometheus, kairos, daedalus, iris]
+fallback: research

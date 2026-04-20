@@ -1,0 +1,13 @@
+# config/ui.yaml — Hermes Console and OpenWebUI configuration
+
+console:
+  title: "Hermes Console"
+  theme: dark
+  refresh_interval_s: 5
+  show_disabled_agents: true
+  log_level: info
+
+openwebui:
+  model_id: hermes-mvp
+  system_prompt_injection: true
+  stream: true

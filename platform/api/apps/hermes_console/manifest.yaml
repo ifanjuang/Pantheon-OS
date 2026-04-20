@@ -1,0 +1,6 @@
+name: hermes_console
+version: "1.0.0"
+description: "Hermes Console — agents/skills/workflows management, logs, settings"
+prefix: /console
+depends_on:
+  - auth

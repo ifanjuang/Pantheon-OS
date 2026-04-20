@@ -1,0 +1,6 @@
+id: research
+name: "Recherche documentaire"
+enabled: true
+description: "Full research pipeline — uncertainty check, research, extraction, validation, synthesis"
+steps: [hecate, hermes, argos, prometheus, kairos, iris]
+fallback: simple_answer

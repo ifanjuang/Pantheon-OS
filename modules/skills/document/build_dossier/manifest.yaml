@@ -1,0 +1,7 @@
+id: build_dossier
+name: "Construction de dossier"
+enabled: true
+description: "Assembles structured dossiers with citations and annexes"
+agents: [daedalus, kairos]
+inputs: [summary, facts, citations]
+outputs: [dossier]

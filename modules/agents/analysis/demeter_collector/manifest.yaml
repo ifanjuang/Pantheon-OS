@@ -1,0 +1,8 @@
+id: demeter
+name: "@Demeter"
+layer: analysis
+role: collector
+enabled: false
+veto: false
+description: "Collection and ingestion — PDF/file/web fetch, corpus preparation, normalization"
+class: modules.agents.analysis.demeter_collector.agent.Demeter

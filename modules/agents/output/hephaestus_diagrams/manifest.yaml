@@ -1,0 +1,8 @@
+id: hephaestus
+name: "@Hephaestus"
+layer: output
+role: diagram_builder
+enabled: false
+veto: false
+description: "Technical production — schemas, Mermaid diagrams, figures"
+class: modules.agents.output.hephaestus_diagrams.agent.Hephaestus

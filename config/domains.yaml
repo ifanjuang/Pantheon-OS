@@ -1,0 +1,36 @@
+# config/domains.yaml — Domain-specific overlay configuration
+# Domain overlays live in domains/{name}/ and extend base config.
+
+active_domain: architecture
+
+domains:
+  architecture:
+    label: "Architecture & Maîtrise d'Œuvre"
+    skills_overlay: domains/architecture/skills
+    workflows_overlay: domains/architecture/workflows
+    policies_overlay: domains/architecture/policies
+    trusted_sources:
+      - DTU
+      - CCAG
+      - PUCA
+      - Legifrance
+
+  legal:
+    label: "Juridique"
+    skills_overlay: domains/legal/skills
+    workflows_overlay: domains/legal/workflows
+    policies_overlay: null
+    trusted_sources:
+      - Legifrance
+      - EurLex
+      - Dalloz
+
+  medical:
+    label: "Médical"
+    skills_overlay: domains/medical/skills
+    workflows_overlay: domains/medical/workflows
+    policies_overlay: null
+    trusted_sources:
+      - HAS
+      - PubMed
+      - Vidal

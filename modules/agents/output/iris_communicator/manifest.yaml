@@ -1,0 +1,8 @@
+id: iris
+name: "@Iris"
+layer: output
+role: communicator
+enabled: true
+veto: false
+description: "Communication and tone — context reformulation, recipient adaptation"
+class: modules.agents.output.iris_communicator.agent.Iris

@@ -1,0 +1,6 @@
+id: deep_research
+name: "Recherche approfondie"
+enabled: false
+description: "Extended research with collection, filtering, optimization (V2)"
+steps: [athena, demeter, hermes, argos, artemis, prometheus, metis, kairos, daedalus, iris]
+fallback: research

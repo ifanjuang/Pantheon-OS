@@ -1,0 +1,8 @@
+id: hera
+name: "@HERA"
+layer: meta
+role: supervisor
+enabled: false
+veto: false
+description: "Global coherence — final alignment check, contradiction detection"
+class: modules.agents.meta.hera_supervisor.agent.Hera

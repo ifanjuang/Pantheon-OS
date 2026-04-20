@@ -1,0 +1,8 @@
+id: kairos
+name: "@Kairos"
+layer: output
+role: synthesizer
+enabled: true
+veto: false
+description: "Contextual synthesis — essential selection, information hierarchization"
+class: modules.agents.output.kairos_synthesizer.agent.Kairos
