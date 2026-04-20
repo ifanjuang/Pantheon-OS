@@ -1,11 +1,11 @@
 ---
 name: new-module
-description: Scaffolde un nouveau module ARCEUS complet — manifest, models, schemas, service, router, migration
+description: Scaffolde un nouveau module Pantheon OS complet — manifest, models, schemas, service, router, migration
 allowed-tools: Write, Read, Bash, Glob, Grep
 argument-hint: "[nom-du-module]"
 ---
 
-Crée le module ARCEUS "$ARGUMENTS" en suivant exactement les conventions du projet.
+Crée le module Pantheon OS "$ARGUMENTS" en suivant exactement les conventions du projet.
 
 ## Étapes
 
@@ -16,7 +16,7 @@ Crée le module ARCEUS "$ARGUMENTS" en suivant exactement les conventions du pro
 - Lire `alembic/versions/` pour trouver le dernier numéro de révision
 
 ### 2. Créer la structure du module
-Créer `api/modules/$ARGUMENTS/` avec :
+Créer `platform/api/apps/$ARGUMENTS/` avec :
 
 **`__init__.py`** — vide
 
@@ -46,7 +46,7 @@ agent: null
 - Implémenter `upgrade()` et `downgrade()`
 
 ### 4. Mettre à jour les fichiers existants
-- Ajouter l'import du modèle dans `alembic/env.py`
+- Ajouter l'import du modèle dans `alembic/env.py` : `from apps.$ARGUMENTS.models import ...`
 - Ajouter l'entrée dans `modules.yaml` au bon endroit (respecter depends_on)
 
 ### 5. Résumé final

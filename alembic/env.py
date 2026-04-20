@@ -6,29 +6,29 @@ from pathlib import Path
 from sqlalchemy import engine_from_config, pool
 from alembic import context
 
-# Ajouter api/ au path pour importer les modèles
-sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
+# Add platform/api/ to path so model imports resolve correctly
+sys.path.insert(0, str(Path(__file__).parent.parent / "platform" / "api"))
 
 from core.settings import settings
 from database import Base
 
-# Importer tous les modèles pour que Base.metadata les connaisse
-from modules.auth.models import User, AffairePermission  # noqa: F401
-from modules.affaires.models import Affaire              # noqa: F401
-from modules.documents.models import Document, Chunk     # noqa: F401
-from modules.agent.models import AgentRun, AgentMemory   # noqa: F401
-from modules.orchestra.models import OrchestraRun        # noqa: F401
-from modules.meeting.models import MeetingCR, MeetingAction, MeetingAgenda  # noqa: F401
-from modules.webhooks.models import WebhookSession                           # noqa: F401
-from modules.capture.models import CaptureSession                            # noqa: F401
-from modules.wiki.models import WikiPage                                     # noqa: F401
-from modules.scoring.models import DecisionScore                             # noqa: F401
-from modules.decisions.models import ProjectDecision, ProjectTask, ProjectObservation  # noqa: F401
-from modules.planning.models import Lot, Tache, Jalon, LienDependance                # noqa: F401
-from modules.chantier.models import ObservationChantier, NonConformite               # noqa: F401
-from modules.communications.models import Courrier                                    # noqa: F401
-from modules.finance.models import Avenant, SituationTravaux                         # noqa: F401
-from modules.flowmanager.models import WorkflowDefinition                             # noqa: F401
+# Import all models so Base.metadata knows about them
+from apps.auth.models import User, AffairePermission  # noqa: F401
+from apps.affaires.models import Affaire              # noqa: F401
+from apps.documents.models import Document, Chunk     # noqa: F401
+from apps.agent.models import AgentRun, AgentMemory   # noqa: F401
+from apps.orchestra.models import OrchestraRun        # noqa: F401
+from apps.meeting.models import MeetingCR, MeetingAction, MeetingAgenda  # noqa: F401
+from apps.webhooks.models import WebhookSession                           # noqa: F401
+from apps.capture.models import CaptureSession                            # noqa: F401
+from apps.wiki.models import WikiPage                                     # noqa: F401
+from apps.scoring.models import DecisionScore                             # noqa: F401
+from apps.decisions.models import ProjectDecision, ProjectTask, ProjectObservation  # noqa: F401
+from apps.planning.models import Lot, Tache, Jalon, LienDependance                # noqa: F401
+from apps.chantier.models import ObservationChantier, NonConformite               # noqa: F401
+from apps.communications.models import Courrier                                    # noqa: F401
+from apps.finance.models import Avenant, SituationTravaux                         # noqa: F401
+from apps.flowmanager.models import WorkflowDefinition                             # noqa: F401
 
 config = context.config
 
