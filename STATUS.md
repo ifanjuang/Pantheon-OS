@@ -4,7 +4,7 @@
 > Ce fichier consolide ce qui est livré, partiel, à faire et en exploration.
 > Les fichiers Markdown de référence pilotent le développement : `README.md`, `ARCHITECTURE.md`, `MODULES.md`, `AGENTS.md`, `ROADMAP.md`, `STATUS.md`.
 
-Dernière mise à jour : 2026-04-25
+Dernière mise à jour : 2026-04-26
 
 ---
 
@@ -15,6 +15,7 @@ Dernière mise à jour : 2026-04-25
 - ⬜ À faire
 - 💡 Exploration / veille
 - ⚠️ À vérifier dans le code
+- ❌ Contradictoire / à corriger
 
 ---
 
@@ -40,40 +41,67 @@ Règles : un lot cohérent mergé sur `main` produit en général une release MI
 
 # 3. Current Baseline
 
-Pantheon OS est structuré autour d’un noyau modulaire.
+Pantheon OS dispose d’un socle MVP réel : FastAPI, PostgreSQL + pgvector, OpenWebUI, Ollama, Docker Compose, registry d’applications API et manifests API.
 
-## ✅ Baseline actuelle documentée
+## ✅ Confirmé par audit ciblé
 
-- `core/` est le framework générique.
-- `modules/` porte les composants auto-découverts.
-- `platform/` regroupe API, UI, data, storage, infra.
-- `domains/` porte les overlays métier.
-- Les manifests sont la source de vérité locale des modules.
-- L’auto-discovery remplace les registres centralisés codés en dur.
+- `docker-compose.yml` contient les services `db`, `api`, `openwebui`, `ollama`.
+- PostgreSQL utilise `pgvector/pgvector:pg16`.
+- L’API FastAPI est définie dans `platform/api/main.py`.
+- `ModuleRegistry` charge les applications API activées depuis `modules.yaml`.
+- Les apps API disposent de manifests simples dans `platform/api/apps/*/manifest.yaml`.
+- `modules.yaml` active le MVP : `auth`, `admin`, `affaires`, `documents`, `agent`, `openai_compat`, `hermes_console`.
+- Les tests existants confirment une logique de guards, criticité, veto patterns et promotion mémoire projet/agence.
 
-## ✅ Direction d’architecture validée
+## 🔄 Partiellement confirmé
 
-- séparation control plane / data plane ;
-- modularité filesystem-first ;
-- agents, skills, tools, workflows séparés ;
-- runtime générique ;
-- overlays métier hors core ;
-- gouvernance explicite ;
-- criticité C1-C5 ;
-- mémoire multi-couches ;
-- RAG hybride ;
-- orchestration multi-patterns ;
-- observabilité runtime ;
-- Approval Gate pour actions sensibles ;
-- Browser Tool gouverné seulement après policy, approval et observability.
+- Auto-discovery agents / skills / workflows : un `ManifestLoader` tolérant a été ajouté pour sécuriser le démarrage et indexer les manifests runtime présents dans `/modules`.
+- Mémoire agent : `AgentMemory` et `extract_and_store_memories()` sont utilisés par les tests, avec promotion `promotable` projet → agence. Cette mémoire n’est pas encore alignée avec la doctrine complète `raw_history / candidate_facts / active_facts / summaries / cards / traces`.
+- Hermes Console : activée et manifest présent, mais contenu fonctionnel complet non audité.
+
+## ⚠️ À vérifier dans le code
+
+- Présence réelle des agents, skills et workflows sous `modules/`.
+- État réel de `FlowManager`, `HecateResolver`, `IrisClarifier`, `MetisEditor`, `deep_search`, DLQ ARQ, OCR fallback GLM-4V et cockpit d’affaire.
+- État réel des modules métier `planning`, `chantier`, `communications`, `finance`, décrits comme livrés historiquement mais désactivés dans `modules.yaml`.
 
 ---
 
 # 4. Delivered Recently
 
+## ✅ Audit initial documentation / code
+
+Livré : `CODE_AUDIT.md`.
+
+Constats :
+
+- le socle MVP est réel ;
+- les modules avancés sont majoritairement désactivés ;
+- la documentation décrit une cible plus avancée que le runtime actif ;
+- la mémoire existe partiellement, mais pas sous la forme complète désormais documentée ;
+- la priorité est de renforcer les fondations avant d’ajouter des capacités risquées.
+
+## ✅ Correctif P0 — ManifestLoader runtime
+
+Livré :
+
+- `platform/api/core/registries/__init__.py`
+- `platform/api/core/registries/loader.py`
+- `tests/test_manifest_loader.py`
+
+Rôle :
+
+- éviter un crash startup lié à l’import `core.registries.loader.ManifestLoader` ;
+- charger sans erreur les manifests `agents`, `skills`, `workflows` lorsqu’ils existent ;
+- retourner des listes vides lorsque les dossiers sont absents ;
+- ignorer les manifests désactivés ;
+- rester rétrocompatible avant durcissement du schéma.
+
+Statut : ✅ Fait, tests ajoutés. Tests non exécutés dans cette session.
+
 ## ✅ Refactoring modulaire majeur
 
-Livré selon l’historique projet :
+Livré selon l’historique projet, mais à revérifier dans le code complet :
 
 - passage de `runtime/hermes/` vers `core/` + `modules/` ;
 - `modules/agents/{layer}/{myth}_{role}/` ;
@@ -84,77 +112,73 @@ Livré selon l’historique projet :
 - configuration simplifiée ;
 - auto-discovery via `ManifestLoader`.
 
-## ✅ Orchestration et gouvernance
-
-Livré selon l’historique projet :
-
-- agents normalisés ;
-- convention SSE `{agent}.{event}` ;
-- activation conditionnelle ;
-- limites cognitives par criticité ;
-- supervision HERA ;
-- score global de run ;
-- patterns `solo`, `parallel`, `cascade`, `arena` ;
-- exécution topologique par niveaux ;
-- sous-tâches explicites ;
-- veto C4/C5 explicite.
-
-## ✅ Retrieval hybride
-
-Livré selon l’historique projet :
-
-- FTS PostgreSQL ;
-- pgvector ;
-- fusion RRF ;
-- index GIN ;
-- `search_hybrid()` par défaut.
-
-## ✅ Runtime avancé et modules métier
-
-Livré selon l’historique projet :
-
-- `FlowManager` ;
-- `HecateResolver` ;
-- `IrisClarifier` ;
-- `MetisEditor` ;
-- `deep_search` ;
-- DLQ ARQ ;
-- validation des secrets au démarrage ;
-- CI/CD GitHub Actions ;
-- control plane UI ;
-- OCR fallback GLM-4V ;
-- promotion mémoire `promotable` ;
-- protocole HESTIA projet → agence ;
-- auto-capitalisation décisions C3+ ;
-- indexation RAG des courriers ;
-- cockpit d’affaire consolidé ;
-- modules `planning`, `chantier`, `communications`, `finance`.
-
-⚠️ Ces éléments doivent être revérifiés par audit de code complet après la mise à jour documentaire.
-
 ---
 
 # 5. Active Backlog
 
 ## 5.1 Core and Runtime
 
+### 🔄 Manifest hardening
+
+Partiel.
+
+Le `ManifestLoader` existe maintenant, mais il est volontairement tolérant.
+
+Reste à faire :
+
+- créer `ManifestSchema` ;
+- valider les champs obligatoires ;
+- ajouter `type`, `enabled`, `priority`, `dependencies`, `inputs`, `outputs`, `risk_profile`, `side_effect_profile` ;
+- conserver la rétrocompatibilité avec les manifests API existants ;
+- ajouter tests de manifests invalides ;
+- exposer les erreurs de manifests dans la console ou les logs.
+
+Priorité : P1.
+
+### ⬜ Task Contract / Workflow hardening
+
+À faire.
+
+Objectif : formaliser les tâches comme unités assignables et vérifiables.
+
+À intégrer :
+
+- `TaskDefinition` ;
+- `WorkflowDefinition` ;
+- `tasks.yaml` ;
+- `expected_output` obligatoire ;
+- `assigned_agent` ou `assigned_role` ;
+- `dependencies` ;
+- `tools_allowed` ;
+- `approval_required_if` ;
+- `success_criteria` ;
+- traces `task_run`.
+
+Priorité : P1.
+
 ### ⬜ Module `decisions`
 
-Déjà indiqué comme partiel : table `project_decisions`, extraction post-orchestration de décisions C3+, dette D0-D3.
+Documenté mais désactivé.
+
+`modules.yaml` indique `decisions.enabled=false`.
 
 Reste à faire : module API complet, endpoints CRUD, filtres par dette, résolution manuelle, alertes D3, dashboard dédié.
+
+Priorité : P1 après Manifest hardening.
 
 ### 🔄 Chaîne de veto séquencée
 
 Partiel.
 
-Déjà documenté : veto C4/C5, THEMIS, HEPHAESTUS, parse structuré, hiérarchie de sévérité.
+Les tests confirment des patterns de veto et une criticité C1-C5. Reste à confirmer l’orchestration complète `veto_check → veto_themis → veto_zeus → zeus_judge`.
 
 Reste à faire : formalisation complète `veto_zeus`, modèle `verdict / justification / severity / lift_condition`, traçabilité UI.
 
+Priorité : P2.
+
 ### ⬜ Approval Gate / HITL
 
-À faire / à vérifier.
+Documenté mais non confirmé dans le code.
 
 Source d’inspiration analysée : `suryamr2002/langgraph-approval-hub`.
 
@@ -177,56 +201,74 @@ Source d’inspiration analysée : `suryamr2002/langgraph-approval-hub`.
 - dashboard externe séparé comme source de vérité ;
 - SDK externe comme couche principale.
 
+Priorité : P1.
+
 ### 🔄 Mémoire — refactoring de service
 
-Partiel et prioritaire.
+Partiel.
 
-Déjà indiqué comme livré : promotion `promotable`, HESTIA post-orchestration, proposition mémoire agence.
+Confirmé par tests :
+
+- `extract_and_store_memories()` existe ;
+- `AgentMemory` existe ;
+- promotion `promotable` projet → agence testée.
 
 Reste à faire :
 
 - clarifier les scopes mémoire ;
 - distinguer raw history, candidate facts, active facts, summaries, cards et traces ;
-- vérifier si `extract_and_store_memories()` respecte cette séparation ;
 - éviter toute promotion massive non sourcée ;
 - ajouter ou vérifier le statut `candidate / active / superseded / retracted` ;
-- ajouter ou vérifier le context preview ;
-- ajouter ou vérifier le dry-run de consolidation ;
+- ajouter context preview ;
+- ajouter dry-run de consolidation ;
 - protéger raw messages, documents, traces et tool outputs contre réécriture de consolidation ;
 - vérifier que les cards compactes ne deviennent pas des dumps append-only ;
 - documenter les owners HESTIA / MNEMOSYNE / HADES / ARGOS / THEMIS / ZEUS dans le code.
 
+Priorité : P1.
+
 ### ⬜ Auditable context injection
 
-À faire / à vérifier.
+À faire.
 
 Objectif : pouvoir afficher le contexte réellement injecté ou prévu pour un agent : facts, candidate exclusions, cards, summaries, chunks, documents, décisions, traces pertinentes.
 
+Priorité : P1.
+
 ### ⬜ Memory consolidation dry-run
 
-À faire / à vérifier.
+À faire.
 
 Toute promotion, rétractation, supersession, fusion ou condensation doit pouvoir être prévisualisée avant application.
+
+Priorité : P2.
 
 ### ⬜ Affaires — exposition complète des nouveaux champs
 
 Reste à faire : schemas, router, enums métier.
 
+Priorité : P2.
+
 ### 🔄 Tests automatisés
 
 Partiel.
 
-Déjà indiqué : CI, `tests/test_guards.py`, base pytest.
+Confirmé :
 
-Reste à faire : tests tools, `orchestra/service.py`, E2E RAG, mémoire, approvals, workflows C1-C5, context preview, consolidation dry-run.
+- `tests/test_guards.py` ;
+- `tests/test_manifest_loader.py` ajouté.
+
+Reste à faire : tests tools, `orchestra/service.py`, E2E RAG, mémoire complète, approvals, workflows C1-C5, context preview, consolidation dry-run.
+
+Priorité : P1.
 
 ### 🔄 Monitoring agents / runs
 
-Partiel.
-
-Déjà indiqué : control plane UI, runs list, traces, errors stream, websocket refresh.
+Partiel / à vérifier.
 
 Reste à faire : dashboards performance, durée par agent, taux d’échec, fréquence d’activation, métriques d’usage, changements mémoire, contexte injecté, approvals, browser action traces.
+
+Priorité : P2.
 
 ---
 
@@ -234,38 +276,35 @@ Reste à faire : dashboards performance, durée par agent, taux d’échec, fré
 
 ### ⬜ Module `webhooks` — Telegram / WhatsApp
 
+Désactivé dans `modules.yaml`.
+
 Cible : réception Telegram / WhatsApp, routing par mention, fallback HERMES, mémoire de fil par HESTIA, support photo, réponse canal, auth expéditeur.
+
+Priorité : P3.
 
 ### ⬜ OpenWebUI Pipelines
 
 Objectif : déclencher directement ZEUS / orchestra depuis OpenWebUI et réduire friction UI → runtime.
 
+Priorité : P3.
+
 ### 💡 Browser Tool gouverné
 
 Intéressant mais non prioritaire.
 
-Source d’inspiration analysée : `browser-use/browser-harness`.
-
-À retenir :
-
-- primitives browser simples ;
-- screenshots comme preuve d’état ;
-- action trace avant/après ;
-- domain browser skills ;
-- HTTP direct quand possible.
-
-À rejeter :
-
-- agent libre sur le Chrome personnel par défaut ;
-- auto-modification des helpers pendant un run ;
-- clics coordonnées sans trace ;
-- actions sur compte connecté sans Approval Gate.
-
 Statut : à intégrer seulement après PolicyEngine, Approval Gate et Observability.
+
+À retenir : primitives browser simples, screenshots comme preuve d’état, action trace avant/après, domain browser skills, HTTP direct quand possible.
+
+À rejeter : agent libre sur le Chrome personnel par défaut, auto-modification des helpers pendant un run, clics coordonnées sans trace, actions sur compte connecté sans Approval Gate.
+
+Priorité : P4.
 
 ### 💡 Voix
 
 À explorer plus tard : transcription, TTS, OpenWebUI, webhooks.
+
+Priorité : P4.
 
 ---
 
@@ -275,11 +314,15 @@ Statut : à intégrer seulement après PolicyEngine, Approval Gate et Observabil
 
 Objectif : plans, coupes, photos, images, chunk image + description, pipeline ARGOS, qualification technique, fusion retrieval.
 
+Priorité : P3.
+
 ### 🔄 OCR / extraction avancée
 
-Partiel : fallback OCR GLM-4V indiqué.
+Partiel / à vérifier.
 
 Reste à faire : industrialisation, scoring qualité OCR, monitoring extraction.
+
+Priorité : P3.
 
 ---
 
@@ -297,13 +340,17 @@ Phase 3 : éventuellement HERMES ou ZEUS si volume suffisant.
 
 Règles : ne pas optimiser les `SOUL.md`, ne pas optimiser les agents identitaires trop tôt.
 
+Priorité : P4.
+
 ### 🔄 HESTIA / MNEMOSYNE learning loop
 
 Partiel.
 
-Déjà indiqué : promotion `promotable`, protocole capitalisation.
+Déjà confirmé par tests : promotion `promotable` projet → agence.
 
 Reste à faire : gouvernance plus explicite, revue avant promotion forte, dashboard de capitalisation.
+
+Priorité : P2.
 
 ---
 
@@ -317,37 +364,47 @@ But : agent de démarrage projet, programme, sol, topo, PLU, ABF, risques, budge
 
 Sortie cible : fiche synthèse contraintes avant conception.
 
+Priorité : P3.
+
 ---
 
 # 7. Explorations and Watchlist
 
 ## 💡 Hermes Local Memory
 
-Analyse réalisée comme source externe utile pour Pantheon OS.
-
-À intégrer maintenant dans la documentation : séparation raw history / candidate facts / active facts / summaries / cards / traces, contexte injecté inspectable, dry-run, cards non souveraines, consolidation explicite.
+À intégrer dans la doctrine mémoire : séparation raw history / candidate facts / active facts / summaries / cards / traces, contexte injecté inspectable, dry-run, cards non souveraines, consolidation explicite.
 
 À rejeter : remplacement PostgreSQL/pgvector par SQLite, suppression FastAPI, worker mémoire opaque, copie mécanique.
 
 ## 💡 LangGraph Approval Hub
 
-Analyse réalisée comme source externe utile pour Pantheon OS.
-
-À intégrer maintenant dans la documentation : modèle Approval Gate, queue pending approvals, statut d’approbation, décision humaine avec note, audit log, expiration, escalation.
+À intégrer dans l’Approval Gate : queue pending approvals, statut d’approbation, décision humaine avec note, audit log, expiration, escalation.
 
 À rejeter : dépendance Vercel/Supabase, dashboard séparé comme source de vérité, SDK externe comme cœur du système.
 
 ## 💡 Browser Harness
 
-Analyse réalisée comme source externe utile mais risquée.
-
-À intégrer dans la documentation : screenshots before/after, action trace, Browser Tool gouverné, domain browser skills, HTTP direct fallback.
+À intégrer plus tard : screenshots before/after, action trace, Browser Tool gouverné, domain browser skills, HTTP direct fallback.
 
 À rejeter : agent libre sur Chrome personnel, auto-modification de helpers, actions sans Approval Gate.
 
-## 💡 Hindsight / TEMPR
+## 💡 ElizaOS
 
-Piste de mémoire agentique enrichie. À tester sur une affaire pilote avant migration.
+À intégrer : contrat actions / providers / evaluators / services, dépendances et priorités de modules, event handlers plus tard.
+
+À rejeter : remplacement du runtime Pantheon, characters/personas, stack TypeScript/Bun/Express.
+
+## 💡 CrewAI
+
+À intégrer : Task Contract, expected_output, Crew Pattern comme workflow multi-agent, Flow Pattern comme orchestration contrôlée.
+
+À rejeter : CrewAI runtime, rôle/goal/backstory comme modèle central.
+
+## 💡 Agents / Skills Standards
+
+À intégrer : `AGENTS.md` opérationnel pour agents coding, `SKILL.md`, skill contract, skill security scan.
+
+À rejeter : import massif de catalogues d’agents.
 
 ## 💡 Neo4j
 
@@ -387,19 +444,18 @@ Règles :
 
 Ordre recommandé :
 
-1. Auditer le code contre `README.md`, `ARCHITECTURE.md`, `MODULES.md`, `AGENTS.md`, `ROADMAP.md`, `STATUS.md`.
-2. Vérifier l’état réel de la mémoire : raw history, candidate facts, active facts, cards, summaries, traces.
-3. Finaliser ou cadrer le module `decisions`.
-4. Compléter la refonte mémoire.
-5. Ajouter ou vérifier context preview.
-6. Ajouter ou vérifier dry-run de consolidation.
-7. Ajouter ou vérifier Approval Gate / HITL.
-8. Compléter tests mémoire, approvals et workflows C1-C5.
-9. Renforcer monitoring consolidé : approvals, contexte injecté, traces d’action.
-10. Lancer `webhooks`.
-11. Préparer retrieval multimodal.
-12. Reporter Browser Tool après PolicyEngine, Approval Gate et Observability.
-13. Instrumenter DSPy plus tard.
+1. Exécuter les tests ajoutés : `pytest tests/test_manifest_loader.py` puis suite existante pertinente.
+2. Finaliser l’audit code/docs avec inspection complète locale ou CI.
+3. Implémenter ManifestSchema V2 rétrocompatible.
+4. Formaliser Task Contract + `tasks.yaml`.
+5. Ajouter ou vérifier Approval Gate / HITL.
+6. Compléter la mémoire : raw/candidate/active/summaries/cards/traces.
+7. Ajouter context preview.
+8. Ajouter dry-run de consolidation.
+9. Compléter tests mémoire, approvals et workflows C1-C5.
+10. Renforcer monitoring consolidé : approvals, contexte injecté, traces d’action.
+11. Reporter Browser Tool après PolicyEngine, Approval Gate et Observability.
+12. Instrumenter DSPy plus tard.
 
 ---
 
