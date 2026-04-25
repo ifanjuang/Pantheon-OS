@@ -57,12 +57,13 @@ Pantheon OS dispose d’un socle MVP réel : FastAPI, PostgreSQL + pgvector, Ope
 
 - Auto-discovery agents / skills / workflows : `ManifestLoader` indexe les manifests runtime présents dans `/modules` et utilise le contrat commun `ComponentManifest`.
 - Workflow definitions : `WorkflowDefinitionLoader` charge `workflow.yaml` et `tasks.yaml` au startup, stocke les définitions dans `app.state.hermes_workflow_definitions`, mais il n’est pas encore branché à un moteur d’exécution.
+- Exemple workflow : `modules/workflows/document_analysis/` existe avec `manifest.yaml`, `workflow.yaml`, `tasks.yaml` et test de validation.
 - Mémoire agent : `AgentMemory` et `extract_and_store_memories()` sont utilisés par les tests, avec promotion `promotable` projet → agence. Cette mémoire n’est pas encore alignée avec la doctrine complète `raw_history / candidate_facts / active_facts / summaries / cards / traces`.
 - Hermes Console : activée et manifest présent, mais contenu fonctionnel complet non audité.
 
 ## ⚠️ À vérifier dans le code
 
-- Présence réelle des agents, skills et workflows sous `modules/`.
+- Présence réelle des agents et skills sous `modules/`.
 - État réel de `FlowManager`, `HecateResolver`, `IrisClarifier`, `MetisEditor`, `deep_search`, DLQ ARQ, OCR fallback GLM-4V et cockpit d’affaire.
 - État réel des modules métier `planning`, `chantier`, `communications`, `finance`, décrits comme livrés historiquement mais désactivés dans `modules.yaml`.
 
@@ -136,8 +137,12 @@ Livré :
 - `platform/api/core/contracts/tasks.py`
 - `platform/api/core/registries/workflows.py`
 - `platform/api/main.py` branché au loader workflow ;
+- `modules/workflows/document_analysis/manifest.yaml`
+- `modules/workflows/document_analysis/workflow.yaml`
+- `modules/workflows/document_analysis/tasks.yaml`
 - `tests/test_task_contracts.py`
 - `tests/test_workflow_definition_loader.py`
+- `tests/test_document_analysis_workflow.py`
 
 Rôle :
 
@@ -151,14 +156,14 @@ Rôle :
 - charger `workflow.yaml` ;
 - charger et fusionner `tasks.yaml` ;
 - refuser les définitions invalides sans bloquer les autres workflows ;
-- indexer les définitions au startup dans `app.state.hermes_workflow_definitions`.
+- indexer les définitions au startup dans `app.state.hermes_workflow_definitions` ;
+- fournir un premier workflow réel `document_analysis`.
 
-Statut : 🔄 Partiel avancé. Contrats, loader, branchement startup et tests ajoutés, non exécutés dans cette session.
+Statut : 🔄 Partiel avancé. Contrats, loader, branchement startup, exemple réel et tests ajoutés, non exécutés dans cette session.
 
 Reste à faire :
 
 - produire des traces `task_run` ;
-- ajouter exemples de workflow YAML réels ;
 - exposer les tâches dans Hermes Console ;
 - connecter les définitions au moteur d’exécution lorsqu’il sera audité ou stabilisé.
 
@@ -201,13 +206,12 @@ Priorité : P1.
 
 Partiel avancé.
 
-Les contrats `TaskDefinition` et `WorkflowDefinition` existent. Le loader `WorkflowDefinitionLoader` lit `workflow.yaml` et `tasks.yaml`. Le startup charge ces définitions dans `app.state.hermes_workflow_definitions`.
+Les contrats `TaskDefinition` et `WorkflowDefinition` existent. Le loader `WorkflowDefinitionLoader` lit `workflow.yaml` et `tasks.yaml`. Le startup charge ces définitions dans `app.state.hermes_workflow_definitions`. Le workflow `document_analysis` fournit le premier exemple réel.
 
 Reste à faire :
 
-- exécuter `pytest tests/test_task_contracts.py tests/test_workflow_definition_loader.py` ;
+- exécuter `pytest tests/test_task_contracts.py tests/test_workflow_definition_loader.py tests/test_document_analysis_workflow.py` ;
 - ajouter `task_run` dans l’observability ;
-- créer un exemple de workflow réel ;
 - exposer les tâches dans Hermes Console ;
 - connecter les définitions au moteur d’exécution.
 
@@ -316,7 +320,8 @@ Confirmé :
 - `tests/test_manifest_loader.py` ;
 - `tests/test_manifest_contract.py` ;
 - `tests/test_task_contracts.py` ;
-- `tests/test_workflow_definition_loader.py`.
+- `tests/test_workflow_definition_loader.py` ;
+- `tests/test_document_analysis_workflow.py`.
 
 Reste à faire : tests tools, `orchestra/service.py`, E2E RAG, mémoire complète, approvals, workflows C1-C5, context preview, consolidation dry-run.
 
@@ -504,20 +509,19 @@ Règles :
 
 Ordre recommandé :
 
-1. Exécuter les tests ajoutés : `pytest tests/test_manifest_loader.py tests/test_manifest_contract.py tests/test_task_contracts.py tests/test_workflow_definition_loader.py` puis suite existante pertinente.
+1. Exécuter les tests ajoutés : `pytest tests/test_manifest_loader.py tests/test_manifest_contract.py tests/test_task_contracts.py tests/test_workflow_definition_loader.py tests/test_document_analysis_workflow.py` puis suite existante pertinente.
 2. Corriger les éventuels échecs liés aux contrats.
-3. Ajouter un exemple de workflow YAML réel.
-4. Exposer les workflows chargés dans Hermes Console ou health/debug endpoint.
-5. Finaliser l’audit code/docs avec inspection complète locale ou CI.
-6. Enrichir progressivement les manifests API et runtime.
-7. Ajouter ou vérifier Approval Gate / HITL.
-8. Compléter la mémoire : raw/candidate/active/summaries/cards/traces.
-9. Ajouter context preview.
-10. Ajouter dry-run de consolidation.
-11. Compléter tests mémoire, approvals et workflows C1-C5.
-12. Renforcer monitoring consolidé : approvals, contexte injecté, traces d’action.
-13. Reporter Browser Tool après PolicyEngine, Approval Gate et Observability.
-14. Instrumenter DSPy plus tard.
+3. Exposer les workflows chargés dans Hermes Console ou health/debug endpoint.
+4. Finaliser l’audit code/docs avec inspection complète locale ou CI.
+5. Enrichir progressivement les manifests API et runtime.
+6. Ajouter ou vérifier Approval Gate / HITL.
+7. Compléter la mémoire : raw/candidate/active/summaries/cards/traces.
+8. Ajouter context preview.
+9. Ajouter dry-run de consolidation.
+10. Compléter tests mémoire, approvals et workflows C1-C5.
+11. Renforcer monitoring consolidé : approvals, contexte injecté, traces d’action.
+12. Reporter Browser Tool après PolicyEngine, Approval Gate et Observability.
+13. Instrumenter DSPy plus tard.
 
 ---
 
