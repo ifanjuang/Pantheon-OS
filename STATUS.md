@@ -59,6 +59,7 @@ Pantheon OS dispose d’un socle MVP réel : FastAPI, PostgreSQL + pgvector, Ope
 - Workflow definitions : `WorkflowDefinitionLoader` charge `workflow.yaml` et `tasks.yaml` au startup, stocke les définitions dans `app.state.hermes_workflow_definitions`, mais il n’est pas encore branché à un moteur d’exécution.
 - Exemple workflow : `modules/workflows/document_analysis/` existe avec `manifest.yaml`, `workflow.yaml`, `tasks.yaml` et test de validation.
 - Debug runtime : `/debug/runtime-registry` expose les agents, skills, workflow manifests, workflow definitions et modules API chargés au startup.
+- Approval Gate : module API `approvals` présent mais désactivé dans `modules.yaml`. Migration et tests ajoutés, non vérifiés en CI/local dans cette session.
 - Mémoire agent : `AgentMemory` et `extract_and_store_memories()` sont utilisés par les tests, avec promotion `promotable` projet → agence. Cette mémoire n’est pas encore alignée avec la doctrine complète `raw_history / candidate_facts / active_facts / summaries / cards / traces`.
 - Hermes Console : activée et manifest présent, mais contenu fonctionnel complet non audité.
 
@@ -67,6 +68,7 @@ Pantheon OS dispose d’un socle MVP réel : FastAPI, PostgreSQL + pgvector, Ope
 - Présence réelle des agents et skills sous `modules/`.
 - État réel de `FlowManager`, `HecateResolver`, `IrisClarifier`, `MetisEditor`, `deep_search`, DLQ ARQ, OCR fallback GLM-4V et cockpit d’affaire.
 - État réel des modules métier `planning`, `chantier`, `communications`, `finance`, décrits comme livrés historiquement mais désactivés dans `modules.yaml`.
+- Chaîne Alembic réelle : la migration `20260426_0001_add_approval_requests.py` utilise `down_revision = None` faute de visibilité complète du dossier `alembic/versions`. À corriger si une tête Alembic existe déjà.
 
 ---
 
@@ -170,6 +172,40 @@ Reste à faire :
 - exposer les tâches dans Hermes Console ;
 - connecter les définitions au moteur d’exécution lorsqu’il sera audité ou stabilisé.
 
+## 🔄 Approval Gate / HITL minimal
+
+Livré :
+
+- `platform/api/apps/approvals/manifest.yaml`
+- `platform/api/apps/approvals/__init__.py`
+- `platform/api/apps/approvals/models.py`
+- `platform/api/apps/approvals/schemas.py`
+- `platform/api/apps/approvals/service.py`
+- `platform/api/apps/approvals/router.py`
+- `alembic/versions/20260426_0001_add_approval_requests.py`
+- `tests/test_approval_contracts.py`
+- `modules.yaml` référence `approvals` en `enabled: false`
+
+Rôle :
+
+- créer le modèle `ApprovalRequest` ;
+- gérer les statuts `pending / approved / rejected / expired / escalated / cancelled` ;
+- fournir les endpoints CRUD et décisions ;
+- protéger contre la double décision via update conditionnel `pending / escalated` ;
+- préparer l’intégration future avec PolicyGate et pause/resume workflow.
+
+Statut : 🔄 Partiel. Module présent mais désactivé. Migration et tests ajoutés, non exécutés. `down_revision` Alembic à vérifier.
+
+Reste à faire :
+
+- vérifier et corriger `down_revision` ;
+- exécuter les tests ;
+- ajouter tests de service avec DB async ;
+- activer le module après validation migration ;
+- brancher PolicyGate ;
+- brancher pause/resume workflow ;
+- exposer pending approvals dans Hermes Console.
+
 ## ✅ Refactoring modulaire majeur
 
 Livré selon l’historique projet, mais à revérifier dans le code complet :
@@ -220,6 +256,24 @@ Reste à faire :
 
 Priorité : P1.
 
+### 🔄 Approval Gate / HITL
+
+Partiel.
+
+Le module `approvals` existe mais reste désactivé dans `modules.yaml`.
+
+Reste à faire :
+
+- vérifier et corriger `down_revision` Alembic ;
+- exécuter `pytest tests/test_approval_contracts.py` ;
+- ajouter tests de service avec DB async ;
+- activer le module après validation migration ;
+- brancher PolicyGate ;
+- brancher pause/resume workflow ;
+- exposer pending approvals dans Hermes Console.
+
+Priorité : P1.
+
 ### ⬜ Module `decisions`
 
 Documenté mais désactivé.
@@ -228,7 +282,7 @@ Documenté mais désactivé.
 
 Reste à faire : module API complet, endpoints CRUD, filtres par dette, résolution manuelle, alertes D3, dashboard dédié.
 
-Priorité : P1 après Task Contract.
+Priorité : P1 après Task Contract et Approval Gate minimal.
 
 ### 🔄 Chaîne de veto séquencée
 
@@ -239,33 +293,6 @@ Les tests confirment des patterns de veto et une criticité C1-C5. Reste à conf
 Reste à faire : formalisation complète `veto_zeus`, modèle `verdict / justification / severity / lift_condition`, traçabilité UI.
 
 Priorité : P2.
-
-### ⬜ Approval Gate / HITL
-
-Documenté mais non confirmé dans le code.
-
-Source d’inspiration analysée : `suryamr2002/langgraph-approval-hub`.
-
-À intégrer :
-
-- modèle `ApprovalRequest` ;
-- statuts `pending / approved / rejected / expired / escalated / cancelled` ;
-- assignee personne / équipe ;
-- `decision_note` ;
-- audit log ;
-- expiration ;
-- escalation ;
-- pause/resume workflow ;
-- protection contre double décision concurrente ;
-- console pending approvals.
-
-À rejeter :
-
-- dépendance directe à Vercel / Supabase ;
-- dashboard externe séparé comme source de vérité ;
-- SDK externe comme couche principale.
-
-Priorité : P1.
 
 ### 🔄 Mémoire — refactoring de service
 
@@ -324,9 +351,10 @@ Confirmé :
 - `tests/test_manifest_contract.py` ;
 - `tests/test_task_contracts.py` ;
 - `tests/test_workflow_definition_loader.py` ;
-- `tests/test_document_analysis_workflow.py`.
+- `tests/test_document_analysis_workflow.py` ;
+- `tests/test_approval_contracts.py`.
 
-Reste à faire : tests tools, `orchestra/service.py`, E2E RAG, mémoire complète, approvals, workflows C1-C5, context preview, consolidation dry-run.
+Reste à faire : tests tools, `orchestra/service.py`, E2E RAG, mémoire complète, approvals DB/service, workflows C1-C5, context preview, consolidation dry-run.
 
 Priorité : P1.
 
@@ -512,18 +540,20 @@ Règles :
 
 Ordre recommandé :
 
-1. Exécuter les tests ajoutés : `pytest tests/test_manifest_loader.py tests/test_manifest_contract.py tests/test_task_contracts.py tests/test_workflow_definition_loader.py tests/test_document_analysis_workflow.py` puis suite existante pertinente.
-2. Corriger les éventuels échecs liés aux contrats.
-3. Finaliser l’audit code/docs avec inspection complète locale ou CI.
-4. Enrichir progressivement les manifests API et runtime.
-5. Ajouter ou vérifier Approval Gate / HITL.
-6. Compléter la mémoire : raw/candidate/active/summaries/cards/traces.
-7. Ajouter context preview.
-8. Ajouter dry-run de consolidation.
-9. Compléter tests mémoire, approvals et workflows C1-C5.
-10. Renforcer monitoring consolidé : approvals, contexte injecté, traces d’action.
-11. Reporter Browser Tool après PolicyEngine, Approval Gate et Observability.
-12. Instrumenter DSPy plus tard.
+1. Exécuter les tests ajoutés : `pytest tests/test_manifest_loader.py tests/test_manifest_contract.py tests/test_task_contracts.py tests/test_workflow_definition_loader.py tests/test_document_analysis_workflow.py tests/test_approval_contracts.py` puis suite existante pertinente.
+2. Vérifier la chaîne Alembic et corriger `down_revision` de la migration approvals si nécessaire.
+3. Corriger les éventuels échecs liés aux contrats.
+4. Finaliser l’audit code/docs avec inspection complète locale ou CI.
+5. Enrichir progressivement les manifests API et runtime.
+6. Activer `approvals` après validation migration + tests.
+7. Brancher PolicyGate / Approval Gate.
+8. Compléter la mémoire : raw/candidate/active/summaries/cards/traces.
+9. Ajouter context preview.
+10. Ajouter dry-run de consolidation.
+11. Compléter tests mémoire, approvals DB/service et workflows C1-C5.
+12. Renforcer monitoring consolidé : approvals, contexte injecté, traces d’action.
+13. Reporter Browser Tool après PolicyEngine, Approval Gate et Observability.
+14. Instrumenter DSPy plus tard.
 
 ---
 
