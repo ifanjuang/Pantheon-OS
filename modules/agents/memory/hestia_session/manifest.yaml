@@ -1,8 +1,0 @@
-id: hestia
-name: "@Hestia"
-layer: memory
-role: session_memory
-enabled: true
-veto: false
-description: "Session memory — immediate context, user clarifications, run continuity"
-class: modules.agents.memory.hestia_session.agent.Hestia

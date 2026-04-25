@@ -1,9 +1,9 @@
-from modules.agents.analysis.metis_optimizer.agent import Metis
+from modules.agents.analysis.metis_deliberator.agent import Metis
 
 
 def test_identity():
     assert Metis.agent == "@Metis"
-    assert Metis.role == "optimizer"
+    assert Metis.role == "deliberator"
     assert Metis.layer == "analysis"
 
 

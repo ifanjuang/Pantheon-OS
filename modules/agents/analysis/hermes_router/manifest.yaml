@@ -4,5 +4,5 @@ layer: analysis
 role: router
 enabled: true
 veto: false
-description: "Research router — source selection, skill activation, multi-source coordination"
+description: "Research routing and precheck — decides how a run should enter the system before orchestration expands it"
 class: modules.agents.analysis.hermes_router.agent.Hermes

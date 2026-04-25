@@ -4,5 +4,5 @@ layer: analysis
 role: uncertainty_resolver
 enabled: true
 veto: false
-description: "Uncertainty detection — ambiguity, missing info, clarification questions"
+description: "Uncertainty and missing-information detection — prevents the system from pretending it knows what it does not know"
 class: modules.agents.analysis.hecate_uncertainty.agent.Hecate

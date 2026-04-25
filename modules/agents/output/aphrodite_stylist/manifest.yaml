@@ -4,5 +4,5 @@ layer: output
 role: stylist
 enabled: false
 veto: false
-description: "Polish and impact — presentation improvement, form enhancement"
+description: "Presentation polish — improves perception, readability, and presentation quality without changing the factual core"
 class: modules.agents.output.aphrodite_stylist.agent.Aphrodite

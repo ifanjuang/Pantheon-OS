@@ -1,8 +1,0 @@
-id: hades
-name: "@Hades"
-layer: memory
-role: vector_retrieval
-enabled: true
-veto: false
-description: "Deep memory — semantic retrieval, pgvector chunks, long-term search"
-class: modules.agents.memory.hades_vector.agent.Hades

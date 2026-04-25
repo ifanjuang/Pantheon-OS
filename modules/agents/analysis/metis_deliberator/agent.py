@@ -4,7 +4,7 @@ from core.contracts.agent import AgentBase
 
 class Metis(AgentBase):
     agent = "@Metis"
-    role = "optimizer"
+    role = "deliberator"
     layer = "analysis"
     veto = False
     enabled = False

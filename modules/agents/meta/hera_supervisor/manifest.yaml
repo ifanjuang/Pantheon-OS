@@ -4,5 +4,5 @@ layer: meta
 role: supervisor
 enabled: false
 veto: false
-description: "Global coherence — final alignment check, contradiction detection"
+description: "Post-run supervision — evaluates whether final orchestration stayed aligned with expected quality"
 class: modules.agents.meta.hera_supervisor.agent.Hera

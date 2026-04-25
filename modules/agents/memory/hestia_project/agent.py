@@ -2,9 +2,9 @@ from pathlib import Path
 from core.contracts.agent import AgentBase
 
 
-class Hades(AgentBase):
-    agent = "@Hades"
-    role = "vector_retrieval"
+class Hestia(AgentBase):
+    agent = "@Hestia"
+    role = "project_memory"
     layer = "memory"
     veto = False
     enabled = True

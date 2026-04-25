@@ -1,0 +1,8 @@
+id: hades
+name: "@Hades"
+layer: memory
+role: deep_retrieval
+enabled: true
+veto: false
+description: "Deep retrieval memory — recovers buried context from archives and long-term stores"
+class: modules.agents.memory.hades_retrieval.agent.Hades

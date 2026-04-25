@@ -4,5 +4,5 @@ layer: meta
 role: orchestrator
 enabled: true
 veto: false
-description: "Global orchestration — execution order, merge/fork/child workflows, fallbacks"
+description: "Orchestration and arbitration — coordinates the overall run when multiple agents are involved"
 class: modules.agents.meta.zeus_orchestrator.agent.Zeus

@@ -4,5 +4,5 @@ layer: output
 role: builder
 enabled: true
 veto: false
-description: "Deliverable construction — dossiers, briefs, reports with citations and annexes"
+description: "Document construction — transforms validated content into formal deliverables"
 class: modules.agents.output.daedalus_builder.agent.Daedalus

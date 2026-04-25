@@ -4,5 +4,5 @@ layer: analysis
 role: filter
 enabled: false
 veto: false
-description: "Filtering and focus — noise reduction, relevance prioritization"
+description: "Relevance filtering — narrows evidence so the system remains focused"
 class: modules.agents.analysis.artemis_filter.agent.Artemis

@@ -1,9 +1,9 @@
-from modules.agents.memory.hestia_session.agent import Hestia
+from modules.agents.memory.hestia_project.agent import Hestia
 
 
 def test_identity():
     assert Hestia.agent == "@Hestia"
-    assert Hestia.role == "session_memory"
+    assert Hestia.role == "project_memory"
     assert Hestia.layer == "memory"
 
 
