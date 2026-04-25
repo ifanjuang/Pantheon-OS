@@ -233,6 +233,18 @@ Core tables:
 
 ⸻
 
+Auditable Memory
+
+Pantheon OS uses structured memory to preserve continuity across affairs, agents, workflows and documents.
+
+Memory is not an opaque summary layer. It must distinguish raw sources, validated facts, candidate facts, summaries, compact cards and orchestration traces.
+
+The operating rule is simple: any information injected into an agent context must be inspectable, source-linked, revisable and retractable. Raw documents, raw messages, tool outputs and execution traces remain the verification base. Cards, summaries and promoted facts are derived layers, not independent truth.
+
+The system must therefore support memory preview, source labels, candidate promotion, explicit consolidation and dry-run review before risky memory mutation.
+
+⸻
+
 Configuration
 
 Single source of truth:
@@ -263,6 +275,8 @@ Design Principles
 5. Scalable architecture
     MVP runs without Redis or LangGraph
     V2 enables distributed execution
+6. Auditable memory
+    Context injection must be inspectable, source-linked and governed.
 
 ⸻
 
@@ -283,6 +297,7 @@ V2
 * Observability + scoring
 * Async execution (Redis / ARQ)
 * Multi-tenant + domain overlays
+* Auditable memory lifecycle: raw history, candidate facts, active facts, summaries, compact cards, dry-run consolidation
 
 ⸻
 
