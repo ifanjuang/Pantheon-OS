@@ -357,11 +357,7 @@ async def write_error_memory(
     from database import AsyncSessionLocal
 
     error_type = type(error).__name__
-    lesson = (
-        f"Échec orchestration [{criticite}/{error_type}] : "
-        f"{instruction[:150]}. "
-        f"Erreur : {str(error)[:200]}"
-    )
+    lesson = f"Échec orchestration [{criticite}/{error_type}] : {instruction[:150]}. Erreur : {str(error)[:200]}"
     try:
         async with AsyncSessionLocal() as db:
             mem = AgentMemory(

@@ -35,12 +35,8 @@ log = get_logger("orchestra.service")
 _LLM_TIMEOUT = 90
 
 _ROOT = Path(__file__).parent.parent.parent.parent
-AGENTS_DIR = (
-    Path(settings.AGENTS_DIR)
-    if hasattr(settings, "AGENTS_DIR")
-    else _ROOT / "agents"
-)
-CORE_DIR = _ROOT / "core"   # meta-agents (zeus, hera, artemis, kairos, hermes, athena)
+AGENTS_DIR = Path(settings.AGENTS_DIR) if hasattr(settings, "AGENTS_DIR") else _ROOT / "agents"
+CORE_DIR = _ROOT / "core"  # meta-agents (zeus, hera, artemis, kairos, hermes, athena)
 _REGISTRY_PATH = _ROOT / "config" / "agent_registry.yaml"
 
 
@@ -49,6 +45,7 @@ def _load_registry() -> dict:
     """Charge config/agent_registry.yaml (LRU cached — source unique de vérité)."""
     try:
         import yaml  # type: ignore[import]
+
         if _REGISTRY_PATH.exists():
             data = yaml.safe_load(_REGISTRY_PATH.read_text(encoding="utf-8"))
             return data if isinstance(data, dict) else {}
@@ -74,6 +71,8 @@ def get_agent_meta(agent_name: str) -> dict:
         "layer": entry.get("layer", ""),
         "class": entry.get("class", ""),
     }
+
+
 DEFAULT_AGENTS = ["themis", "athena", "chronos"]
 DEFAULT_SYNTHESIS_AGENT = "kairos"  # synthèse finale — remplace mnemosyne dans ce rôle
 
@@ -92,32 +91,32 @@ COGNITIVE_LIMITS: dict[str, dict] = {
 # Valeur = liste des criticités (ou patterns) déclenchant cet agent.
 AGENT_TRIGGERS: dict[str, list[str]] = {
     # Agents analyse
-    "promethee": ["C4", "C5"],               # contre-analyse : C4/C5 seulement
-    "dionysos":  ["C4", "C5", "exploration"], # créativité : C4/C5 ou pattern exploration
-    "demeter":   ["C3", "C4", "C5"],         # collecte contexte : planification C3+
+    "promethee": ["C4", "C5"],  # contre-analyse : C4/C5 seulement
+    "dionysos": ["C4", "C5", "exploration"],  # créativité : C4/C5 ou pattern exploration
+    "demeter": ["C3", "C4", "C5"],  # collecte contexte : planification C3+
     # Agents cadrage / validation
-    "themis":    ["C4", "C5"],               # validation légale : C4/C5 uniquement
-    "ares":      ["C3", "C4", "C5"],         # sécurité systémique : veto C3+
+    "themis": ["C4", "C5"],  # validation légale : C4/C5 uniquement
+    "ares": ["C3", "C4", "C5"],  # sécurité systémique : veto C3+
     # Agents continuité
-    "hestia":    ["C3", "C4", "C5"],         # mémoire projet : pas C1/C2
-    "mnemosyne": ["C4", "C5"],               # mémoire agence : C4/C5 seulement
-    "hades":     ["C4", "C5"],               # mémoire longue durée : criticité haute
+    "hestia": ["C3", "C4", "C5"],  # mémoire projet : pas C1/C2
+    "mnemosyne": ["C4", "C5"],  # mémoire agence : C4/C5 seulement
+    "hades": ["C4", "C5"],  # mémoire longue durée : criticité haute
     # Agents communication
-    "iris":      ["C4", "C5"],               # correspondance formelle : C4/C5
-    "aphrodite": [],                         # styliste production — jamais décisionnel auto
+    "iris": ["C4", "C5"],  # correspondance formelle : C4/C5
+    "aphrodite": [],  # styliste production — jamais décisionnel auto
     # Agents production
-    "dedale":    ["C4", "C5"],               # production dossiers complets : C4/C5
-    "hephaistos":["C1", "C2", "C3", "C4", "C5"],  # diagrammes : toujours activable
+    "dedale": ["C4", "C5"],  # production dossiers complets : C4/C5
+    "hephaistos": ["C1", "C2", "C3", "C4", "C5"],  # diagrammes : toujours activable
     # Agents système
-    "poseidon":  ["C4", "C5"],               # distribution charge : systèmes complexes
+    "poseidon": ["C4", "C5"],  # distribution charge : systèmes complexes
     # Meta-agents Pantheon OS
-    "hera":      ["C3", "C4", "C5"],         # supervision : post-synthèse C3+
-    "artemis":   ["C1", "C2", "C3", "C4", "C5"],  # filtrage : sur demande Zeus (trim)
-    "kairos":    ["C1", "C2", "C3", "C4", "C5"],  # synthèse : toujours activable
+    "hera": ["C3", "C4", "C5"],  # supervision : post-synthèse C3+
+    "artemis": ["C1", "C2", "C3", "C4", "C5"],  # filtrage : sur demande Zeus (trim)
+    "kairos": ["C1", "C2", "C3", "C4", "C5"],  # synthèse : toujours activable
     # Agents v2 — incertitude, édition, clarification
-    "hecate":        ["C1", "C2", "C3", "C4", "C5"],  # analyse incertitude : always-on
-    "metis":         ["C2", "C3", "C4", "C5"],         # révision stylistique
-    "iris_clarifier":["C1", "C2", "C3", "C4", "C5"],  # reformulation questions
+    "hecate": ["C1", "C2", "C3", "C4", "C5"],  # analyse incertitude : always-on
+    "metis": ["C2", "C3", "C4", "C5"],  # révision stylistique
+    "iris_clarifier": ["C1", "C2", "C3", "C4", "C5"],  # reformulation questions
 }
 
 # Routing automatique selon criticité
@@ -130,36 +129,36 @@ CRITICITE_ROUTING = {
 }
 VALID_AGENTS = {
     # Meta
-    "hermes",          # router
-    "hera",            # supervisor
-    "artemis",         # filter
-    "kairos",          # synthesizer
-    "apollon",         # validator (meta)
+    "hermes",  # router
+    "hera",  # supervisor
+    "artemis",  # filter
+    "kairos",  # synthesizer
+    "apollon",  # validator (meta)
     # Analyse
-    "athena",          # planner
-    "argos",           # extractor
-    "promethee",       # challenger
-    "dionysos",        # creative
-    "demeter",         # collector
-    "hecate",          # uncertainty_resolver
+    "athena",  # planner
+    "argos",  # extractor
+    "promethee",  # challenger
+    "dionysos",  # creative
+    "demeter",  # collector
+    "hecate",  # uncertainty_resolver
     # Cadrage / Validation
-    "themis",          # legal_validator (veto)
-    "chronos",         # time_planner
+    "themis",  # legal_validator (veto)
+    "chronos",  # time_planner
     # Système
-    "ares",            # security_guard (veto)
-    "poseidon",        # distributor
+    "ares",  # security_guard (veto)
+    "poseidon",  # distributor
     # Continuité
-    "hestia",          # memory_project
-    "mnemosyne",       # memory_agency
-    "hades",           # memory_longterm
+    "hestia",  # memory_project
+    "mnemosyne",  # memory_agency
+    "hades",  # memory_longterm
     # Communication
-    "iris",            # communicator
+    "iris",  # communicator
     "iris_clarifier",  # clarifier
-    "metis",           # editor
+    "metis",  # editor
     # Production
-    "dedale",          # builder
-    "hephaistos",      # diagram_builder
-    "aphrodite",       # stylist
+    "dedale",  # builder
+    "hephaistos",  # diagram_builder
+    "aphrodite",  # stylist
 }
 
 

@@ -10,8 +10,8 @@ import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from modules.guards.schemas import CriticalityImpacts, CriticalityVerdict
-from modules.guards.service import GuardsService, MAX_COMPLEMENTS_BY_CRITICITE
+from apps.guards.schemas import CriticalityImpacts, CriticalityVerdict
+from apps.guards.service import GuardsService, MAX_COMPLEMENTS_BY_CRITICITE
 
 
 # ── criticality_guard (règle pure, 0 LLM) ───────────────────────────────────
@@ -237,7 +237,7 @@ class TestMaxComplements:
 
 class TestVetoPatterns:
     def test_themis_hors_mission_detected(self):
-        from modules.guards.veto_patterns import fast_veto_check
+        from apps.guards.veto_patterns import fast_veto_check
 
         output = "Cette demande est clairement hors mission MOE. Je m'oppose formellement."
         result = fast_veto_check("themis", output)
@@ -246,7 +246,7 @@ class TestVetoPatterns:
         assert result.severity == "bloquant"
 
     def test_hephaistos_infaisable_detected(self):
-        from modules.guards.veto_patterns import fast_veto_check
+        from apps.guards.veto_patterns import fast_veto_check
 
         output = "Ce montage est techniquement infaisable selon les DTU en vigueur."
         result = fast_veto_check("hephaistos", output)
@@ -254,14 +254,14 @@ class TestVetoPatterns:
         assert result.veto is True
 
     def test_no_veto_returns_none(self):
-        from modules.guards.veto_patterns import fast_veto_check
+        from apps.guards.veto_patterns import fast_veto_check
 
         output = "L'analyse indique quelques points d'attention mais rien de bloquant."
         result = fast_veto_check("themis", output)
         assert result is None
 
     def test_short_output_returns_none(self):
-        from modules.guards.veto_patterns import fast_veto_check
+        from apps.guards.veto_patterns import fast_veto_check
 
         result = fast_veto_check("themis", "ok")
         assert result is None
@@ -275,7 +275,7 @@ class TestMemoryPromotion:
         """Une leçon promotable crée aussi une entrée scope=agence pour Mnémosyne."""
         import uuid
         from unittest.mock import AsyncMock, MagicMock, patch
-        from modules.agent.models import AgentMemory
+        from apps.agent.models import AgentMemory
         from sqlalchemy import select
 
         llm_response = json.dumps(
@@ -302,7 +302,7 @@ class TestMemoryPromotion:
             )
             MockLlm._get_client.return_value = mock_client
 
-            from modules.agent.memory import extract_and_store_memories
+            from apps.agent.memory import extract_and_store_memories
 
             run_id = uuid.uuid4()
             await extract_and_store_memories(
@@ -340,7 +340,7 @@ class TestMemoryPromotion:
         """Une leçon non-promotable ne crée pas d'entrée agence."""
         import uuid
         from unittest.mock import AsyncMock, MagicMock, patch
-        from modules.agent.models import AgentMemory
+        from apps.agent.models import AgentMemory
         from sqlalchemy import select
 
         llm_response = json.dumps(
@@ -362,7 +362,7 @@ class TestMemoryPromotion:
             )
             MockLlm._get_client.return_value = mock_client
 
-            from modules.agent.memory import extract_and_store_memories
+            from apps.agent.memory import extract_and_store_memories
 
             run_id = uuid.uuid4()
             await extract_and_store_memories(

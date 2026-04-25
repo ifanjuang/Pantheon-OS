@@ -142,7 +142,7 @@ class TestCaptureDetail:
 class TestProcessCapture:
     async def test_process_capture_loads_transcription_from_db(self, db, affaire, moe_user):
         """process_capture sans transcription explicite charge depuis la DB."""
-        from modules.capture.models import CaptureSession
+        from apps.capture.models import CaptureSession
 
         capture = CaptureSession(
             affaire_id=affaire.id,
@@ -162,7 +162,7 @@ class TestProcessCapture:
             mock_run.iterations = 2
             mock_agent.return_value = mock_run
 
-            from modules.capture.service import process_capture
+            from apps.capture.service import process_capture
 
             await process_capture(
                 db=db,
@@ -179,7 +179,7 @@ class TestProcessCapture:
 
     async def test_process_capture_fails_without_transcription(self, db, affaire, moe_user):
         """process_capture sans transcription en DB ni paramètre -> failed."""
-        from modules.capture.models import CaptureSession
+        from apps.capture.models import CaptureSession
 
         capture = CaptureSession(
             affaire_id=affaire.id,
@@ -191,7 +191,7 @@ class TestProcessCapture:
         db.add(capture)
         await db.flush()
 
-        from modules.capture.service import process_capture
+        from apps.capture.service import process_capture
 
         await process_capture(
             db=db,

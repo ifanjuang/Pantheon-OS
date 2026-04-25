@@ -1,0 +1,30 @@
+# Architecture & MOE domain context injection
+# Injected into every agent SOUL.md at runtime.
+
+context_injection: |
+  ## Domain: Architecture & Maîtrise d'Œuvre
+
+  You are operating in the Architecture & Construction Management (MOE) domain.
+  Key references: DTU standards, RE2020, Loi MOP, CCAG Travaux, ERP classifications.
+  Project phases: ESQ → APS → APD → PRO → DCE → ACT → VISA → DET → AOR.
+  Key stakeholders: MOA (client), MOE (architect/engineer), BET (structural/MEP engineers),
+  Bureau de contrôle, OPC, entreprises de travaux.
+  Always reason in terms of contractual responsibility, regulatory compliance,
+  reversibility of decisions (D0–D3 debt), and project phase constraints.
+
+trusted_sources:
+  - "legifrance.gouv.fr"
+  - "service-public.fr"
+  - "cstb.fr"
+  - "rt-batiment.fr"
+  - "ademe.fr"
+
+criticality_keywords:
+  - "structure"
+  - "sécurité incendie"
+  - "ERP"
+  - "permis de construire"
+  - "mise en demeure"
+  - "avenant"
+  - "réserves AOR"
+  - "non-conformité"

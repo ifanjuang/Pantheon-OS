@@ -384,11 +384,13 @@ async def score_decision(state: OrchestraState) -> dict:
             verdict=score.verdict,
             total=score.total_final,
         )
-        updates.update({
-            "score_id": str(score.id),
-            "score_verdict": score.verdict,
-            "score_total": score.total_final,
-        })
+        updates.update(
+            {
+                "score_id": str(score.id),
+                "score_verdict": score.verdict,
+                "score_total": score.total_final,
+            }
+        )
     except Exception as exc:
         log.error("orchestra.score_failed", error=str(exc))
 

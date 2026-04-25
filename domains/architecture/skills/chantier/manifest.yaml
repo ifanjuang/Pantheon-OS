@@ -1,0 +1,5 @@
+name: chantier
+domain: architecture
+version: "1.0.0"
+api_module: chantier
+description: "Architecture domain skill — see api/modules/chantier/ for implementation."

@@ -176,8 +176,8 @@ class TestCRCreate:
 class TestCRAnalysis:
     async def test_analyse_extracts_actions(self, client, moe_token, affaire, mock_llm_analyse):
         from database import AsyncSessionLocal
-        from modules.meeting.models import MeetingCR
-        from modules.meeting.service import analyse_cr
+        from apps.meeting.models import MeetingCR
+        from apps.meeting.service import analyse_cr
 
         async with AsyncSessionLocal() as db:
             cr = MeetingCR(
@@ -198,8 +198,8 @@ class TestCRAnalysis:
 
     async def test_analyse_creates_actions_in_db(self, client, moe_token, affaire, mock_llm_analyse):
         from database import AsyncSessionLocal
-        from modules.meeting.models import MeetingAction, MeetingCR
-        from modules.meeting.service import analyse_cr
+        from apps.meeting.models import MeetingAction, MeetingCR
+        from apps.meeting.service import analyse_cr
         from sqlalchemy import select
 
         async with AsyncSessionLocal() as db:
@@ -222,8 +222,8 @@ class TestCRAnalysis:
 
     async def test_analyse_fails_on_empty_content(self, affaire):
         from database import AsyncSessionLocal
-        from modules.meeting.models import MeetingCR
-        from modules.meeting.service import analyse_cr
+        from apps.meeting.models import MeetingCR
+        from apps.meeting.service import analyse_cr
 
         async with AsyncSessionLocal() as db:
             cr = MeetingCR(affaire_id=affaire.id, titre="Vide", contenu_brut="")

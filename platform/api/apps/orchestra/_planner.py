@@ -38,6 +38,7 @@ def _filter_agents_by_triggers(agents: list[str], criticite: str) -> list[str]:
             log.debug("orchestra.agent_trigger_blocked", agent=agent, criticite=criticite)
     return result
 
+
 # ── Prompt Zeus unifié ───────────────────────────────────────────────
 
 _ZEUS_UNIFIED_PROMPT = """\

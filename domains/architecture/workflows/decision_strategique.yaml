@@ -1,0 +1,25 @@
+flow:
+  name: decision_strategique
+  version: "1.0.0"
+  description: >
+    Pipeline de décision engageante (C4-C5).
+    Inclut analyse de risques, contre-analyse, veto structuré et HITL.
+  criticite_min: C4
+  steps:
+    - ZEUS                 # orchestration stratégique
+    - ATHENA               # planification détaillée
+    - HECATE               # analyse d'incertitude — strict à C4+
+    - HERMES               # routage
+    - [APOLLON, HADES, POSEIDON]  # recherche + risques + cascades en parallèle
+    - PROMETHEE            # contre-analyse et détection de biais
+    - [THEMIS, HEPHAISTOS] # validation légale + technique (veto possible)
+    - KAIROS               # synthèse
+    - HERA                 # supervision cohérence globale
+    - METIS                # révision stylistique
+    - DEDALE               # document de décision
+    - IRIS                 # output + HITL si C5
+  on_hecate_block:
+    - IRIS_CLARIFIER
+  on_veto:
+    halt: true
+    notify: [ZEUS, HERA]

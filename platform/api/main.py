@@ -72,6 +72,7 @@ async def lifespan(app: FastAPI):
     # 3. Load Hermes Runtime registries (auto-discovery via manifest.yaml files)
     from core.registries.loader import ManifestLoader
     from pathlib import Path
+
     loader = ManifestLoader(Path("/modules"))
     agents = loader.load_agents()
     skills = loader.load_skills()
@@ -80,11 +81,13 @@ async def lifespan(app: FastAPI):
 
     # 4. Seed default admin user
     from apps.auth.service import seed_admin
+
     async with AsyncSessionLocal() as db:
         await seed_admin(db)
 
     # 5. Load API apps
     from core.registry import ModuleRegistry
+
     reg = ModuleRegistry(app)
     reg.load_all("modules.yaml")
 

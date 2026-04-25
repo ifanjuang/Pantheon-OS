@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 class WorkflowStep(BaseModel):
     """Un pas dans un workflow — un ou plusieurs agents, avec flag parallèle."""
+
     agents: list[str]
     parallel: bool = False
 
@@ -42,6 +43,7 @@ class WorkflowDefinitionOut(BaseModel):
 
 class WorkflowTrigger(BaseModel):
     """Déclenche un run d'orchestration avec le workflow nommé."""
+
     instruction: str = Field(min_length=1)
     affaire_id: str | None = None
     criticite: str | None = None  # forcer la criticité (sinon détectée par Hermès)

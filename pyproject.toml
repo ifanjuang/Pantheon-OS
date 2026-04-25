@@ -10,10 +10,14 @@ ignore = [
 ]
 exclude = ["alembic/versions/", "benchmarks/"]
 
+[tool.ruff.lint.per-file-ignores]
+# conftest manipulates sys.path before importing modules — required ordering.
+"tests/conftest.py" = ["E402"]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-pythonpath = ["api"]
+pythonpath = ["platform/api"]

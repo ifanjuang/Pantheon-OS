@@ -114,6 +114,7 @@ def get_router(config: dict) -> APIRouter:
             )
         # Import tardif pour éviter les imports circulaires
         from apps.orchestra.service import OrchestraService
+
         run_id = await OrchestraService.create_run(
             db=db,
             instruction=body.instruction,

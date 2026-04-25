@@ -1,0 +1,5 @@
+name: webhooks
+domain: architecture
+version: "1.0.0"
+api_module: webhooks
+description: "Architecture domain skill — see api/modules/webhooks/ for implementation."

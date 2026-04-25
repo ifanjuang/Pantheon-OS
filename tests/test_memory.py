@@ -9,7 +9,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timezone
 
-from modules.agent.models import AgentMemory
+from apps.agent.models import AgentMemory
 
 
 def _mock_llm_response(content: str):
@@ -37,7 +37,7 @@ class TestExtractAndStoreMemories:
             mock_client.chat.completions.create = AsyncMock(return_value=_mock_llm_response(llm_response))
             MockLlm._get_client.return_value = mock_client
 
-            from modules.agent.memory import extract_and_store_memories
+            from apps.agent.memory import extract_and_store_memories
 
             run_id = uuid.uuid4()
             count = await extract_and_store_memories(
@@ -85,7 +85,7 @@ class TestExtractAndStoreMemories:
             mock_client.chat.completions.create = AsyncMock(return_value=_mock_llm_response(llm_response))
             MockLlm._get_client.return_value = mock_client
 
-            from modules.agent.memory import extract_and_store_memories
+            from apps.agent.memory import extract_and_store_memories
 
             count = await extract_and_store_memories(
                 agent_name="athena",
@@ -99,7 +99,7 @@ class TestExtractAndStoreMemories:
 
     async def test_skips_short_result(self, db, affaire):
         """Résultat trop court -> pas d'extraction."""
-        from modules.agent.memory import extract_and_store_memories
+        from apps.agent.memory import extract_and_store_memories
 
         count = await extract_and_store_memories(
             agent_name="athena",
@@ -126,7 +126,7 @@ class TestGetAgentMemories:
             )
         await db.flush()
 
-        from modules.agent.memory import get_agent_memories
+        from apps.agent.memory import get_agent_memories
 
         lessons = await get_agent_memories(db, "themis", affaire.id, limit=10)
         assert len(lessons) == 3
@@ -150,14 +150,14 @@ class TestGetAgentMemories:
         db.add_all([valid, invalid])
         await db.flush()
 
-        from modules.agent.memory import get_agent_memories
+        from apps.agent.memory import get_agent_memories
 
         lessons = await get_agent_memories(db, "athena", affaire.id)
         assert len(lessons) == 1
         assert "Valide" in lessons[0]
 
     async def test_returns_empty_without_affaire(self, db):
-        from modules.agent.memory import get_agent_memories
+        from apps.agent.memory import get_agent_memories
 
         lessons = await get_agent_memories(db, "athena", None)
         assert lessons == []
@@ -174,7 +174,7 @@ class TestInvalidateMemory:
         db.add(memory)
         await db.flush()
 
-        from modules.agent.memory import invalidate_memory
+        from apps.agent.memory import invalidate_memory
 
         result = await invalidate_memory(db, memory.id)
         assert result is True
@@ -197,7 +197,7 @@ class TestInvalidateMemory:
         db.add_all([old, new])
         await db.flush()
 
-        from modules.agent.memory import invalidate_memory
+        from apps.agent.memory import invalidate_memory
 
         result = await invalidate_memory(db, old.id, superseded_by_id=new.id)
         assert result is True
@@ -215,7 +215,7 @@ class TestInvalidateMemory:
         db.add(memory)
         await db.flush()
 
-        from modules.agent.memory import invalidate_memory
+        from apps.agent.memory import invalidate_memory
 
         result = await invalidate_memory(db, memory.id)
         assert result is False
@@ -249,7 +249,7 @@ class TestConsolidateMemories:
             mock_client.chat.completions.create = AsyncMock(return_value=_mock_llm_response(consolidation_response))
             MockLlm._get_client.return_value = mock_client
 
-            from modules.agent.memory import consolidate_memories
+            from apps.agent.memory import consolidate_memories
 
             total = await consolidate_memories(db, agent_name="chronos", min_lessons=5)
 
@@ -284,7 +284,7 @@ class TestConsolidateMemories:
             )
         await db.flush()
 
-        from modules.agent.memory import consolidate_memories
+        from apps.agent.memory import consolidate_memories
 
         total = await consolidate_memories(db, agent_name="athena", min_lessons=5)
         assert total == 0

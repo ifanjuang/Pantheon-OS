@@ -13,6 +13,7 @@ Stratégie :
 # at position 0, so we must always re-insert api to beat it.
 import sys as _sys
 from pathlib import Path as _Path
+
 _api = str(_Path(__file__).parents[1] / "platform" / "api")
 while _api in _sys.path:
     _sys.path.remove(_api)

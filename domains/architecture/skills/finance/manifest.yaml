@@ -1,0 +1,5 @@
+name: finance
+domain: architecture
+version: "1.0.0"
+api_module: finance
+description: "Architecture domain skill — see api/modules/finance/ for implementation."
