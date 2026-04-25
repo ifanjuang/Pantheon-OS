@@ -1,0 +1,99 @@
+tasks:
+  - id: extract_facts
+    description: Extract factual constraints, entities, dates, obligations, quantities and cited evidence from the provided document chunks.
+    expected_output: Candidate facts with source references, uncertainty markers and missing information.
+    execution_mode: agent
+    assigned_agent: argos
+    inputs:
+      - document_chunks
+      - affair_context
+    dependencies: []
+    tools_allowed:
+      - document_search
+      - chunk_reader
+    memory_scope: project
+    approval_required_if: []
+    guardrails:
+      - Do not infer facts that are not supported by the provided document chunks.
+      - Mark uncertainty explicitly.
+      - Preserve source references.
+    success_criteria:
+      - Each candidate fact has a source or an uncertainty marker.
+      - Dates, quantities and named entities are preserved accurately.
+      - Contradictions are flagged instead of resolved silently.
+    failure_modes:
+      - missing_source
+      - contradictory_information
+      - unreadable_document
+    output_schema: CandidateFacts
+    criticity: C2
+    tags:
+      - extraction
+      - facts
+
+  - id: validate_facts
+    description: Validate extracted candidate facts against sources, detect unsupported claims, and classify confidence.
+    expected_output: Validation report with accepted facts, rejected facts, uncertainties and required clarifications.
+    execution_mode: agent
+    assigned_agent: apollo
+    inputs:
+      - candidate_facts
+      - document_chunks
+    dependencies:
+      - extract_facts
+    tools_allowed:
+      - document_search
+      - chunk_reader
+    memory_scope: project
+    approval_required_if:
+      - memory_promotion
+    guardrails:
+      - Do not promote candidate facts to active memory.
+      - Do not hide contradictions.
+      - Require source support for accepted facts.
+    success_criteria:
+      - Unsupported facts are rejected or marked uncertain.
+      - Contradictions are listed.
+      - Confidence level is explicit.
+    failure_modes:
+      - unsupported_claim
+      - insufficient_context
+      - source_conflict
+    output_schema: ValidationReport
+    criticity: C3
+    tags:
+      - validation
+      - confidence
+
+  - id: synthesize_document
+    description: Produce a structured synthesis from validated facts and unresolved uncertainties.
+    expected_output: Structured synthesis with facts, limits, uncertainties, next actions and memory recommendations.
+    execution_mode: agent
+    assigned_agent: kairos
+    inputs:
+      - validation_report
+      - affair_context
+    dependencies:
+      - validate_facts
+    tools_allowed: []
+    memory_scope: session
+    approval_required_if:
+      - official_document
+      - external_communication
+    guardrails:
+      - Separate facts, interpretation, uncertainty and recommended action.
+      - Do not present unresolved candidate facts as validated.
+      - Keep memory recommendations separate from final synthesis.
+    success_criteria:
+      - Synthesis distinguishes validated facts from uncertainties.
+      - Next actions are explicit.
+      - Memory recommendations are clearly separated.
+    failure_modes:
+      - unclear_output
+      - unsupported_synthesis
+      - missing_next_action
+    output_schema: DocumentSynthesis
+    criticity: C3
+    tags:
+      - synthesis
+      - output
