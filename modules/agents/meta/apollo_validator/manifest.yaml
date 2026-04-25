@@ -4,5 +4,5 @@ layer: meta
 role: validator
 enabled: true
 veto: false
-description: "Final validation — reliability scoring, confidence score, release decision"
+description: "Validation and confidence — final validator of output integrity, confidence, and support quality"
 class: modules.agents.meta.apollo_validator.agent.Apollo

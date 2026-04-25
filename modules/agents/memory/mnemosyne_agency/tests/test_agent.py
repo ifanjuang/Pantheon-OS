@@ -1,9 +1,9 @@
-from modules.agents.memory.mnemosyne_library.agent import Mnemosyne
+from modules.agents.memory.mnemosyne_agency.agent import Mnemosyne
 
 
 def test_identity():
     assert Mnemosyne.agent == "@Mnemosyne"
-    assert Mnemosyne.role == "knowledge_library"
+    assert Mnemosyne.role == "agency_memory"
     assert Mnemosyne.layer == "memory"
 
 

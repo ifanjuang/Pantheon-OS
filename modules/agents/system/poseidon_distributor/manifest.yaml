@@ -4,5 +4,5 @@ layer: system
 role: distributor
 enabled: false
 veto: false
-description: "Load management — parallelism regulation, flow control"
+description: "Flow and load control — protects runtime stability under parallel or branching execution"
 class: modules.agents.system.poseidon_distributor.agent.Poseidon

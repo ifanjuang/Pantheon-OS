@@ -4,5 +4,5 @@ layer: output
 role: communicator
 enabled: true
 veto: false
-description: "Communication and tone — context reformulation, recipient adaptation"
+description: "Communication — adapts formulation for audience and channel without corrupting substance"
 class: modules.agents.output.iris_communicator.agent.Iris

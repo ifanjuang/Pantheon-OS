@@ -1,8 +1,0 @@
-id: mnemosyne
-name: "@Mnemosyne"
-layer: memory
-role: knowledge_library
-enabled: false
-veto: false
-description: "Structured library — internal references, reusable patterns, organizational memory"
-class: modules.agents.memory.mnemosyne_library.agent.Mnemosyne

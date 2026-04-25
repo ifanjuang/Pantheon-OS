@@ -4,5 +4,5 @@ layer: analysis
 role: collector
 enabled: false
 veto: false
-description: "Collection and ingestion — PDF/file/web fetch, corpus preparation, normalization"
+description: "Data ingestion and normalization — standardizes incoming material so the rest of the system can reason over it"
 class: modules.agents.analysis.demeter_collector.agent.Demeter

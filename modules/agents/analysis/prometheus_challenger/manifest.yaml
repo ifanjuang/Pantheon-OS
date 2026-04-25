@@ -4,5 +4,5 @@ layer: analysis
 role: challenger
 enabled: true
 veto: false
-description: "Contradiction and cross-referencing — source comparison, inconsistency detection"
+description: "Challenge and contradiction — resists false confidence, weak consensus, and unsupported reasoning"
 class: modules.agents.analysis.prometheus_challenger.agent.Prometheus

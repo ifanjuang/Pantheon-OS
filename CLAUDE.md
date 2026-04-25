@@ -27,8 +27,8 @@ pantheon-os/
 ├── modules/                       # Self-contained, discoverable components
 │   ├── agents/
 │   │   ├── meta/                  # zeus_orchestrator, athena_planner, themis_guardian, hera_supervisor, apollo_validator
-│   │   ├── analysis/              # hermes_router, demeter_collector, argos_extractor, prometheus_challenger, artemis_filter, hecate_uncertainty, metis_optimizer
-│   │   ├── memory/                # hestia_session, mnemosyne_library, hades_vector
+│   │   ├── analysis/              # hermes_router, demeter_collector, argos_extractor, prometheus_challenger, artemis_filter, hecate_uncertainty, metis_deliberator
+│   │   ├── memory/                # hestia_project, mnemosyne_agency, hades_retrieval
 │   │   ├── output/                # kairos_synthesizer, daedalus_builder, iris_communicator, aphrodite_stylist, hephaestus_diagrams
 │   │   └── system/                # ares_executor, poseidon_distributor
 │   ├── skills/                    # research/, extraction/, validation/, synthesis/, communication/, document/

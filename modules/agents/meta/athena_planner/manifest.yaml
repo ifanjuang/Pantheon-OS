@@ -4,5 +4,5 @@ layer: meta
 role: planner
 enabled: true
 veto: false
-description: "Planning and decomposition — task analysis, sub-task breakdown, agent selection"
+description: "Planning and decomposition — turns a user request into a structured execution approach"
 class: modules.agents.meta.athena_planner.agent.Athena

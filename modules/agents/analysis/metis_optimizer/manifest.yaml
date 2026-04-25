@@ -1,8 +1,0 @@
-id: metis
-name: "@Metis"
-layer: analysis
-role: optimizer
-enabled: false
-veto: false
-description: "Tactical optimization — plan improvement, intelligent shortcuts"
-class: modules.agents.analysis.metis_optimizer.agent.Metis

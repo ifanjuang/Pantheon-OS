@@ -4,5 +4,5 @@ layer: output
 role: synthesizer
 enabled: true
 veto: false
-description: "Contextual synthesis — essential selection, information hierarchization"
+description: "Synthesis — assembles the final narrative from validated material"
 class: modules.agents.output.kairos_synthesizer.agent.Kairos

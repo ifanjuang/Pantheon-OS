@@ -4,5 +4,5 @@ layer: output
 role: diagram_builder
 enabled: false
 veto: false
-description: "Technical production — schemas, Mermaid diagrams, figures"
+description: "Diagrams and technical artifacts — turns structured reasoning into visual or technical representations"
 class: modules.agents.output.hephaestus_diagrams.agent.Hephaestus

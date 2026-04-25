@@ -1,9 +1,9 @@
-from modules.agents.memory.hades_vector.agent import Hades
+from modules.agents.memory.hades_retrieval.agent import Hades
 
 
 def test_identity():
     assert Hades.agent == "@Hades"
-    assert Hades.role == "vector_retrieval"
+    assert Hades.role == "deep_retrieval"
     assert Hades.layer == "memory"
 
 
