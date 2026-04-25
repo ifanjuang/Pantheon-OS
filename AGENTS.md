@@ -133,35 +133,77 @@ Agents veto principaux : THEMIS et ZEUS. APOLLO peut bloquer une sortie insuffis
 
 ---
 
-# 3. Memory Governance by Agents
+# 3. Approval Discipline
 
-## 3.1 Règle générale
+Un agent ne doit jamais contourner l’Approval Gate.
+
+Si une action nécessite validation :
+
+- l’agent produit une `action_description` claire ;
+- l’agent expose son reasoning utile au reviewer ;
+- le reviewer doit pouvoir approuver, rejeter ou demander correction ;
+- le workflow reste suspendu ou passe en état `pending` ;
+- l’action n’est exécutée qu’après approval ;
+- le rejet ou l’expiration doit être traité comme un résultat normal, pas comme une erreur masquée.
+
+ZEUS arbitre les cas ambigus.
+THEMIS vérifie que l’approbation est requise et que le gate n’a pas été contourné.
+APOLLO peut bloquer une action dont le support est insuffisant.
+ARES peut proposer un fallback sans effet de bord si l’approbation expire.
+
+---
+
+# 4. Browser Automation Discipline
+
+Un agent utilisant un Browser Tool doit agir comme s’il manipulait un espace utilisateur sensible.
+
+Règles :
+
+- ne jamais agir sur un compte connecté sans validation ;
+- ne jamais saisir de credentials ;
+- ne jamais poster, acheter, supprimer, envoyer, uploader ou soumettre un formulaire sans Approval Gate ;
+- vérifier visuellement les changements par screenshot ;
+- produire une trace avant/après pour toute interaction significative ;
+- décrire l’intention avant l’action si l’action est sensible ;
+- arrêter et demander validation en cas de login wall, captcha, paiement, document sensible ou action irréversible ;
+- ne pas modifier le tool ou ses helpers pendant l’exécution.
+
+ARES peut proposer un fallback lecture seule.
+THEMIS vérifie que les approvals obligatoires ne sont pas contournées.
+ZEUS arbitre les actions web ambiguës.
+HERA peut scorer la qualité de la trace après run.
+
+---
+
+# 5. Memory Governance by Agents
+
+## 5.1 Règle générale
 
 Aucun agent ne doit écrire de mémoire durable sans source identifiable.
 
 Un fait actif doit pouvoir être relié à un document, un message, une action, une décision, une trace ou une règle déterministe.
 
-## 3.2 Candidate before active
+## 5.2 Candidate before active
 
 Une information extraite, inférée, importée ou issue d’une réflexion devient d’abord un candidate fact sauf si une règle documentée autorise sa promotion immédiate.
 
-## 3.3 Cards are not truth
+## 5.3 Cards are not truth
 
 Une card compacte n’est pas une source de vérité. Elle est une vue synthétique et reconstruisible. Elle ne doit pas recevoir automatiquement chaque active fact.
 
-## 3.4 Raw history is protected
+## 5.4 Raw history is protected
 
 Les messages, documents, tool outputs et traces brutes sont la base de vérification. Une consolidation ordinaire ne doit pas les réécrire.
 
-## 3.5 Dry-run before sensitive memory mutation
+## 5.5 Dry-run before sensitive memory mutation
 
 Toute promotion, rétractation, supersession, fusion ou condensation mémoire doit pouvoir produire un dry-run avant application.
 
-## 3.6 Contradiction handling
+## 5.6 Contradiction handling
 
 Les agents doivent signaler les contradictions mémoire au lieu de les masquer. Une contradiction non résolue devient debt, escalation ou demande de validation.
 
-## 3.7 Agent responsibilities
+## 5.7 Agent responsibilities
 
 - ARGOS extrait des faits et preuves sans interprétation excessive.
 - HESTIA maintient la mémoire projet et la continuité d’affaire.
@@ -173,7 +215,7 @@ Les agents doivent signaler les contradictions mémoire au lieu de les masquer. 
 
 ---
 
-# 4. Decision Governance
+# 6. Decision Governance
 
 Une décision importante expose : object, context, findings, analysis, certainty, impacts, options, criticity, validation, memory target.
 
@@ -188,9 +230,9 @@ Validation :
 
 ---
 
-# 5. Agent Activation Model
+# 7. Agent Activation Model
 
-Les agents sont activés selon criticité, workflow, ambiguïté, risque d’effet de bord, type de sortie, overlay domaine, besoin de mémoire, challenge ou compliance.
+Les agents sont activés selon criticity, workflow, ambiguïté, risque d’effet de bord, type de sortie, overlay domaine, besoin de mémoire, challenge ou compliance.
 
 Low criticity : HERMES, ATHENA, ARGOS, KAIROS, IRIS si besoin.
 
@@ -202,7 +244,7 @@ Certains agents restent optionnels : APHRODITE, HEPHAESTUS, POSEIDON, HADES selo
 
 ---
 
-# 6. Control Agents
+# 8. Control Agents
 
 ## ZEUS
 
@@ -236,13 +278,13 @@ Responsabilités : détecter claims faibles, faux consensus, support insuffisant
 
 Règles, procédure et compliance.
 
-Responsabilités : vérifier gates, policy constraints, conformité de workflow, veto procédural.
+Responsabilités : vérifier gates, policy constraints, conformité de workflow, veto procédural, approval obligatoire et non-contournement.
 
 ## HERA
 
 Supervision post-run.
 
-Responsabilités : scoring d’orchestration, détection de run dégradé, feedback qualité.
+Responsabilités : scoring d’orchestration, détection de run dégradé, feedback qualité, qualité des traces d’action.
 
 ## APOLLO
 
@@ -258,7 +300,7 @@ Responsabilités : missing information, unsafe completion, clarification require
 
 ---
 
-# 7. Research and Analysis Agents
+# 9. Research and Analysis Agents
 
 ## HERMES
 
@@ -278,7 +320,7 @@ Filtrage de pertinence et réduction du bruit.
 
 ---
 
-# 8. Memory Agents
+# 10. Memory Agents
 
 ## HESTIA
 
@@ -306,7 +348,7 @@ Limites : retrieval seulement, pas de synthèse ni vérité métier seul.
 
 ---
 
-# 9. Output Agents
+# 11. Output Agents
 
 ## KAIROS
 
@@ -330,7 +372,7 @@ Polish de présentation. Jamais agent de validation. Jamais auto-activé par dé
 
 ---
 
-# 10. System Agents
+# 12. System Agents
 
 ## ARES
 
@@ -342,7 +384,7 @@ Contrôle de flux, parallélisme et stabilité runtime.
 
 ---
 
-# 11. Agent Interaction Rules
+# 13. Agent Interaction Rules
 
 - ATHENA et METIS ne remplacent pas APOLLO ou THEMIS.
 - PROMETHEUS challenge mais ne gouverne pas.
@@ -351,16 +393,20 @@ Contrôle de flux, parallélisme et stabilité runtime.
 - IRIS et APHRODITE n’outrepassent jamais vérité, policy ou traçabilité.
 - Aucun agent ne contourne les policy gates.
 - Aucun agent ne modifie mémoire durable sans source, statut et trace.
+- Aucun agent n’exécute une action sensible sans approval.
+- Aucun agent ne manipule un navigateur connecté sans trace et validation appropriée.
 
 ---
 
-# 12. Output Standard
+# 14. Output Standard
 
 Les sorties sérieuses exposent, si pertinent : object, context, findings, analysis, certainty, impacts, options, criticity, validation, memory target.
 
+Pour une action sensible, elles exposent aussi : action_description, agent_reasoning, reversibility, approval_required, assignee si connu, expected side effects.
+
 ---
 
-# 13. Design Rules
+# 15. Design Rules
 
 - un rôle primaire par agent ;
 - pas de responsabilités cachées ;
@@ -368,10 +414,12 @@ Les sorties sérieuses exposent, si pertinent : object, context, findings, analy
 - pas d’expansion silencieuse du scope ;
 - pas d’agent décoratif auto-activé en run critique ;
 - pas de mémoire durable non sourcée ;
-- pas de consolidation mémoire opaque.
+- pas de consolidation mémoire opaque ;
+- pas d’action sensible sans Approval Gate ;
+- pas de browser automation sans trace.
 
 ---
 
-# 14. Final Rule
+# 16. Final Rule
 
 Les agents doivent agir comme une équipe experte coordonnée : rôles explicites, bornes claires, gouvernance réelle, testabilité et traçabilité.
