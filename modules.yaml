@@ -26,6 +26,10 @@ modules:
   - name: hermes_console
     enabled: true
 
+  # ── Governance modules ───────────────────────────────────────────
+  - name: approvals
+    enabled: false
+
   # ── V2 modules (disabled for MVP) ───────────────────────────────
   - name: webhooks
     enabled: false
