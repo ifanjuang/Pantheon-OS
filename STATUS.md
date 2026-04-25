@@ -55,7 +55,7 @@ Pantheon OS dispose d’un socle MVP réel : FastAPI, PostgreSQL + pgvector, Ope
 
 ## 🔄 Partiellement confirmé
 
-- Auto-discovery agents / skills / workflows : un `ManifestLoader` tolérant a été ajouté pour sécuriser le démarrage et indexer les manifests runtime présents dans `/modules`.
+- Auto-discovery agents / skills / workflows : `ManifestLoader` indexe les manifests runtime présents dans `/modules` et utilise le contrat commun `ComponentManifest`.
 - Mémoire agent : `AgentMemory` et `extract_and_store_memories()` sont utilisés par les tests, avec promotion `promotable` projet → agence. Cette mémoire n’est pas encore alignée avec la doctrine complète `raw_history / candidate_facts / active_facts / summaries / cards / traces`.
 - Hermes Console : activée et manifest présent, mais contenu fonctionnel complet non audité.
 
@@ -95,9 +95,38 @@ Rôle :
 - charger sans erreur les manifests `agents`, `skills`, `workflows` lorsqu’ils existent ;
 - retourner des listes vides lorsque les dossiers sont absents ;
 - ignorer les manifests désactivés ;
-- rester rétrocompatible avant durcissement du schéma.
+- rester rétrocompatible avant durcissement strict du schéma.
 
 Statut : ✅ Fait, tests ajoutés. Tests non exécutés dans cette session.
+
+## 🔄 Sprint 2 — Manifest hardening progressif
+
+Livré :
+
+- `platform/api/core/contracts/__init__.py`
+- `platform/api/core/contracts/manifest.py`
+- intégration du contrat dans `platform/api/core/registry.py`
+- intégration du contrat dans `platform/api/core/registries/loader.py`
+- `tests/test_manifest_contract.py`
+
+Rôle :
+
+- créer un contrat Pydantic commun `ComponentManifest` ;
+- normaliser les anciens manifests API sans casser le MVP ;
+- supporter `api_app`, `agent`, `skill`, `tool`, `workflow`, `action`, `provider`, `evaluator`, `service`, `template` ;
+- ajouter les notions `enabled`, `priority`, `dependencies`, `inputs`, `outputs`, `risk_profile`, `side_effect_profile`, `approval_required_if` ;
+- merger `depends_on` et `dependencies` pour compatibilité ;
+- produire des quality issues non bloquantes avant passage à validation stricte.
+
+Statut : 🔄 Partiel avancé. Tests ajoutés, non exécutés dans cette session.
+
+Reste à faire :
+
+- exécuter les tests ;
+- corriger les éventuelles erreurs d’import / typing ;
+- ajouter un mode strict activable par configuration ;
+- enrichir progressivement les manifests existants avec `type`, `risk_profile`, `side_effect_profile`, `inputs`, `outputs` ;
+- exposer les quality issues dans la console.
 
 ## ✅ Refactoring modulaire majeur
 
@@ -120,18 +149,17 @@ Livré selon l’historique projet, mais à revérifier dans le code complet :
 
 ### 🔄 Manifest hardening
 
-Partiel.
+Partiel avancé.
 
-Le `ManifestLoader` existe maintenant, mais il est volontairement tolérant.
+Le contrat `ComponentManifest` existe et est branché dans les deux mécanismes de chargement : API apps et runtime manifests agents/skills/workflows.
 
 Reste à faire :
 
-- créer `ManifestSchema` ;
-- valider les champs obligatoires ;
-- ajouter `type`, `enabled`, `priority`, `dependencies`, `inputs`, `outputs`, `risk_profile`, `side_effect_profile` ;
-- conserver la rétrocompatibilité avec les manifests API existants ;
-- ajouter tests de manifests invalides ;
-- exposer les erreurs de manifests dans la console ou les logs.
+- exécuter `pytest tests/test_manifest_loader.py tests/test_manifest_contract.py` ;
+- ajouter un mode strict configurable ;
+- enrichir les manifests API existants ;
+- enrichir les manifests runtime lorsqu’ils seront audités ;
+- exposer les erreurs et warnings dans Hermes Console.
 
 Priorité : P1.
 
@@ -256,7 +284,8 @@ Partiel.
 Confirmé :
 
 - `tests/test_guards.py` ;
-- `tests/test_manifest_loader.py` ajouté.
+- `tests/test_manifest_loader.py` ;
+- `tests/test_manifest_contract.py`.
 
 Reste à faire : tests tools, `orchestra/service.py`, E2E RAG, mémoire complète, approvals, workflows C1-C5, context preview, consolidation dry-run.
 
@@ -444,18 +473,19 @@ Règles :
 
 Ordre recommandé :
 
-1. Exécuter les tests ajoutés : `pytest tests/test_manifest_loader.py` puis suite existante pertinente.
-2. Finaliser l’audit code/docs avec inspection complète locale ou CI.
-3. Implémenter ManifestSchema V2 rétrocompatible.
-4. Formaliser Task Contract + `tasks.yaml`.
-5. Ajouter ou vérifier Approval Gate / HITL.
-6. Compléter la mémoire : raw/candidate/active/summaries/cards/traces.
-7. Ajouter context preview.
-8. Ajouter dry-run de consolidation.
-9. Compléter tests mémoire, approvals et workflows C1-C5.
-10. Renforcer monitoring consolidé : approvals, contexte injecté, traces d’action.
-11. Reporter Browser Tool après PolicyEngine, Approval Gate et Observability.
-12. Instrumenter DSPy plus tard.
+1. Exécuter les tests ajoutés : `pytest tests/test_manifest_loader.py tests/test_manifest_contract.py` puis suite existante pertinente.
+2. Corriger les éventuels échecs liés au contrat manifest.
+3. Finaliser l’audit code/docs avec inspection complète locale ou CI.
+4. Enrichir progressivement les manifests API et runtime.
+5. Formaliser Task Contract + `tasks.yaml`.
+6. Ajouter ou vérifier Approval Gate / HITL.
+7. Compléter la mémoire : raw/candidate/active/summaries/cards/traces.
+8. Ajouter context preview.
+9. Ajouter dry-run de consolidation.
+10. Compléter tests mémoire, approvals et workflows C1-C5.
+11. Renforcer monitoring consolidé : approvals, contexte injecté, traces d’action.
+12. Reporter Browser Tool après PolicyEngine, Approval Gate et Observability.
+13. Instrumenter DSPy plus tard.
 
 ---
 
