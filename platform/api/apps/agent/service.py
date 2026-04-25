@@ -31,11 +31,7 @@ from apps.agent.tools import DEFINITIONS, execute_tool, _DB_TOOLS
 log = get_logger("agent.service")
 
 _ROOT = Path(__file__).parent.parent.parent.parent
-AGENTS_DIR = (
-    Path(settings.AGENTS_DIR)
-    if hasattr(settings, "AGENTS_DIR")
-    else _ROOT / "agents"
-)
+AGENTS_DIR = Path(settings.AGENTS_DIR) if hasattr(settings, "AGENTS_DIR") else _ROOT / "agents"
 CORE_DIR = _ROOT / "core"  # meta-agents
 VALID_AGENTS = {
     # Perception
@@ -122,7 +118,11 @@ def _build_system_prompt(agent_name: str) -> str:
         name = "athena"
 
     soul_path = _resolve_soul_path(name)
-    memory_path = (CORE_DIR / name / "MEMORY.md") if (CORE_DIR / name / "MEMORY.md").exists() else (AGENTS_DIR / name / "MEMORY.md")
+    memory_path = (
+        (CORE_DIR / name / "MEMORY.md")
+        if (CORE_DIR / name / "MEMORY.md").exists()
+        else (AGENTS_DIR / name / "MEMORY.md")
+    )
 
     soul = soul_path.read_text(encoding="utf-8") if soul_path else _DEFAULT_PROMPT
     memory_raw = memory_path.read_text(encoding="utf-8").strip() if memory_path.exists() else ""

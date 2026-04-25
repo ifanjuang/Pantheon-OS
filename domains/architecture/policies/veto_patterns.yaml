@@ -1,0 +1,9 @@
+# Architecture domain veto patterns (merged with system veto patterns at runtime)
+# Format: [regex_pattern, condition_to_lift]
+ares:
+  - ["\\bnon[- ]conforme\\s+(au[x]?\\s+)?DTU\\b", "Obtain technical opinion or derogation from bureau de contrôle"]
+  - ["\\binterdit\\s+(par\\s+)?(le\\s+)?(DTU|RE2020|ERP|règlement)\\b", "Consult specialist BE for compliant alternative"]
+  - ["\\bdanger\\s+(structurel|de\\s+stabilité)\\b", "Suspend works, mandate structural control bureau"]
+themis:
+  - ["\\bhors\\s+(de\\s+la\\s+)?mission\\s+(MOE|architecte)\\b", "Verify contractual scope, potentially draft amendment"]
+  - ["\\bresponsabilité\\s+(de\\s+la\\s+)?MOE\\s+(est\\s+)?engagée\\b", "Validate with client/insurer before action"]

@@ -1,4 +1,5 @@
 """Hermes Console — service layer bridging YAML registries to the API."""
+
 import sys
 import yaml
 from pathlib import Path
@@ -25,6 +26,7 @@ def _save_yaml(path: Path, data: dict) -> None:
 
 
 # ── Agents ────────────────────────────────────────────────────────
+
 
 def list_agents() -> list[dict]:
     data = _load_yaml(_AGENTS_FILE)
@@ -57,6 +59,7 @@ def toggle_agent(name: str, enabled: bool) -> dict:
 
 # ── Skills ────────────────────────────────────────────────────────
 
+
 def list_skills() -> list[dict]:
     data = _load_yaml(_SKILLS_FILE)
     return data.get("skills", [])
@@ -76,6 +79,7 @@ def toggle_skill(skill_id: str, enabled: bool) -> dict:
 
 
 # ── Workflows ─────────────────────────────────────────────────────
+
 
 def list_workflows() -> list[dict]:
     data = _load_yaml(_WORKFLOWS_FILE)
@@ -97,8 +101,10 @@ def toggle_workflow(workflow_id: str, enabled: bool) -> dict:
 
 # ── Settings ──────────────────────────────────────────────────────
 
+
 def get_settings() -> dict:
     from core.settings import settings
+
     data = _load_yaml(_SETTINGS_FILE)
     runtime = data.get("runtime", {})
     return {
@@ -125,14 +131,17 @@ def update_settings(updates: dict) -> dict:
 
 # ── Logs ──────────────────────────────────────────────────────────
 
+
 def _log(component: str, message: str, level: str = "info", extra: Optional[dict] = None) -> None:
-    _runtime_logs.append({
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "level": level,
-        "component": component,
-        "message": message,
-        "extra": extra or {},
-    })
+    _runtime_logs.append(
+        {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "level": level,
+            "component": component,
+            "message": message,
+            "extra": extra or {},
+        }
+    )
     # Keep last 500 entries in memory
     if len(_runtime_logs) > 500:
         _runtime_logs.pop(0)
@@ -141,7 +150,7 @@ def _log(component: str, message: str, level: str = "info", extra: Optional[dict
 def get_logs(level: Optional[str] = None, component: Optional[str] = None, limit: int = 100) -> list[dict]:
     logs = _runtime_logs[-limit:]
     if level:
-        logs = [l for l in logs if l["level"] == level]
+        logs = [entry for entry in logs if entry["level"] == level]
     if component:
-        logs = [l for l in logs if l["component"] == component]
+        logs = [entry for entry in logs if entry["component"] == component]
     return list(reversed(logs))

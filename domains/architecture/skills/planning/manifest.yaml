@@ -1,0 +1,5 @@
+name: planning
+domain: architecture
+version: "1.0.0"
+api_module: planning
+description: "Architecture domain skill — see api/modules/planning/ for implementation."

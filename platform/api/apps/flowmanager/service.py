@@ -28,7 +28,6 @@ def _normalize_steps(steps: list[str | list[str]]) -> list[dict]:
 
 
 class FlowManagerService:
-
     @staticmethod
     async def list_workflows(db: AsyncSession, active_only: bool = False) -> list[WorkflowDefinition]:
         stmt = select(WorkflowDefinition).order_by(WorkflowDefinition.name)
@@ -39,9 +38,7 @@ class FlowManagerService:
 
     @staticmethod
     async def get_by_name(db: AsyncSession, name: str) -> WorkflowDefinition | None:
-        result = await db.execute(
-            select(WorkflowDefinition).where(WorkflowDefinition.name == name)
-        )
+        result = await db.execute(select(WorkflowDefinition).where(WorkflowDefinition.name == name))
         return result.scalar_one_or_none()
 
     @staticmethod
@@ -61,9 +58,7 @@ class FlowManagerService:
         return wf
 
     @staticmethod
-    async def update(
-        db: AsyncSession, wf: WorkflowDefinition, data: WorkflowDefinitionUpdate
-    ) -> WorkflowDefinition:
+    async def update(db: AsyncSession, wf: WorkflowDefinition, data: WorkflowDefinitionUpdate) -> WorkflowDefinition:
         if data.version is not None:
             wf.version = data.version
         if data.description is not None:

@@ -11,6 +11,7 @@ class AgentBase:
     layer: ClassVar[str] = ""
     veto: ClassVar[bool] = False
     enabled: ClassVar[bool] = True
+    triggers: ClassVar[list[str]] = []
     _soul_dir: ClassVar[Path] = Path()
 
     @classmethod

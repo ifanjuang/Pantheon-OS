@@ -1,4 +1,5 @@
 """Hermes Console — REST API for agents/skills/workflows/logs/settings management."""
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
 

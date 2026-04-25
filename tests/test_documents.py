@@ -116,7 +116,7 @@ class TestListDocuments:
 
     async def test_list_after_upload(self, client, moe_token, affaire, pdf_bytes, mocker, db):
         # Créer un document directement en DB
-        from modules.documents.models import Document
+        from apps.documents.models import Document
 
         doc = Document(
             affaire_id=affaire.id,
@@ -152,7 +152,7 @@ class TestDeleteDocument:
             new_callable=AsyncMock,
         )
 
-        from modules.documents.models import Document
+        from apps.documents.models import Document
 
         doc = Document(
             affaire_id=affaire.id,

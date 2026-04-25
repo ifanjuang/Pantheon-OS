@@ -122,7 +122,7 @@ class TestUpdateAffaire:
 
 class TestDeleteAffaire:
     async def test_delete_by_admin(self, client, admin_token, db):
-        from modules.affaires.service import create_affaire
+        from apps.affaires.service import create_affaire
 
         a = await create_affaire(db, "DEL-001", "À supprimer", None, "actif", None)
         await db.commit()

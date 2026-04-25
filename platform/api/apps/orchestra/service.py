@@ -256,7 +256,11 @@ async def _run_fallback_graph(
     try:
         graph = build_graph(affaire_id, user_id)
         state = _build_initial_state(
-            instruction, affaire_id, user_id, agents, criticite,
+            instruction,
+            affaire_id,
+            user_id,
+            agents,
+            criticite,
             orchestra_run_id=orchestra_run_id,
         )
         final = await graph.ainvoke(state)
@@ -365,10 +369,7 @@ async def run_orchestra(
             run.status = "failed"
             run.error_message = str(exc)
             run.fallback_level = 3
-            run.final_answer = (
-                f"⚠️ Réponse dégradée (niveau 3) — l'orchestration n'a pu aboutir.\n"
-                f"Erreur : {exc}"
-            )
+            run.final_answer = f"⚠️ Réponse dégradée (niveau 3) — l'orchestration n'a pu aboutir.\nErreur : {exc}"
             # ── Amélioration 5 : mémoire des erreurs ──────────────────
             await write_error_memory(exc, instruction, affaire_id, criticite)
 
@@ -603,17 +604,17 @@ async def resume_orchestra(
 # ── SSE Streaming ────────────────────────────────────────────────────
 
 _NODE_LABELS = {
-    "preprocess":          ("hermes.preprocess",  "Hermès — normalisation et qualification..."),
-    "workflow_precheck":   ("hermes.precheck",    "Hermès — gate precheck dimensionnement..."),
-    "zeus_distribute":     ("zeus.distribute",    "Zeus — organisation des sous-tâches..."),
-    "dispatch_subtasks":   ("agent.execute",      "Exécution agents (cascade / arène / parallèle)..."),
-    "execute_complements": ("agent.execute",      "Compléments en cours..."),
-    "zeus_judge":          ("zeus.judge",         "Zeus — jugement des résultats..."),
-    "veto_check":          ("themis.veto",        "Thémis — veto structuré (couche 0 + LLM)..."),
-    "score_decision":      ("hera.score",         "Héra — scoring multi-critères..."),
-    "synthesize":          ("kairos.synthesize",  "Kairos — synthèse finale actable..."),
-    "hera_supervise":      ("hera.supervise",     "Héra — vérification cohérence globale..."),
-    "write_memories":      ("hestia.memories",    "Hestia — écriture mémoires projet / agence..."),
+    "preprocess": ("hermes.preprocess", "Hermès — normalisation et qualification..."),
+    "workflow_precheck": ("hermes.precheck", "Hermès — gate precheck dimensionnement..."),
+    "zeus_distribute": ("zeus.distribute", "Zeus — organisation des sous-tâches..."),
+    "dispatch_subtasks": ("agent.execute", "Exécution agents (cascade / arène / parallèle)..."),
+    "execute_complements": ("agent.execute", "Compléments en cours..."),
+    "zeus_judge": ("zeus.judge", "Zeus — jugement des résultats..."),
+    "veto_check": ("themis.veto", "Thémis — veto structuré (couche 0 + LLM)..."),
+    "score_decision": ("hera.score", "Héra — scoring multi-critères..."),
+    "synthesize": ("kairos.synthesize", "Kairos — synthèse finale actable..."),
+    "hera_supervise": ("hera.supervise", "Héra — vérification cohérence globale..."),
+    "write_memories": ("hestia.memories", "Hestia — écriture mémoires projet / agence..."),
 }
 
 

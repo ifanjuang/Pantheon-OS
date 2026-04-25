@@ -1,0 +1,5 @@
+name: decisions
+domain: architecture
+version: "1.0.0"
+api_module: decisions
+description: "Architecture domain skill — see api/modules/decisions/ for implementation."
