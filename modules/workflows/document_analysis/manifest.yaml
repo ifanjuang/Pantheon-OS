@@ -1,0 +1,21 @@
+id: document_analysis
+name: Document Analysis Workflow
+type: workflow
+version: "0.1.0"
+description: Analyze a document by extracting factual constraints, validating them, and preparing a structured synthesis.
+enabled: true
+priority: 10
+dependencies: []
+inputs:
+  - document_chunks
+  - affair_context
+outputs:
+  - candidate_facts
+  - validation_report
+  - structured_synthesis
+risk_profile: medium
+side_effect_profile: read_only
+approval_required_if:
+  - external_communication
+  - official_document
+  - memory_promotion
