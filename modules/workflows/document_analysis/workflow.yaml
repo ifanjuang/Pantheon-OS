@@ -1,0 +1,18 @@
+id: document_analysis
+description: Analyze an uploaded document through extraction, validation, and synthesis.
+pattern: cascade
+version: "0.1.0"
+enabled: true
+inputs:
+  - document_chunks
+  - affair_context
+outputs:
+  - structured_synthesis
+  - candidate_facts
+  - validation_report
+fallback: simple_document_summary
+tags:
+  - documents
+  - rag
+  - facts
+  - validation
