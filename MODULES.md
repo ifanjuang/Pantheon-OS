@@ -74,6 +74,18 @@ Les modules mémoire gèrent la continuité, la capitalisation, les faits, les r
 
 Ils ne décident pas seuls de la vérité métier. Ils stockent, exposent, relient, proposent, prévisualisent et appliquent les écritures mémoire validées.
 
+## 2.8 Approval modules
+
+Les modules d’approbation gèrent les demandes de validation humaine avant exécution d’actions sensibles.
+
+Ils ne décident pas à la place de l’humain. Ils bloquent, tracent, notifient, expirent, escaladent et permettent la reprise ou l’abandon du workflow.
+
+## 2.9 Browser modules
+
+Les modules navigateur permettent la consultation, l’extraction, les tests de rendu et certaines interactions web contrôlées.
+
+Ils ne doivent jamais devenir une capacité libre d’action web. Toute action à effet de bord doit passer par policy, approval et trace.
+
 ---
 
 # 3. Repository Structure
@@ -237,6 +249,75 @@ Un module mémoire doit déclarer :
 
 Un module mémoire ne doit pas promouvoir massivement des données sans scoring, source et validation.
 
+## 6.8 Approval contract
+
+Un module Approval doit déclarer :
+
+- les types d’actions soumis à validation ;
+- le modèle `ApprovalRequest` ;
+- les statuts autorisés ;
+- les règles d’expiration ;
+- les règles d’escalade ;
+- les assignees personne / équipe ;
+- les outputs de décision ;
+- l’audit log ;
+- les conditions de reprise ou d’abandon de workflow.
+
+Statuts minimaux :
+
+- `pending`
+- `approved`
+- `rejected`
+- `expired`
+- `escalated`
+- `cancelled`
+
+Interfaces attendues :
+
+- `approval.create_request`
+- `approval.get_status`
+- `approval.list_pending`
+- `approval.decide`
+- `approval.escalate`
+- `approval.expire`
+- `approval.audit_log`
+
+Une décision d’approbation doit être idempotente et protégée contre les doubles décisions concurrentes.
+
+## 6.9 Browser tool contract
+
+Un Browser Tool doit déclarer :
+
+- les modes supportés : lecture, screenshot, extraction, interaction ;
+- le type de navigateur : sandbox, remote, local explicitement autorisé ;
+- les actions autorisées sans approval ;
+- les actions soumises à approval ;
+- les traces produites ;
+- les règles de stockage des screenshots ;
+- les conditions d’arrêt : login wall, captcha, paiement, compte connecté, donnée sensible.
+
+Interfaces attendues :
+
+- `browser.open`
+- `browser.screenshot`
+- `browser.page_info`
+- `browser.extract`
+- `browser.click`
+- `browser.type`
+- `browser.upload`
+- `browser.http_get`
+- `browser.close`
+- `browser.action_trace`
+
+Règles :
+
+- lecture avant action ;
+- screenshot avant/après toute interaction significative ;
+- HTTP direct avant automatisation lourde quand possible ;
+- approval obligatoire pour tout effet de bord ;
+- sandbox ou remote browser privilégié ;
+- interdiction de modifier les helpers runtime sans revue.
+
 ---
 
 # 7. Memory Module Responsibilities
@@ -307,7 +388,32 @@ Ces interfaces peuvent être exposées comme services internes, endpoints API ou
 
 ---
 
-# 9. Domain Overlay Rules
+# 9. Browser Domain Skills
+
+Les browser domain skills documentent les comportements réutilisables d’un site ou d’un service web.
+
+Elles peuvent contenir :
+
+- selectors stables ;
+- URL patterns ;
+- APIs observées ;
+- pièges d’interface ;
+- waits spécifiques ;
+- stratégies d’extraction ;
+- limites de sécurité.
+
+Elles ne doivent jamais contenir :
+
+- secrets ;
+- cookies ;
+- tokens ;
+- données personnelles ;
+- coordonnées pixel brutes comme stratégie principale ;
+- narration d’un run spécifique.
+
+---
+
+# 10. Domain Overlay Rules
 
 Le comportement métier appartient aux overlays.
 
@@ -323,7 +429,7 @@ Les modules génériques ne doivent pas supposer un domaine professionnel partic
 
 ---
 
-# 10. Activation and Enablement
+# 11. Activation and Enablement
 
 Un module peut être :
 
@@ -338,7 +444,7 @@ L’activation dépend de criticity, workflow, domaine, risque d’effet de bord
 
 ---
 
-# 11. Module Testing
+# 12. Module Testing
 
 Tout module critique doit être testable.
 
@@ -353,9 +459,28 @@ Les modules mémoire doivent être testés sur :
 - preview du contexte injecté ;
 - absence de croissance incontrôlée des cards.
 
+Les modules Approval doivent être testés sur :
+
+- double décision concurrente ;
+- expiration ;
+- rejet ;
+- escalation ;
+- reprise workflow après approval ;
+- blocage workflow après reject ;
+- audit log complet.
+
+Les Browser Tools doivent être testés sur :
+
+- navigation passive ;
+- screenshot before/after ;
+- blocage des actions à effet de bord sans approval ;
+- arrêt sur login wall ou captcha ;
+- trace complète d’action ;
+- non-utilisation du navigateur personnel par défaut.
+
 ---
 
-# 12. Versioning and Lifecycle
+# 13. Versioning and Lifecycle
 
 Skills, workflows, overlays, prompts, templates et politiques doivent évoluer avec versioning explicite lorsque la stabilité du runtime l’exige.
 
@@ -365,7 +490,7 @@ Les breaking changes doivent être explicites.
 
 ---
 
-# 13. Governance Constraints for Modules
+# 14. Governance Constraints for Modules
 
 - aucun effet de bord non gouverné ;
 - aucune logique métier cachée dans core ;
@@ -373,19 +498,25 @@ Les breaking changes doivent être explicites.
 - aucune dépendance implicite ;
 - aucune activation décorative dans les runs critiques ;
 - aucune mémoire durable non sourcée ;
-- aucune consolidation mémoire sans dry-run pour les opérations sensibles.
+- aucune consolidation mémoire sans dry-run pour les opérations sensibles ;
+- aucune action sensible sans Approval Gate ;
+- aucune action navigateur sans trace.
 
 ---
 
-# 14. Hermes Console Expectations
+# 15. Hermes Console Expectations
 
 La console doit exposer pour chaque module : id, type, domaine, enabled state, version, dépendances, métriques d’usage, échecs récents, contexte d’activation.
 
-Pour la mémoire, la console doit aussi exposer : candidate facts, active facts, cards, summaries, contexte injecté, promotions, rétractions, consolidations et erreurs de routage.
+Pour la mémoire, la console doit exposer : candidate facts, active facts, cards, summaries, contexte injecté, promotions, rétractions, consolidations et erreurs de routage.
+
+Pour les approvals, la console doit exposer : pending approvals, assignee, criticity, action description, agent reasoning, status, decision note, expiration, escalation et audit log.
+
+Pour le browser tool, la console doit exposer : URL, action, screenshots avant/après, approval liée, statut, erreurs et traces.
 
 ---
 
-# 15. Naming Rules
+# 16. Naming Rules
 
 Folder names en `snake_case`, IDs stables, machine-friendly, indépendants des expérimentations de nommage.
 
@@ -395,7 +526,7 @@ Exemple : `zeus` comme identité, `orchestrator` comme rôle.
 
 ---
 
-# 16. Anti-Patterns
+# 17. Anti-Patterns
 
 À éviter :
 
@@ -408,11 +539,14 @@ Exemple : `zeus` comme identité, `orchestrator` comme rôle.
 - des effets de bord hors policy gate ;
 - une activation silencieuse d’agents décoratifs ;
 - des cards mémoire append-only ;
-- une promotion automatique de raw output en mémoire durable.
+- une promotion automatique de raw output en mémoire durable ;
+- un dashboard externe séparé comme source de vérité d’approbation ;
+- un agent libre sur navigateur connecté ;
+- une auto-modification de helpers pendant un run.
 
 ---
 
-# 17. Final Rule
+# 18. Final Rule
 
 Les modules sont le tissu d’exécution de Pantheon OS.
 
