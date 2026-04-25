@@ -5,6 +5,7 @@ MVP: no LangGraph checkpointer, no Redis/ARQ queue.
 """
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -71,13 +72,28 @@ async def lifespan(app: FastAPI):
 
     # 3. Load Hermes Runtime registries (auto-discovery via manifest.yaml files)
     from core.registries.loader import ManifestLoader
-    from pathlib import Path
+    from core.registries.workflows import WorkflowDefinitionLoader
 
-    loader = ManifestLoader(Path("/modules"))
+    modules_root = Path("/modules")
+    loader = ManifestLoader(modules_root)
     agents = loader.load_agents()
     skills = loader.load_skills()
-    workflows = loader.load_workflows()
-    log.info("hermes.registries_loaded", agents=len(agents), skills=len(skills), workflows=len(workflows))
+    workflow_manifests = loader.load_workflows()
+
+    workflow_definitions = WorkflowDefinitionLoader(modules_root).load_all()
+
+    app.state.hermes_agents = agents
+    app.state.hermes_skills = skills
+    app.state.hermes_workflow_manifests = workflow_manifests
+    app.state.hermes_workflow_definitions = workflow_definitions
+
+    log.info(
+        "hermes.registries_loaded",
+        agents=len(agents),
+        skills=len(skills),
+        workflow_manifests=len(workflow_manifests),
+        workflow_definitions=len(workflow_definitions),
+    )
 
     # 4. Seed default admin user
     from apps.auth.service import seed_admin
@@ -90,6 +106,7 @@ async def lifespan(app: FastAPI):
 
     reg = ModuleRegistry(app)
     reg.load_all("modules.yaml")
+    app.state.module_registry = reg
 
     log.info("startup.complete", modules=reg.loaded_modules)
     yield
