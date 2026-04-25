@@ -1,8 +1,7 @@
 """Filesystem manifest loader for Hermes runtime modules.
 
-This loader is intentionally tolerant for the MVP: missing folders or invalid
-entries are logged and skipped instead of crashing the API startup. Strict
-schema validation belongs to the next manifest-hardening step.
+This loader is tolerant enough for the MVP while already normalizing manifests
+through the shared ComponentManifest contract.
 """
 
 from __future__ import annotations
@@ -12,7 +11,9 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from pydantic import ValidationError
 
+from core.contracts.manifest import ComponentManifest, normalize_manifest
 from core.logging import get_logger
 
 log = get_logger("manifest_loader")
@@ -20,16 +21,13 @@ log = get_logger("manifest_loader")
 
 @dataclass(frozen=True)
 class RuntimeManifest:
-    """Loaded runtime manifest.
-
-    The loader keeps the raw manifest to stay backward-compatible while the
-    manifest schema is still being hardened.
-    """
+    """Loaded runtime manifest."""
 
     id: str
     type: str
     path: str
     manifest: dict[str, Any]
+    model: ComponentManifest
 
 
 class ManifestLoader:
@@ -41,9 +39,9 @@ class ManifestLoader:
     - /modules/skills/**/manifest.yaml
     - /modules/workflows/**/manifest.yaml
 
-    The current implementation does not instantiate Python classes. It only
-    indexes manifests safely so startup, health checks and the console can see
-    what is present on disk.
+    The current implementation does not instantiate Python classes. It indexes
+    normalized manifests safely so startup, health checks and the console can
+    see what is present on disk.
     """
 
     def __init__(self, base_path: Path | str):
@@ -84,18 +82,30 @@ class ManifestLoader:
             log.error("manifest_loader.invalid_yaml", path=str(manifest_path), reason="manifest is not an object")
             return None
 
-        manifest_id = str(raw.get("id") or raw.get("name") or manifest_path.parent.name).strip()
-        if not manifest_id:
-            log.error("manifest_loader.missing_id", path=str(manifest_path))
+        try:
+            model = normalize_manifest(raw, fallback_id=manifest_path.parent.name, default_type=manifest_type)
+        except (TypeError, ValidationError) as exc:
+            log.error("manifest_loader.manifest_invalid", path=str(manifest_path), error=str(exc))
             return None
 
-        if raw.get("enabled") is False:
-            log.info("manifest_loader.disabled", id=manifest_id, type=manifest_type, path=str(manifest_path))
+        if not model.enabled:
+            log.info("manifest_loader.disabled", id=model.id, type=model.type, path=str(manifest_path))
             return None
+
+        for issue in model.issues():
+            log.warning(
+                "manifest_loader.quality_issue",
+                id=model.id,
+                type=model.type,
+                field=issue.field,
+                severity=issue.severity,
+                message=issue.message,
+            )
 
         return RuntimeManifest(
-            id=manifest_id,
-            type=str(raw.get("type") or manifest_type),
+            id=model.id,
+            type=str(model.type),
             path=str(manifest_path.parent),
-            manifest=raw,
+            manifest=model.model_dump(mode="json"),
+            model=model,
         )
