@@ -58,6 +58,7 @@ Pantheon OS dispose d’un socle MVP réel : FastAPI, PostgreSQL + pgvector, Ope
 - Auto-discovery agents / skills / workflows : `ManifestLoader` indexe les manifests runtime présents dans `/modules` et utilise le contrat commun `ComponentManifest`.
 - Workflow definitions : `WorkflowDefinitionLoader` charge `workflow.yaml` et `tasks.yaml` au startup, stocke les définitions dans `app.state.hermes_workflow_definitions`, mais il n’est pas encore branché à un moteur d’exécution.
 - Exemple workflow : `modules/workflows/document_analysis/` existe avec `manifest.yaml`, `workflow.yaml`, `tasks.yaml` et test de validation.
+- Debug runtime : `/debug/runtime-registry` expose les agents, skills, workflow manifests, workflow definitions et modules API chargés au startup.
 - Mémoire agent : `AgentMemory` et `extract_and_store_memories()` sont utilisés par les tests, avec promotion `promotable` projet → agence. Cette mémoire n’est pas encore alignée avec la doctrine complète `raw_history / candidate_facts / active_facts / summaries / cards / traces`.
 - Hermes Console : activée et manifest présent, mais contenu fonctionnel complet non audité.
 
@@ -137,6 +138,7 @@ Livré :
 - `platform/api/core/contracts/tasks.py`
 - `platform/api/core/registries/workflows.py`
 - `platform/api/main.py` branché au loader workflow ;
+- `platform/api/core/health.py` avec endpoint debug runtime ;
 - `modules/workflows/document_analysis/manifest.yaml`
 - `modules/workflows/document_analysis/workflow.yaml`
 - `modules/workflows/document_analysis/tasks.yaml`
@@ -157,9 +159,10 @@ Rôle :
 - charger et fusionner `tasks.yaml` ;
 - refuser les définitions invalides sans bloquer les autres workflows ;
 - indexer les définitions au startup dans `app.state.hermes_workflow_definitions` ;
-- fournir un premier workflow réel `document_analysis`.
+- fournir un premier workflow réel `document_analysis` ;
+- exposer l’état runtime via `/debug/runtime-registry`.
 
-Statut : 🔄 Partiel avancé. Contrats, loader, branchement startup, exemple réel et tests ajoutés, non exécutés dans cette session.
+Statut : 🔄 Partiel avancé. Contrats, loader, branchement startup, endpoint debug, exemple réel et tests ajoutés, non exécutés dans cette session.
 
 Reste à faire :
 
@@ -206,7 +209,7 @@ Priorité : P1.
 
 Partiel avancé.
 
-Les contrats `TaskDefinition` et `WorkflowDefinition` existent. Le loader `WorkflowDefinitionLoader` lit `workflow.yaml` et `tasks.yaml`. Le startup charge ces définitions dans `app.state.hermes_workflow_definitions`. Le workflow `document_analysis` fournit le premier exemple réel.
+Les contrats `TaskDefinition` et `WorkflowDefinition` existent. Le loader `WorkflowDefinitionLoader` lit `workflow.yaml` et `tasks.yaml`. Le startup charge ces définitions dans `app.state.hermes_workflow_definitions`. Le workflow `document_analysis` fournit le premier exemple réel. L’endpoint `/debug/runtime-registry` permet de vérifier ce qui est chargé.
 
 Reste à faire :
 
@@ -511,17 +514,16 @@ Ordre recommandé :
 
 1. Exécuter les tests ajoutés : `pytest tests/test_manifest_loader.py tests/test_manifest_contract.py tests/test_task_contracts.py tests/test_workflow_definition_loader.py tests/test_document_analysis_workflow.py` puis suite existante pertinente.
 2. Corriger les éventuels échecs liés aux contrats.
-3. Exposer les workflows chargés dans Hermes Console ou health/debug endpoint.
-4. Finaliser l’audit code/docs avec inspection complète locale ou CI.
-5. Enrichir progressivement les manifests API et runtime.
-6. Ajouter ou vérifier Approval Gate / HITL.
-7. Compléter la mémoire : raw/candidate/active/summaries/cards/traces.
-8. Ajouter context preview.
-9. Ajouter dry-run de consolidation.
-10. Compléter tests mémoire, approvals et workflows C1-C5.
-11. Renforcer monitoring consolidé : approvals, contexte injecté, traces d’action.
-12. Reporter Browser Tool après PolicyEngine, Approval Gate et Observability.
-13. Instrumenter DSPy plus tard.
+3. Finaliser l’audit code/docs avec inspection complète locale ou CI.
+4. Enrichir progressivement les manifests API et runtime.
+5. Ajouter ou vérifier Approval Gate / HITL.
+6. Compléter la mémoire : raw/candidate/active/summaries/cards/traces.
+7. Ajouter context preview.
+8. Ajouter dry-run de consolidation.
+9. Compléter tests mémoire, approvals et workflows C1-C5.
+10. Renforcer monitoring consolidé : approvals, contexte injecté, traces d’action.
+11. Reporter Browser Tool après PolicyEngine, Approval Gate et Observability.
+12. Instrumenter DSPy plus tard.
 
 ---
 
