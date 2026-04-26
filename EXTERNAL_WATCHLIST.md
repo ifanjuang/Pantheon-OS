@@ -18,6 +18,9 @@ Règle : ces dépôts ne sont pas des dépendances runtime de Pantheon OS sauf d
 | `BartAmin/Clustered-Dynamic-RAG` | Retrieval dynamique / clustering documentaire | Veille active | 2026-04-26 | Retenir l’idée d’un retrieval adaptatif par clusters ou groupes sémantiques ; à benchmarker après Evaluation Harness, sans remplacer pgvector ni le pipeline RAG existant |
 | `kreuzberg-dev/kreuzcrawl` | Crawling web / extraction documentaire | À vérifier | 2026-04-26 | Intéressant pour ingestion web contrôlée ; à reporter après PolicyGate, scope/robots/allowlist et observability. Ne pas utiliser pour crawl large non gouverné |
 | `browser-use/browser-harness` | Browser Tool gouverné | Plus tard | 2026-04-26 | À reporter après Approval Gate, PolicyGate et Observability ; retenir screenshots before/after et action traces |
+| `openensemble/openensemble` | Plateforme multi-user agents / skills / self-hosting | Veille active | 2026-04-26 | Retenir patterns : comptes isolés, per-user workspace, skill manifests, backup/restore, update prudent, sandbox shell, providers multiples. Ne pas intégrer comme dépendance : licence non-commerciale, stack Node, second runtime concurrent |
+| `yassin123mom/the-spark-architecture` | Spécification conceptuelle AGI / boucle motivation-recherche-sécurité | Veille faible | 2026-04-26 | Retenir uniquement comme réflexion : boucle objectif → recherche → création outil → mémoire → sécurité. Ne pas intégrer tel quel : spéculation AGI, pas d’implémentation opérationnelle, risque de dérive proactive non gouvernée |
+| `Saichandra2520/AgentForge` | Scaffold Python pour projets agents | Veille active | 2026-04-26 | Retenir génération de templates ReAct/RAG/multi-agent/HITL avec FastAPI/tests/Docker/observability ; utile comme inspiration pour générateurs de modules Pantheon, pas comme runtime |
 | `elizaOS/eliza` | Actions / providers / evaluators / services | Veille | 2026-04-26 | Retenir vocabulaire runtime ; rejeter remplacement du runtime Pantheon |
 | `crewAIInc/crewAI` | Task Contract / workflow crew pattern | Veille active | 2026-04-26 | Retenir Task, expected_output, Flow/Crew separation ; runtime rejeté |
 | `agentscope-ai/agentscope` | Multi-agent runtime avancé | Veille | 2026-04-26 | Intéressant pour observability, HITL, planning, MCP/A2A ; non prioritaire, ne pas empiler un second runtime |
@@ -49,16 +52,17 @@ Règle : ces dépôts ne sont pas des dépendances runtime de Pantheon OS sauf d
 | Governance documentaire | CommonMark, agents.md, AI_LOG | À intégrer maintenant |
 | Prompt systems | canvascomputing/prompting, GitHub prompt files, caliber-ai-org/ai-setup | À intégrer comme méthode documentaire et qualité prompts |
 | AI coding setup | caliber-ai-org/ai-setup, agents.md, AI_LOG | À intégrer plus tard comme audit/refresh contrôlé, pas comme génération automatique non relue |
-| Runtime contracts | CrewAI, ElizaOS, agentskills | À intégrer progressivement |
+| Runtime contracts | CrewAI, ElizaOS, agentskills, OpenEnsemble, AgentForge | À intégrer progressivement ; sources externes comme références de patterns, pas runtimes |
 | Approval / Safety | langgraph-approval-hub | À finaliser avant actions sensibles |
 | Memory | hermes-local-memory, hermes-memory-installer | À documenter maintenant, implémenter après stabilisation |
 | RAG Quality | RAG-Evaluation, ChunkNorris, Clustered-Dynamic-RAG, agents-towards-production | À intégrer après Approval Gate minimal ; évaluer d’abord chunking, clustering et retrieval dynamique sur corpus Pantheon |
 | Web ingestion / crawling | kreuzcrawl, browser-harness | À reporter après PolicyGate, allowlist, scope, robots, traces et observability |
-| Self-hosting | StartOS, Installer UI interne | À intégrer maintenant côté doctrine + UI |
+| Self-hosting | StartOS, OpenEnsemble, Installer UI interne | À intégrer maintenant côté doctrine + UI ; retenir lifecycle, backup, update prudent, isolation utilisateurs |
 | Visual Lab | Langflow, Flowise, Dify | Optionnel, jamais runtime de vérité |
 | Automation périphérique | n8n | Plus tard via webhooks |
 | Local Tools | OmniTools | Plus tard comme service optionnel ou inspiration UI |
 | Browser Tool | browser-harness | Après Approval Gate, PolicyGate et Observability |
+| Controlled learning | the-spark-architecture, agents-towards-production | Retenir uniquement comme réflexion encadrée ; toute proactivité doit rester gouvernée par policies, approvals et objectifs documentés |
 
 ---
 
@@ -108,5 +112,9 @@ Ne pas régénérer automatiquement les fichiers d’instructions IA sans revue 
 Ne pas intégrer un chunker externe comme dépendance obligatoire avant Evaluation Harness, benchmark sur documents Pantheon et vérification de licence.
 
 Ne pas lancer de crawler large sans allowlist, respect du périmètre, traçabilité, politique d’usage et validation humaine pour les sources sensibles.
+
+Ne pas intégrer de boucle proactive type AGI sans objectif utilisateur/documentaire explicite, PolicyGate, Approval Gate, limites de ressources, logs et possibilité d’arrêt.
+
+Ne pas reprendre de dépendance à licence non-commerciale dans Pantheon sans validation juridique explicite.
 
 Pantheon OS conserve son identité : modularité, agents spécialisés, orchestration contrôlée, mémoire projet, RAG, workflows, validation, observability, self-hosting.
