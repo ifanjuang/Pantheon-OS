@@ -16,8 +16,14 @@ exclude = ["alembic/versions/", "benchmarks/"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 pythonpath = ["platform/api"]
+# importlib mode lets per-agent tests at modules/agents/*/tests/test_agent.py
+# coexist without needing __init__.py files (pytest uses unique import paths
+# instead of top-level module names).
+addopts = "--import-mode=importlib"

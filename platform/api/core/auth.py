@@ -50,7 +50,7 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
 ):
     """Décode le JWT et retourne l'utilisateur. 401 si invalide ou expiré."""
-    from modules.auth.models import User  # import tardif pour éviter les imports circulaires
+    from apps.auth.models import User  # import tardif pour éviter les imports circulaires
 
     payload = decode_token(credentials.credentials)
     user_id: str = payload.get("sub")
@@ -90,7 +90,7 @@ async def require_affaire_access(
     Vérifie l'accès à une affaire.
     Admin : accès total. Autres : rôle global ou override par affaire.
     """
-    from modules.auth.models import AffairePermission  # import tardif
+    from apps.auth.models import AffairePermission  # import tardif
 
     if user.role == "admin":
         return user

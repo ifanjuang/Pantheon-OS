@@ -96,7 +96,7 @@ jobs:
         env:
           PYTHONPATH: .
         run: |
-          pytest ../tests/ -q \
+          pytest ../../tests/ -q \
             --cov=. \
             --cov-report=term-missing \
             --cov-report=xml \

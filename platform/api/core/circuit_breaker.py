@@ -172,7 +172,7 @@ class RedisCircuitBreaker(CircuitBreaker):
     async def _refresh_from_redis(self) -> None:
         """Lit l'état Redis et met à jour in-process si Redis est plus dégradé."""
         try:
-            from modules.memory.service import FunctionalMemoryService
+            from apps.memory.service import FunctionalMemoryService
 
             redis = await FunctionalMemoryService._get_client()
             if redis is None:
@@ -205,7 +205,7 @@ class RedisCircuitBreaker(CircuitBreaker):
     async def _write_to_redis(self) -> None:
         """Persiste l'état courant dans Redis (TTL = recovery_timeout × 4)."""
         try:
-            from modules.memory.service import FunctionalMemoryService
+            from apps.memory.service import FunctionalMemoryService
 
             redis = await FunctionalMemoryService._get_client()
             if redis is None:

@@ -75,7 +75,7 @@ async def orchestra_job(
     Met à jour le run avec les résultats une fois terminé.
     Le paramètre criticite est optionnel pour rester compatible avec les jobs déjà en queue.
     """
-    from modules.orchestra.service import run_orchestra_from_run_id
+    from apps.orchestra.service import run_orchestra_from_run_id
 
     log.info(f"[orchestra_job] start run_id={run_id}")
     async with AsyncSessionLocal() as db:
@@ -103,7 +103,7 @@ async def agent_job(
     """
     Exécute un run agent pour un AgentRun déjà créé en DB (status=queued).
     """
-    from modules.agent.service import run_agent_from_run_id
+    from apps.agent.service import run_agent_from_run_id
 
     log.info(f"[agent_job] start run_id={run_id}")
     async with AsyncSessionLocal() as db:
@@ -128,7 +128,7 @@ async def telegram_message_job(
     Traite un message Telegram entrant : commande, mention @agent, photo ou texte libre.
     Délégué depuis le webhook POST /webhooks/telegram via ARQ.
     """
-    from modules.webhooks.telegram import (
+    from apps.webhooks.telegram import (
         build_photo_instruction,
         get_or_create_session,
         handle_command,
@@ -137,8 +137,8 @@ async def telegram_message_job(
         tg_send_typing,
         tg_download_file,
     )
-    from modules.agent.service import run_agent
-    from modules.orchestra.service import run_orchestra
+    from apps.agent.service import run_agent
+    from apps.orchestra.service import run_orchestra
 
     log.info(f"[telegram_job] start chat_id={chat_id}")
 
@@ -241,7 +241,7 @@ async def memory_job(
     Extrait et stocke les leçons d'un run agent terminé.
     Planifié par agent/service.py après chaque run complété.
     """
-    from modules.agent.memory import extract_and_store_memories
+    from apps.agent.memory import extract_and_store_memories
 
     async with AsyncSessionLocal() as db:
         count = await extract_and_store_memories(
@@ -260,7 +260,7 @@ async def memory_consolidation_job(ctx):
     Consolide les leçons brutes en patterns de haut niveau.
     Exécuté périodiquement (cron 1x/jour) via ARQ.
     """
-    from modules.agent.memory import consolidate_memories
+    from apps.agent.memory import consolidate_memories
 
     log.info("[memory_consolidation_job] start")
     async with AsyncSessionLocal() as db:
@@ -274,7 +274,7 @@ async def ingest_courrier_job(ctx, courrier_id: str):
     Enfilé automatiquement à la création/mise à jour d'un courrier avec résumé.
     Idempotent : réindexe complètement si appelé plusieurs fois.
     """
-    from modules.communications.service import ingest_courrier
+    from apps.communications.service import ingest_courrier
 
     log.info(f"[ingest_courrier_job] start courrier_id={courrier_id}")
     async with AsyncSessionLocal() as db:
@@ -287,7 +287,7 @@ async def draft_courrier_job(ctx, courrier_id: str):
     Rédige un brouillon de réponse à un courrier entrant avec l'agent Iris.
     Enfilé par POST /communications/courriers/{id}/draft-response.
     """
-    from modules.communications.service import process_draft_response
+    from apps.communications.service import process_draft_response
 
     log.info(f"[draft_courrier_job] start courrier_id={courrier_id}")
     async with AsyncSessionLocal() as db:
@@ -301,7 +301,7 @@ async def analyze_chantier_obs_job(ctx, obs_id: str):
     Analyse une observation chantier avec l'agent Argos.
     Enfilé par POST /chantier/observations/{id}/analyze.
     """
-    from modules.chantier.service import process_observation_analysis
+    from apps.chantier.service import process_observation_analysis
 
     log.info(f"[analyze_chantier_obs_job] start obs_id={obs_id}")
     async with AsyncSessionLocal() as db:
@@ -315,7 +315,7 @@ async def qualify_nc_job(ctx, nc_id: str):
     Qualifie une non-conformité chantier avec l'agent Héphaïstos.
     Enfilé par POST /chantier/nonconformites/{id}/qualify.
     """
-    from modules.chantier.service import process_nc_qualification
+    from apps.chantier.service import process_nc_qualification
 
     log.info(f"[qualify_nc_job] start nc_id={nc_id}")
     async with AsyncSessionLocal() as db:
@@ -335,7 +335,7 @@ async def capture_job(
       1. Transcription audio (Whisper)
       2. Passage par le pipeline agent
     """
-    from modules.capture.service import process_capture
+    from apps.capture.service import process_capture
 
     log.info(f"[capture_job] start capture_id={capture_id}")
     async with AsyncSessionLocal() as db:
@@ -355,8 +355,8 @@ async def daily_alerts_job(ctx):
 
     Cron : 1x/jour à 06:00 UTC (avant la journée de travail).
     """
-    from modules.affaires.service import list_affaires
-    from modules.affaires.cockpit import get_alertes
+    from apps.affaires.service import list_affaires
+    from apps.affaires.cockpit import get_alertes
 
     log.info("[daily_alerts_job] start")
     nb_affaires = 0
@@ -398,8 +398,8 @@ async def weekly_summary_job(ctx):
 
     Cron : 1x/semaine le lundi à 07:00 UTC.
     """
-    from modules.affaires.service import list_affaires
-    from modules.agent.service import run_agent
+    from apps.affaires.service import list_affaires
+    from apps.agent.service import run_agent
 
     log.info("[weekly_summary_job] start")
     async with AsyncSessionLocal() as db:
