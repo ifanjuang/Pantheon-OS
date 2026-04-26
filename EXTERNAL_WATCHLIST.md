@@ -14,6 +14,7 @@ Règle : ces dépôts ne sont pas des dépendances runtime de Pantheon OS sauf d
 | `mage0535/hermes-memory-installer` | Installation mémoire locale / bootstrap mémoire | Plus tard | 2026-04-26 | Retenir installation mémoire, injection mémoire, auto-mount skills, archivage local ; rejeter SQLite FTS5 comme source principale et promotion non validée |
 | `suryamr2002/langgraph-approval-hub` | Approval Gate / HITL | Veille active | 2026-04-26 | Retenir statuts approval, pending queue, decision note, expiration, escalation, audit log ; pas de dashboard externe obligatoire |
 | `sunny84patel/RAG-Evaluation` | Evaluation Harness RAG | Plus tard | 2026-04-26 | Retenir génération questions, comparaison configs RAG, métriques retrieval/source/faithfulness/latency ; rejeter Streamlit et Qdrant in-memory comme base |
+| `HaroldConley/chunk-norris` | Sélection / comparaison de stratégies de chunking RAG | Veille active | 2026-04-26 | Retenir l’idée de tester plusieurs chunkers par corpus/document, questions générées et choix de stratégie ; à intégrer après Evaluation Harness, sans dépendance directe tant que licence/qualité non auditées |
 | `browser-use/browser-harness` | Browser Tool gouverné | Plus tard | 2026-04-26 | À reporter après Approval Gate, PolicyGate et Observability ; retenir screenshots before/after et action traces |
 | `elizaOS/eliza` | Actions / providers / evaluators / services | Veille | 2026-04-26 | Retenir vocabulaire runtime ; rejeter remplacement du runtime Pantheon |
 | `crewAIInc/crewAI` | Task Contract / workflow crew pattern | Veille active | 2026-04-26 | Retenir Task, expected_output, Flow/Crew separation ; runtime rejeté |
@@ -49,7 +50,7 @@ Règle : ces dépôts ne sont pas des dépendances runtime de Pantheon OS sauf d
 | Runtime contracts | CrewAI, ElizaOS, agentskills | À intégrer progressivement |
 | Approval / Safety | langgraph-approval-hub | À finaliser avant actions sensibles |
 | Memory | hermes-local-memory, hermes-memory-installer | À documenter maintenant, implémenter après stabilisation |
-| RAG Quality | RAG-Evaluation, agents-towards-production | À intégrer après Approval Gate minimal |
+| RAG Quality | RAG-Evaluation, ChunkNorris, agents-towards-production | À intégrer après Approval Gate minimal ; évaluer d’abord le chunking sur corpus Pantheon |
 | Self-hosting | StartOS, Installer UI interne | À intégrer maintenant côté doctrine + UI |
 | Visual Lab | Langflow, Flowise, Dify | Optionnel, jamais runtime de vérité |
 | Automation périphérique | n8n | Plus tard via webhooks |
@@ -100,5 +101,7 @@ Ne pas intégrer de Browser Tool avant Approval Gate, PolicyGate, traces et scre
 Ne pas faire de mise à jour automatique sans consentement explicite.
 
 Ne pas régénérer automatiquement les fichiers d’instructions IA sans revue humaine, car les Markdown de référence restent souverains.
+
+Ne pas intégrer un chunker externe comme dépendance obligatoire avant Evaluation Harness, benchmark sur documents Pantheon et vérification de licence.
 
 Pantheon OS conserve son identité : modularité, agents spécialisés, orchestration contrôlée, mémoire projet, RAG, workflows, validation, observability, self-hosting.
