@@ -15,6 +15,8 @@ Règle : ces dépôts ne sont pas des dépendances runtime de Pantheon OS sauf d
 | `suryamr2002/langgraph-approval-hub` | Approval Gate / HITL | Veille active | 2026-04-26 | Retenir statuts approval, pending queue, decision note, expiration, escalation, audit log ; pas de dashboard externe obligatoire |
 | `sunny84patel/RAG-Evaluation` | Evaluation Harness RAG | Plus tard | 2026-04-26 | Retenir génération questions, comparaison configs RAG, métriques retrieval/source/faithfulness/latency ; rejeter Streamlit et Qdrant in-memory comme base |
 | `HaroldConley/chunk-norris` | Sélection / comparaison de stratégies de chunking RAG | Veille active | 2026-04-26 | Retenir l’idée de tester plusieurs chunkers par corpus/document, questions générées et choix de stratégie ; à intégrer après Evaluation Harness, sans dépendance directe tant que licence/qualité non auditées |
+| `BartAmin/Clustered-Dynamic-RAG` | Retrieval dynamique / clustering documentaire | Veille active | 2026-04-26 | Retenir l’idée d’un retrieval adaptatif par clusters ou groupes sémantiques ; à benchmarker après Evaluation Harness, sans remplacer pgvector ni le pipeline RAG existant |
+| `kreuzberg-dev/kreuzcrawl` | Crawling web / extraction documentaire | À vérifier | 2026-04-26 | Intéressant pour ingestion web contrôlée ; à reporter après PolicyGate, scope/robots/allowlist et observability. Ne pas utiliser pour crawl large non gouverné |
 | `browser-use/browser-harness` | Browser Tool gouverné | Plus tard | 2026-04-26 | À reporter après Approval Gate, PolicyGate et Observability ; retenir screenshots before/after et action traces |
 | `elizaOS/eliza` | Actions / providers / evaluators / services | Veille | 2026-04-26 | Retenir vocabulaire runtime ; rejeter remplacement du runtime Pantheon |
 | `crewAIInc/crewAI` | Task Contract / workflow crew pattern | Veille active | 2026-04-26 | Retenir Task, expected_output, Flow/Crew separation ; runtime rejeté |
@@ -50,7 +52,8 @@ Règle : ces dépôts ne sont pas des dépendances runtime de Pantheon OS sauf d
 | Runtime contracts | CrewAI, ElizaOS, agentskills | À intégrer progressivement |
 | Approval / Safety | langgraph-approval-hub | À finaliser avant actions sensibles |
 | Memory | hermes-local-memory, hermes-memory-installer | À documenter maintenant, implémenter après stabilisation |
-| RAG Quality | RAG-Evaluation, ChunkNorris, agents-towards-production | À intégrer après Approval Gate minimal ; évaluer d’abord le chunking sur corpus Pantheon |
+| RAG Quality | RAG-Evaluation, ChunkNorris, Clustered-Dynamic-RAG, agents-towards-production | À intégrer après Approval Gate minimal ; évaluer d’abord chunking, clustering et retrieval dynamique sur corpus Pantheon |
+| Web ingestion / crawling | kreuzcrawl, browser-harness | À reporter après PolicyGate, allowlist, scope, robots, traces et observability |
 | Self-hosting | StartOS, Installer UI interne | À intégrer maintenant côté doctrine + UI |
 | Visual Lab | Langflow, Flowise, Dify | Optionnel, jamais runtime de vérité |
 | Automation périphérique | n8n | Plus tard via webhooks |
@@ -103,5 +106,7 @@ Ne pas faire de mise à jour automatique sans consentement explicite.
 Ne pas régénérer automatiquement les fichiers d’instructions IA sans revue humaine, car les Markdown de référence restent souverains.
 
 Ne pas intégrer un chunker externe comme dépendance obligatoire avant Evaluation Harness, benchmark sur documents Pantheon et vérification de licence.
+
+Ne pas lancer de crawler large sans allowlist, respect du périmètre, traçabilité, politique d’usage et validation humaine pour les sources sensibles.
 
 Pantheon OS conserve son identité : modularité, agents spécialisés, orchestration contrôlée, mémoire projet, RAG, workflows, validation, observability, self-hosting.
