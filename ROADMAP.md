@@ -232,6 +232,8 @@ Les cards sont des vues compactes, pas des sources de vérité. Les summaries so
 
 Les idées de `hermes-local-memory` sont retenues pour la doctrine mémoire : raw history protégée, facts candidats, cards compactes, contexte inspectable, dry-run, consolidation explicite.
 
+`mage0535/hermes-memory-installer` est ajouté en veille ciblée. À retenir : installation mémoire locale rapide, architecture mémoire en tiers, injection mémoire, auto-mount de skills et archivage local. À ne pas reprendre tel quel : SQLite FTS5 comme source de vérité principale, installation intrusive non auditée, promotion mémoire non validée, court-circuit des modèles mémoire Pantheon. Décision : utile comme référence d’expérience d’installation mémoire locale, à intégrer plus tard dans la doctrine Installer UI + Memory, après stabilisation Approval Gate, PolicyGate et modèle mémoire multi-couches.
+
 À ne pas reprendre : remplacement de PostgreSQL/pgvector par SQLite, suppression du runtime FastAPI, suppression des workers ou copie mécanique de l’architecture externe.
 
 ---
@@ -395,6 +397,7 @@ Tâches : checkpoints, retries, replay runner, memory export/import, workflow bu
 - ooples/token-optimizer-mcp : smart reads et cache.
 - JuliusBrussee/cavekit : spec-first execution.
 - nexus9888/hermes-memory-skills : consolidation mémoire et hygiene.
+- mage0535/hermes-memory-installer : expérience d’installation mémoire locale, injection mémoire, auto skill mounting et archivage ; à étudier après stabilisation du modèle mémoire Pantheon.
 - remote browser sandboxing si le besoin d’automatisation web devient réel.
 
 ## Intéressant mais non prioritaire
