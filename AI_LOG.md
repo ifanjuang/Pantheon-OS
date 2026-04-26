@@ -144,6 +144,41 @@ Prochaine action recommandée :
 
 ---
 
+### 2026-04-26 — ChatGPT
+
+Branche : `feature/approval-gate-activation`
+
+Objectif : ajouter `mage0535/hermes-memory-installer` à la roadmap comme source externe mémoire / installation, sans intégration code.
+
+Modifications :
+
+- Mise à jour de `ROADMAP.md` section `Memory Roadmap`.
+- Ajout de `mage0535/hermes-memory-installer` dans `External Inspiration Map` sous `À intégrer plus tard`.
+- Décision documentaire : retenir l’idée d’installation mémoire locale, injection mémoire, auto-mount de skills et archivage comme piste ultérieure.
+- Décision de rejet : ne pas reprendre SQLite FTS5 comme source de vérité principale, ni installation intrusive non auditée, ni promotion mémoire non validée.
+
+Fichiers critiques touchés :
+
+- `ROADMAP.md`
+- `AI_LOG.md`
+
+Tests lancés :
+
+- Non exécutés. Modification documentaire uniquement.
+
+Points à vérifier :
+
+- Le dépôt externe n’a pas encore été audité en profondeur fichier par fichier.
+- L’idée doit rester en veille jusqu’à stabilisation du modèle mémoire Pantheon, Approval Gate et PolicyGate.
+
+Prochaine action recommandée :
+
+1. Ne pas intégrer de code depuis `hermes-memory-installer` maintenant.
+2. Continuer d’abord Lot A : Installer UI, Alembic, tests.
+3. Revenir à cette piste pendant le chantier mémoire multi-couches.
+
+---
+
 ### YYYY-MM-DD — Claude
 
 Branche :
