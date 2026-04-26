@@ -179,6 +179,41 @@ Prochaine action recommandée :
 
 ---
 
+### 2026-04-26 — ChatGPT
+
+Branche : `feature/approval-gate-activation`
+
+Objectif : consolider tous les repos externes déjà évoqués dans `EXTERNAL_WATCHLIST.md`.
+
+Modifications :
+
+- Ajout ou clarification des entrées : `hermes-memory-installer`, `RAG-Evaluation`, `browser-harness`, `Langflow`, `Dify`, `n8n`, `OmniTools`, `StartOS`, `CommonMark`, `agents-towards-production`.
+- Ajout d’une synthèse par chantier Pantheon : governance documentaire, runtime contracts, approval, memory, RAG quality, self-hosting, visual lab, automation périphérique, local tools, browser tool.
+- Ajout de règles d’usage : pas de second runtime de vérité, pas d’import massif d’agents, pas de Browser Tool avant Approval/Policy/Observability, pas de mise à jour automatique sans consentement.
+
+Fichiers critiques touchés :
+
+- `EXTERNAL_WATCHLIST.md`
+- `AI_LOG.md`
+
+Tests lancés :
+
+- Non exécutés. Modification documentaire uniquement.
+
+Points à vérifier :
+
+- Certains dépôts sont classés après analyse conceptuelle, sans audit fichier par fichier.
+- Aucun code externe n’a été intégré.
+- Les idées restent subordonnées aux Markdown de référence et au modèle Pantheon.
+
+Prochaine action recommandée :
+
+1. Continuer Lot A : Installer UI, Alembic, tests.
+2. Ne pas ouvrir de nouveau chantier externe avant stabilisation.
+3. Reprendre ensuite Approval Gate complet, puis mémoire et RAG Evaluation.
+
+---
+
 ### YYYY-MM-DD — Claude
 
 Branche :
