@@ -21,6 +21,7 @@ Règle : ces dépôts ne sont pas des dépendances runtime de Pantheon OS sauf d
 | `openensemble/openensemble` | Plateforme multi-user agents / skills / self-hosting | Veille active | 2026-04-26 | Retenir patterns : comptes isolés, per-user workspace, skill manifests, backup/restore, update prudent, sandbox shell, providers multiples. Ne pas intégrer comme dépendance : licence non-commerciale, stack Node, second runtime concurrent |
 | `yassin123mom/the-spark-architecture` | Spécification conceptuelle AGI / boucle motivation-recherche-sécurité | Veille faible | 2026-04-26 | Retenir uniquement comme réflexion : boucle objectif → recherche → création outil → mémoire → sécurité. Ne pas intégrer tel quel : spéculation AGI, pas d’implémentation opérationnelle, risque de dérive proactive non gouvernée |
 | `Saichandra2520/AgentForge` | Scaffold Python pour projets agents | Veille active | 2026-04-26 | Retenir génération de templates ReAct/RAG/multi-agent/HITL avec FastAPI/tests/Docker/observability ; utile comme inspiration pour générateurs de modules Pantheon, pas comme runtime |
+| `zauberzeug/nicegui` | UI Python/FastAPI pour dashboards et consoles internes | Veille active | 2026-04-26 | Candidat sérieux pour Installer UI ou Hermes Console légère : backend-first Python, FastAPI, composants UI, tables, timers, routes custom, pytest. Ne pas remplacer OpenWebUI ; évaluer complexité et packaging avant adoption |
 | `elizaOS/eliza` | Actions / providers / evaluators / services | Veille | 2026-04-26 | Retenir vocabulaire runtime ; rejeter remplacement du runtime Pantheon |
 | `crewAIInc/crewAI` | Task Contract / workflow crew pattern | Veille active | 2026-04-26 | Retenir Task, expected_output, Flow/Crew separation ; runtime rejeté |
 | `agentscope-ai/agentscope` | Multi-agent runtime avancé | Veille | 2026-04-26 | Intéressant pour observability, HITL, planning, MCP/A2A ; non prioritaire, ne pas empiler un second runtime |
@@ -58,6 +59,7 @@ Règle : ces dépôts ne sont pas des dépendances runtime de Pantheon OS sauf d
 | RAG Quality | RAG-Evaluation, ChunkNorris, Clustered-Dynamic-RAG, agents-towards-production | À intégrer après Approval Gate minimal ; évaluer d’abord chunking, clustering et retrieval dynamique sur corpus Pantheon |
 | Web ingestion / crawling | kreuzcrawl, browser-harness | À reporter après PolicyGate, allowlist, scope, robots, traces et observability |
 | Self-hosting | StartOS, OpenEnsemble, Installer UI interne | À intégrer maintenant côté doctrine + UI ; retenir lifecycle, backup, update prudent, isolation utilisateurs |
+| Admin / Installer UI | NiceGUI, StartOS, Installer UI interne | NiceGUI est candidat pour UI Python légère ; à évaluer avant migration de l’Installer UI existante |
 | Visual Lab | Langflow, Flowise, Dify | Optionnel, jamais runtime de vérité |
 | Automation périphérique | n8n | Plus tard via webhooks |
 | Local Tools | OmniTools | Plus tard comme service optionnel ou inspiration UI |
@@ -116,5 +118,7 @@ Ne pas lancer de crawler large sans allowlist, respect du périmètre, traçabil
 Ne pas intégrer de boucle proactive type AGI sans objectif utilisateur/documentaire explicite, PolicyGate, Approval Gate, limites de ressources, logs et possibilité d’arrêt.
 
 Ne pas reprendre de dépendance à licence non-commerciale dans Pantheon sans validation juridique explicite.
+
+Ne pas multiplier les frameworks UI : OpenWebUI reste l’interface chat ; une UI Python type NiceGUI ne peut servir qu’à l’administration, l’installation ou la console interne.
 
 Pantheon OS conserve son identité : modularité, agents spécialisés, orchestration contrôlée, mémoire projet, RAG, workflows, validation, observability, self-hosting.
