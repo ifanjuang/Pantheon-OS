@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pantheon OS Installer</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="header">
+      <div>
+        <p class="eyebrow">Pantheon OS</p>
+        <h1>Installer local</h1>
+        <p class="muted">Installation NAS + Ollama LAN avec suivi d'étapes.</p>
+      </div>
+      <div class="status-pill" id="overall-status">{{ state.overall_status }}</div>
+    </header>
+
+    <section class="panel">
+      <h2>Configuration</h2>
+      <form id="config-form" class="grid-form">
+        <label>
+          IP ou URL Ollama
+          <input name="ollama_host" id="ollama_host" value="{{ state.config.ollama_host }}" placeholder="192.168.50.14" required>
+        </label>
+        <label>
+          Modèle chat
+          <input name="chat_model" id="chat_model" value="{{ state.config.chat_model }}" placeholder="qwen2.5:7b">
+        </label>
+        <label>
+          Modèle embeddings
+          <input name="embedding_model" id="embedding_model" value="{{ state.config.embedding_model }}" placeholder="nomic-embed-text">
+        </label>
+        <label>
+          URL API Pantheon
+          <input name="api_base_url" id="api_base_url" value="{{ state.config.api_base_url }}" placeholder="http://localhost:8000">
+        </label>
+      </form>
+      <div class="actions">
+        <button data-action="save-config">Sauvegarder config</button>
+        <button data-action="run-all" class="primary">Tout lancer</button>
+        <button data-action="refresh">Rafraîchir</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Étapes</h2>
+      <div class="steps" id="steps"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Actions manuelles</h2>
+      <div class="actions wrap">
+        <button data-step="docker">Check Docker</button>
+        <button data-step="docker-compose">Check Docker Compose</button>
+        <button data-step="ollama">Check Ollama</button>
+        <button data-step="env">Préparer .env</button>
+        <button data-step="containers">Lancer conteneurs</button>
+        <button data-step="migrations">Migrations</button>
+        <button data-step="tests">Tests ciblés</button>
+        <button data-step="health">Health API</button>
+        <button data-step="runtime-registry">Runtime registry</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Logs</h2>
+      <pre id="logs" class="logs"></pre>
+    </section>
+  </main>
+
+<script>
+const statusLabels = {
+  pending: 'PENDING', running: 'RUNNING', ok: 'OK', warning: 'WARNING', error: 'ERROR'
+};
+
+function formConfig() {
+  return {
+    ollama_host: document.getElementById('ollama_host').value,
+    chat_model: document.getElementById('chat_model').value || 'qwen2.5:7b',
+    embedding_model: document.getElementById('embedding_model').value || 'nomic-embed-text',
+    api_base_url: document.getElementById('api_base_url').value || 'http://localhost:8000'
+  };
+}
+
+async function postJson(url, payload=null) {
+  const options = { method: 'POST', headers: {} };
+  if (payload) {
+    options.headers['Content-Type'] = 'application/json';
+    options.body = JSON.stringify(payload);
+  }
+  const response = await fetch(url, options);
+  if (!response.ok) throw new Error(await response.text());
+  return response.json();
+}
+
+async function loadStatus() {
+  const response = await fetch('/api/status');
+  const state = await response.json();
+  renderState(state);
+}
+
+function renderState(state) {
+  const overall = document.getElementById('overall-status');
+  overall.textContent = state.overall_status.toUpperCase();
+  overall.className = 'status-pill ' + state.overall_status;
+
+  const steps = document.getElementById('steps');
+  steps.innerHTML = '';
+  Object.entries(state.steps || {}).forEach(([id, step]) => {
+    const card = document.createElement('div');
+    card.className = 'step ' + step.status;
+    card.innerHTML = `<div class="step-head"><strong>${step.label || id}</strong><span>${statusLabels[step.status] || step.status}</span></div><p>${step.message || ''}</p>`;
+    steps.appendChild(card);
+  });
+
+  const logs = document.getElementById('logs');
+  logs.textContent = (state.logs || []).slice(-60).map(log => `${log.ts} [${log.level}] ${log.step || ''} ${log.message}`).join('\n');
+}
+
+async function runStep(step) {
+  const config = formConfig();
+  const endpoints = {
+    docker: ['/api/check/docker', null],
+    'docker-compose': ['/api/check/docker-compose', null],
+    ollama: ['/api/check/ollama', config],
+    env: ['/api/check/env', config],
+    containers: ['/api/containers/start', null],
+    migrations: ['/api/migrations/run', null],
+    tests: ['/api/tests/run', null],
+    health: ['/api/check/health', config],
+    'runtime-registry': ['/api/check/runtime-registry', config]
+  };
+  const [url, payload] = endpoints[step];
+  await postJson(url, payload);
+  await loadStatus();
+}
+
+document.addEventListener('click', async (event) => {
+  const button = event.target.closest('button');
+  if (!button) return;
+  try {
+    if (button.dataset.action === 'refresh') await loadStatus();
+    if (button.dataset.action === 'save-config') await postJson('/api/config', formConfig()).then(loadStatus);
+    if (button.dataset.action === 'run-all') await postJson('/api/run-all', formConfig()).then(loadStatus);
+    if (button.dataset.step) await runStep(button.dataset.step);
+  } catch (error) {
+    alert(error.message);
+  }
+});
+
+loadStatus();
+setInterval(loadStatus, 3000);
+</script>
+</body>
+</html>
