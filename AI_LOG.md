@@ -1,0 +1,161 @@
+# AI LOG — Pantheon OS
+
+Ce fichier sert de journal minimal de coordination entre l’utilisateur, ChatGPT, Claude et tout autre assistant IA intervenant sur le dépôt.
+
+Objectif : éviter les doublons, conflits de branches, modifications contradictoires et incohérences entre code et documentation.
+
+---
+
+## Règles simples
+
+1. Lire `AI_LOG.md` avant toute modification.
+2. Lire les six fichiers Markdown de référence avant toute modification structurante :
+   - `STATUS.md`
+   - `ROADMAP.md`
+   - `ARCHITECTURE.md`
+   - `AGENTS.md`
+   - `MODULES.md`
+   - `README.md`
+3. Ne jamais pousser directement sur `main`.
+4. Travailler sur une branche dédiée.
+5. Noter ici chaque intervention significative.
+6. Si un fichier critique est touché, le signaler clairement.
+7. Les Markdown de référence restent la base du développement.
+8. Si le code est plus pertinent que les Markdown, proposer ou appliquer d’abord la mise à jour documentaire.
+
+---
+
+## Fichiers critiques
+
+- `STATUS.md`
+- `ROADMAP.md`
+- `ARCHITECTURE.md`
+- `AGENTS.md`
+- `MODULES.md`
+- `README.md`
+- `modules.yaml`
+- `platform/api/main.py`
+- `platform/api/core/health.py`
+- `platform/api/core/registry.py`
+- `platform/api/core/registries/*`
+- `platform/api/core/contracts/*`
+- `platform/api/apps/*`
+- `alembic/versions/*`
+- `docker-compose.yml`
+- `.env.example`
+
+---
+
+## Branches recommandées
+
+- ChatGPT : `work/chatgpt/*` ou `feature/chatgpt/*`
+- Claude : `work/claude/*` ou `feature/claude/*`
+- Branche actuelle de travail : `feature/approval-gate-activation`
+- `main` : stable uniquement
+
+---
+
+## Template d’entrée
+
+```md
+### YYYY-MM-DD — Assistant / outil
+
+Branche :
+
+Objectif :
+
+Modifications :
+
+Fichiers critiques touchés :
+
+Tests lancés :
+
+Points à vérifier :
+
+Prochaine action recommandée :
+```
+
+---
+
+## Log
+
+### 2026-04-26 — ChatGPT
+
+Branche : `feature/approval-gate-activation`
+
+Objectif : renforcer les fondations de Pantheon OS avant activation des modules avancés.
+
+Modifications :
+
+- Ajout `CODE_AUDIT.md`.
+- Ajout `ManifestLoader` runtime tolérant.
+- Ajout contrat manifest progressif `ComponentManifest`.
+- Branchement du contrat manifest dans `ModuleRegistry` et `ManifestLoader`.
+- Ajout contrats `TaskDefinition` et `WorkflowDefinition`.
+- Ajout loader `workflow.yaml` / `tasks.yaml`.
+- Branchement du loader workflow au startup dans `platform/api/main.py`.
+- Ajout workflow réel `modules/workflows/document_analysis/`.
+- Ajout endpoint debug `/debug/runtime-registry`.
+- Ajout module `approvals` avec modèle, schémas, service, router.
+- Ajout migration `approval_requests`.
+- Enregistrement `approvals` dans `modules.yaml` mais avec `enabled: false`.
+- Ajout tests contractuels manifests, tasks, workflows, approval.
+- Ajout Installer UI autonome NAS + Ollama LAN.
+- Ajout script Windows pour préparer Ollama.
+- Ajout gouvernance versions : `VERSION`, `CHANGELOG.md`, `VERSIONS.md`, `EXTERNAL_WATCHLIST.md`.
+- Ajout scripts update partiels.
+- Ajout `AI_LOG.md` comme journal simple de coordination IA.
+
+Fichiers critiques touchés :
+
+- `STATUS.md`
+- `modules.yaml`
+- `platform/api/main.py`
+- `platform/api/core/health.py`
+- `platform/api/core/registry.py`
+- `platform/api/core/registries/loader.py`
+- `platform/api/core/registries/workflows.py`
+- `platform/api/core/contracts/manifest.py`
+- `platform/api/core/contracts/tasks.py`
+- `platform/api/apps/approvals/*`
+- `alembic/versions/20260426_0001_add_approval_requests.py`
+
+Tests lancés :
+
+- Non exécutés dans cette session.
+
+Points à vérifier :
+
+- Migration Approval Gate : `down_revision = None` à vérifier avec `alembic heads`.
+- Tests non exécutés.
+- Installer UI non testée sur NAS.
+- Module `approvals` toujours désactivé.
+- Les workflows sont chargés et exposés, mais pas encore exécutés par un moteur runtime.
+- `OpenWebUI` utilise encore un tag Docker potentiellement instable si `main` est conservé.
+
+Prochaine action recommandée :
+
+1. Lancer l’Installer UI sur NAS : `bash scripts/install/ui/launch_installer.sh`.
+2. Vérifier Docker, Ollama, `.env`, containers, migrations, tests, `/health`, `/debug/runtime-registry`.
+3. Vérifier Alembic avec `alembic heads`.
+4. Corriger `down_revision` si nécessaire.
+5. Exécuter les tests ciblés.
+6. Activer `approvals` seulement après validation migration + tests.
+
+---
+
+### YYYY-MM-DD — Claude
+
+Branche :
+
+Objectif :
+
+Modifications :
+
+Fichiers critiques touchés :
+
+Tests lancés :
+
+Points à vérifier :
+
+Prochaine action recommandée :
