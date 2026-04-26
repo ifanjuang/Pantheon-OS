@@ -1,555 +1,389 @@
 # Pantheon OS — Modules
 
-## Overview
+> Document de référence.
+> Dans la trajectoire Hermes-backed, les modules Pantheon sont principalement des contrats, overlays, workflows, skills et règles. Hermes exécute les capacités ; Pantheon les définit et les gouverne.
 
-Pantheon OS est construit à partir de blocs runtime modulaires.
+---
+
+# 1. Principe
+
+Pantheon OS ne cherche plus à tout exécuter lui-même.
 
 Le système distingue :
 
-- core runtime logic ;
-- reusable runtime modules ;
-- domain overlays ;
-- platform and infrastructure.
+- les modules contractuels Pantheon ;
+- les capacités exécutables Hermes ;
+- les knowledge collections OpenWebUI ;
+- les outils ou scripts d’exploitation ;
+- les éventuels restes de l’ancien runtime autonome, à réauditer.
 
-Un module n’est pas seulement un dossier. Un module est une unité runtime avec une identité, un contrat, un manifest, un cycle de vie, des dépendances explicites et une activation contrôlée.
+Règle :
 
----
-
-# 1. Module Philosophy
-
-## 1.1 Modular by default
-
-Tout ce qui peut varier, évoluer ou être remplacé doit rester hors du core : agents, skills, tools, workflows, prompts, templates.
-
-Le core fournit exécution, gouvernance, contrats, états et registries. Les modules fournissent le comportement.
-
-## 1.2 Filesystem as source of truth
-
-Un module doit être découvrable depuis le filesystem. Ajouter un module doit principalement signifier ajouter un dossier, un manifest et une implémentation conforme au contrat.
-
-## 1.3 Core and modules separation
-
-Le core ne doit pas absorber de logique métier. Les modules ne doivent pas réimplémenter la gouvernance core.
-
-Limite :
-
-- le core définit comment l’exécution fonctionne ;
-- les modules définissent ce qui est exécuté.
-
-## 1.4 Explicit modules
-
-Chaque module déclare ce qu’il est, ce qu’il dépend, ce qu’il produit, quand il doit être utilisé et quand il ne doit pas l’être.
+```text
+Un module Pantheon doit être lisible, versionnable, exportable et gouvernable.
+```
 
 ---
 
-# 2. Main Module Families
+# 2. Familles de modules
 
 ## 2.1 Agents
 
-Les agents sont des unités de raisonnement. Ils interprètent, structurent, produisent des sorties, appellent skills et tools via le runtime, et participent aux workflows.
+Les agents sont des rôles cognitifs abstraits.
 
-## 2.2 Skills
+Emplacement cible :
 
-Les skills sont des capacités cognitives réutilisables. Elles encapsulent un travail répétable, borné, testable et sans effet de bord direct.
+```text
+agents/
+  zeus.md
+  athena.md
+  argos.md
+  themis.md
+  apollo.md
+```
 
-## 2.3 Tools
+Ils définissent responsabilités, limites, activation, output attendu et règles de sécurité.
 
-Les tools sont des interfaces techniques ou externes : fetch, read, transform, call service, write output, bounded actions. Ils doivent rester étroits, explicites et gouvernés.
+Ils ne contiennent pas de logique métier spécifique.
+
+## 2.2 Domain overlays
+
+Les overlays portent le métier.
+
+```text
+domains/
+  architecture/
+    overlay.md
+    rules.md
+    knowledge_policy.md
+    output_formats.md
+    workflows/
+    skills/
+    templates/
+  software/
+  legal/
+  consulting/
+```
+
+Un overlay spécialise les agents abstraits pour un domaine donné.
+
+## 2.3 Skills
+
+Les skills sont les capacités procédurales réutilisables.
+
+Pantheon définit les skills. Hermes les exécute.
+
+```text
+skills/
+  generic/
+  architecture/
+    cctp_audit/
+      SKILL.md
+      manifest.yaml
+      examples.md
+      tests.md
+  software/
+```
+
+Une skill doit indiquer : objectif, inputs, outputs, agents mobilisés, sources autorisées, risques, approval requis, exemples, tests et état.
+
+États : draft, candidate, active, archived.
 
 ## 2.4 Workflows
 
-Les workflows structurent l’exécution : séquence, dépendances, patterns, checkpoints, validations et fallbacks.
-
-## 2.5 Prompts
-
-Les prompts cadrent les comportements, mais ne remplacent pas la logique runtime.
-
-## 2.6 Templates
-
-Les templates définissent des structures d’outputs réutilisables et versionnables.
-
-## 2.7 Memory modules
-
-Les modules mémoire gèrent la continuité, la capitalisation, les faits, les résumés, les cartes compactes, les traces et l’inspection du contexte injecté.
-
-Ils ne décident pas seuls de la vérité métier. Ils stockent, exposent, relient, proposent, prévisualisent et appliquent les écritures mémoire validées.
-
-## 2.8 Approval modules
-
-Les modules d’approbation gèrent les demandes de validation humaine avant exécution d’actions sensibles.
-
-Ils ne décident pas à la place de l’humain. Ils bloquent, tracent, notifient, expirent, escaladent et permettent la reprise ou l’abandon du workflow.
-
-## 2.9 Browser modules
-
-Les modules navigateur permettent la consultation, l’extraction, les tests de rendu et certaines interactions web contrôlées.
-
-Ils ne doivent jamais devenir une capacité libre d’action web. Toute action à effet de bord doit passer par policy, approval et trace.
-
----
-
-# 3. Repository Structure
+Les workflows définissent les séquences de travail.
 
 ```text
-modules/
-  agents/
-  skills/
-  tools/
-  workflows/
-  prompts/
-  templates/
-
-core/
-  contracts/
-  registry/
-  decision/
-  execution/
-  state/
-  policies/
-  evaluation/
-  learning/
-  observability/
-  memory/
-  documents/
-  llm/
-
-domains/
+workflows/
+  generic/
   architecture/
-  legal/
+    cctp_review.yaml
+    dpgf_review.yaml
   software/
-  consulting/
-
-platform/
-  api/
-  ui/
-  data/
-  infra/
+    repo_consistency_audit.yaml
 ```
 
----
+Un workflow peut être exécuté par Hermes comme procédure. LangGraph reste une option future pour formaliser les workflows complexes si Hermes ne suffit plus.
 
-# 4. Module Discovery
+## 2.5 Knowledge policy
 
-Les modules sont découverts par manifests.
-
-Répertoires typiques :
-
-- `modules/agents/`
-- `modules/skills/`
-- `modules/tools/`
-- `modules/workflows/`
-- `domains/*/agents/`
-- `domains/*/skills/`
-- `domains/*/workflows/`
-
-Un module est loadable si le dossier existe, le manifest est valide, les fichiers requis existent et les contrats passent la validation.
-
-Les registries sont des index runtime, pas la source de vérité. La source de vérité reste filesystem + manifest.
-
----
-
-# 5. Manifest Model
-
-Champs recommandés :
-
-- `id`
-- `name`
-- `type`
-- `version`
-- `description`
-- `enabled`
-- `layer`
-- `domain`
-- `inputs`
-- `outputs`
-- `dependencies`
-- `constraints`
-- `policy`
-- `activation`
-- `tags`
-
-Les manifests doivent rester légers, explicites et lisibles par machine.
-
----
-
-# 6. Module Contracts by Type
-
-## 6.1 Agent contract
-
-Un agent déclare rôle, responsabilités, limites, activation, inputs, outputs, veto éventuel et criticity triggers.
-
-Structure habituelle :
+Pantheon ne stocke pas nécessairement les documents lourds. Il définit leur stratégie.
 
 ```text
-agent.py
-manifest.yaml
-SOUL.md
-tests/
+knowledge/
+  openwebui_collections.md
+  source_policy.md
+  document_taxonomy.md
 ```
 
-## 6.2 Skill contract
+OpenWebUI peut porter les collections documentaires. Pantheon définit les noms, usages, statuts, règles de fiabilité et exclusions.
 
-Une skill déclare scope, inputs, outputs, conditions d’usage, conditions d’évitement et failure modes.
+## 2.6 Memory
 
-Structure habituelle :
+Pantheon porte la mémoire validée.
 
 ```text
-skill.py
-manifest.yaml
-SKILL.md
-tests/
+memory/
+  project/
+    facts.md
+    decisions.md
+    risks.md
+  agency/
+    patterns.md
+    clauses.md
+    preferences.md
+  candidates/
+    pending_facts.md
+    pending_skills.md
+    pending_rules.md
 ```
 
-## 6.3 Tool contract
+Hermes peut garder une mémoire opérationnelle. Celle-ci ne devient pas vérité Pantheon sans promotion explicite.
 
-Un tool déclare ce qu’il fait, quand l’utiliser, quand ne pas l’utiliser, son profil d’effet de bord, ses policy requirements et ses failure modes.
+## 2.7 Hermes integration
 
-Structure habituelle :
+Module d’intégration vers Hermes Agent.
 
 ```text
-tool.py
-manifest.yaml
-README.md
-tests/
+hermes/
+  context/
+    pantheon_context.md
+    agents_context.md
+    rules_context.md
+    domain_architecture.md
+  exports/
+    skills/
+    prompts/
+    workflows/
 ```
 
-## 6.4 Workflow contract
+Objectifs : fournir à Hermes les contextes et skills validés, sans redéfinition divergente.
 
-Un workflow déclare graphe ou séquence, agents, dépendances, pattern d’exécution, checkpoints, validations et fallback rules.
+## 2.8 Operations
 
-Structure habituelle :
+Modules d’exploitation documentaire et scripts éventuels :
 
 ```text
-workflow.py
-manifest.yaml
-workflow.yaml
-tests/
+operations/
+  install.md
+  update.md
+  backup.md
+  doctor.md
 ```
 
-## 6.5 Prompt contract
-
-Un prompt déclare scope, module cible, domaine applicable, contraintes et profil d’instruction.
-
-## 6.6 Template contract
-
-Un template déclare type d’artefact, sections attendues, variables, domaine éventuel et contraintes de sortie.
-
-## 6.7 Memory contract
-
-Un module mémoire doit déclarer :
-
-- le type de mémoire concerné : session, project, agency, functional, raw, knowledge ;
-- les objets manipulés : raw events, messages, facts, candidate facts, summaries, cards, traces ;
-- les sources acceptées ;
-- les règles de promotion ;
-- les règles de rétractation ou supersession ;
-- les modes preview / dry-run ;
-- les outputs injectables dans le contexte ;
-- les agents autorisés à valider ou arbitrer.
-
-Un module mémoire ne doit pas promouvoir massivement des données sans scoring, source et validation.
-
-## 6.8 Approval contract
-
-Un module Approval doit déclarer :
-
-- les types d’actions soumis à validation ;
-- le modèle `ApprovalRequest` ;
-- les statuts autorisés ;
-- les règles d’expiration ;
-- les règles d’escalade ;
-- les assignees personne / équipe ;
-- les outputs de décision ;
-- l’audit log ;
-- les conditions de reprise ou d’abandon de workflow.
-
-Statuts minimaux :
-
-- `pending`
-- `approved`
-- `rejected`
-- `expired`
-- `escalated`
-- `cancelled`
-
-Interfaces attendues :
-
-- `approval.create_request`
-- `approval.get_status`
-- `approval.list_pending`
-- `approval.decide`
-- `approval.escalate`
-- `approval.expire`
-- `approval.audit_log`
-
-Une décision d’approbation doit être idempotente et protégée contre les doubles décisions concurrentes.
-
-## 6.9 Browser tool contract
-
-Un Browser Tool doit déclarer :
-
-- les modes supportés : lecture, screenshot, extraction, interaction ;
-- le type de navigateur : sandbox, remote, local explicitement autorisé ;
-- les actions autorisées sans approval ;
-- les actions soumises à approval ;
-- les traces produites ;
-- les règles de stockage des screenshots ;
-- les conditions d’arrêt : login wall, captcha, paiement, compte connecté, donnée sensible.
-
-Interfaces attendues :
-
-- `browser.open`
-- `browser.screenshot`
-- `browser.page_info`
-- `browser.extract`
-- `browser.click`
-- `browser.type`
-- `browser.upload`
-- `browser.http_get`
-- `browser.close`
-- `browser.action_trace`
-
-Règles :
-
-- lecture avant action ;
-- screenshot avant/après toute interaction significative ;
-- HTTP direct avant automatisation lourde quand possible ;
-- approval obligatoire pour tout effet de bord ;
-- sandbox ou remote browser privilégié ;
-- interdiction de modifier les helpers runtime sans revue.
+Ces fichiers décrivent les procédures NAS, Portainer, OpenWebUI, Hermes Lab, Ollama LAN, versions et backups.
 
 ---
 
-# 7. Memory Module Responsibilities
+# 3. Skill contract
 
-## 7.1 Raw history
+Chaque skill doit contenir au minimum :
 
-Stocke les messages, documents, tool outputs, événements, run traces et actions. Cette couche est la base de vérification.
+```text
+id
+name
+domain
+status
+purpose
+inputs
+outputs
+agents
+knowledge_sources
+approval_required_if
+risks
+failure_modes
+examples
+tests
+```
 
-Elle ne doit pas être modifiée par consolidation ordinaire.
+`manifest.yaml` doit rester machine-readable. `SKILL.md` doit rester lisible par humain et par Hermes.
 
-## 7.2 Candidate facts
+Exemple minimal :
 
-Stocke les faits proposés par extraction, réflexion, import ou analyse. Un candidate fact n’est pas encore une mémoire fiable.
-
-Il doit inclure source, confidence, scope, subject, observer ou affaire, et justification minimale.
-
-## 7.3 Active facts
-
-Stocke les faits validés, durables, utiles et sourcés.
-
-Un active fact doit pouvoir être rétracté, supersédé ou relié à une preuve.
-
-## 7.4 Summaries
-
-Stocke les résumés de session, workflow, affaire, document ou fenêtre temporelle.
-
-Un summary est une couche dérivée. Il ne remplace pas les sources brutes.
-
-## 7.5 Cards
-
-Stocke les cartes compactes utilisées pour l’injection rapide dans les prompts.
-
-Une card est une vue synthétique compacte. Elle ne doit pas grossir mécaniquement avec chaque active fact.
-
-## 7.6 Context preview
-
-Expose le contexte qui serait injecté dans un agent ou workflow avant exécution.
-
-Un module de preview doit montrer :
-
-- les facts utilisés ;
-- les cards utilisées ;
-- les summaries utilisés ;
-- les documents ou chunks cités ;
-- les traces ou décisions pertinentes ;
-- les éléments exclus si utile.
-
----
-
-# 8. Memory Module Interfaces
-
-Interfaces attendues à terme :
-
-- `memory.search_active_facts`
-- `memory.list_candidate_facts`
-- `memory.propose_candidate_fact`
-- `memory.promote_fact`
-- `memory.retract_fact`
-- `memory.supersede_fact`
-- `memory.generate_card_preview`
-- `memory.replace_card`
-- `memory.context_preview`
-- `memory.consolidation_dry_run`
-- `memory.apply_consolidation`
-- `memory.route_post_run_memory`
-
-Ces interfaces peuvent être exposées comme services internes, endpoints API ou tools gouvernés selon le niveau de maturité.
+```yaml
+id: cctp_audit
+domain: architecture
+status: candidate
+agents:
+  - ATHENA
+  - ARGOS
+  - THEMIS
+  - APOLLO
+approval_required_if:
+  - modifies_source_document
+  - sends_external_message
+  - promotes_memory
+outputs:
+  - diagnostic
+  - inconsistency_table
+  - risks
+  - corrections
+```
 
 ---
 
-# 9. Browser Domain Skills
+# 4. Workflow contract
 
-Les browser domain skills documentent les comportements réutilisables d’un site ou d’un service web.
+Chaque workflow doit contenir :
 
-Elles peuvent contenir :
+```text
+id
+domain
+purpose
+inputs
+steps
+agents
+skills
+knowledge_sources
+outputs
+approval_points
+memory_targets
+fallback
+```
 
-- selectors stables ;
-- URL patterns ;
-- APIs observées ;
-- pièges d’interface ;
-- waits spécifiques ;
-- stratégies d’extraction ;
-- limites de sécurité.
-
-Elles ne doivent jamais contenir :
-
-- secrets ;
-- cookies ;
-- tokens ;
-- données personnelles ;
-- coordonnées pixel brutes comme stratégie principale ;
-- narration d’un run spécifique.
+Un workflow ne doit pas être un prompt long déguisé. Il doit être une procédure structurée.
 
 ---
 
-# 10. Domain Overlay Rules
+# 5. Domain overlay contract
 
-Le comportement métier appartient aux overlays.
+Un overlay doit définir :
 
-Exemples :
+- périmètre ;
+- règles métier ;
+- sources de référence ;
+- workflows actifs ;
+- skills actives ;
+- templates ;
+- output formats ;
+- règles d’approbation ;
+- règles de mémoire ;
+- exclusions.
 
-- scoring de décision architecture ;
-- politiques de citation juridique ;
-- blast-radius software ;
-- workflows chantier ;
-- templates ACT, DET, AOR.
-
-Les modules génériques ne doivent pas supposer un domaine professionnel particulier.
-
----
-
-# 11. Activation and Enablement
-
-Un module peut être :
-
-- enabled ;
-- disabled ;
-- experimental ;
-- deprecated plus tard.
-
-La présence sur disque est différente de l’activation runtime.
-
-L’activation dépend de criticity, workflow, domaine, risque d’effet de bord, type d’output, incertitude et configuration opérateur.
+Le domaine ne doit pas modifier les agents abstraits. Il les spécialise contextuellement.
 
 ---
 
-# 12. Module Testing
+# 6. Memory contract
 
-Tout module critique doit être testable.
+Toute mémoire Pantheon doit rester :
 
-Tests attendus : unit tests de skills, tool tests et mocks, agent tests, workflow integration tests, regression tests.
+- sourcée ;
+- datée ;
+- liée à un projet, une agence, une règle ou une skill ;
+- révisable ;
+- rétractable ;
+- différenciée entre candidate et active.
 
-Les modules mémoire doivent être testés sur :
+Hermes peut proposer :
 
-- non-promotion du bruit ;
-- conservation des sources brutes ;
-- dry-run avant consolidation ;
-- rétractation et supersession ;
-- preview du contexte injecté ;
-- absence de croissance incontrôlée des cards.
+- candidate fact ;
+- candidate skill ;
+- candidate rule ;
+- candidate workflow improvement.
 
-Les modules Approval doivent être testés sur :
-
-- double décision concurrente ;
-- expiration ;
-- rejet ;
-- escalation ;
-- reprise workflow après approval ;
-- blocage workflow après reject ;
-- audit log complet.
-
-Les Browser Tools doivent être testés sur :
-
-- navigation passive ;
-- screenshot before/after ;
-- blocage des actions à effet de bord sans approval ;
-- arrêt sur login wall ou captcha ;
-- trace complète d’action ;
-- non-utilisation du navigateur personnel par défaut.
+Pantheon valide ou rejette.
 
 ---
 
-# 13. Versioning and Lifecycle
+# 7. Approval contract
 
-Skills, workflows, overlays, prompts, templates et politiques doivent évoluer avec versioning explicite lorsque la stabilité du runtime l’exige.
+Une action doit être classée avant exécution.
 
-États possibles : draft, candidate, active, archived.
+Actions sans approval forte :
 
-Les breaking changes doivent être explicites.
+- diagnostic ;
+- lecture ;
+- extraction ;
+- brouillon ;
+- proposition.
 
----
+Actions avec approval :
 
-# 14. Governance Constraints for Modules
+- modification de fichier ;
+- envoi email ;
+- suppression ;
+- commande shell hors allowlist ;
+- promotion mémoire ;
+- activation skill candidate ;
+- action web à effet de bord ;
+- accès secret, volume sensible ou Docker socket.
 
-- aucun effet de bord non gouverné ;
-- aucune logique métier cachée dans core ;
-- aucune mutation silencieuse ;
-- aucune dépendance implicite ;
-- aucune activation décorative dans les runs critiques ;
-- aucune mémoire durable non sourcée ;
-- aucune consolidation mémoire sans dry-run pour les opérations sensibles ;
-- aucune action sensible sans Approval Gate ;
-- aucune action navigateur sans trace.
-
----
-
-# 15. Hermes Console Expectations
-
-La console doit exposer pour chaque module : id, type, domaine, enabled state, version, dépendances, métriques d’usage, échecs récents, contexte d’activation.
-
-Pour la mémoire, la console doit exposer : candidate facts, active facts, cards, summaries, contexte injecté, promotions, rétractions, consolidations et erreurs de routage.
-
-Pour les approvals, la console doit exposer : pending approvals, assignee, criticity, action description, agent reasoning, status, decision note, expiration, escalation et audit log.
-
-Pour le browser tool, la console doit exposer : URL, action, screenshots avant/après, approval liée, statut, erreurs et traces.
+Au départ, cette discipline peut être documentaire et opératoire. Un module logiciel peut être conservé ou réorienté si nécessaire après audit.
 
 ---
 
-# 16. Naming Rules
+# 8. OpenWebUI collections
 
-Folder names en `snake_case`, IDs stables, machine-friendly, indépendants des expérimentations de nommage.
+Collections recommandées :
 
-L’identité mythologique et le rôle doivent rester séparables.
+```text
+pantheon_governance
+architecture_cctp_models
+architecture_dpgf_models
+architecture_contract_clauses
+architecture_plu
+architecture_sdis_erp
+architecture_notices
+software_repo_docs
+```
 
-Exemple : `zeus` comme identité, `orchestrator` comme rôle.
+Chaque collection doit avoir :
+
+- objectif ;
+- types de documents ;
+- statut ;
+- règle de mise à jour ;
+- sources obsolètes ;
+- niveau de fiabilité ;
+- usage autorisé.
 
 ---
 
-# 17. Anti-Patterns
+# 9. Modules hérités de l’ancien runtime
+
+Le dépôt contient encore des modules et fichiers liés à l’ancienne trajectoire autonome :
+
+- FastAPI apps ;
+- manifests runtime ;
+- workflow loader ;
+- approval API ;
+- Installer UI ;
+- tests contractuels ;
+- registries.
+
+Statut : à réauditer.
+
+Décisions possibles après audit :
+
+- conserver comme utilitaire ;
+- réorienter vers Hermes integration ;
+- archiver ;
+- supprimer ;
+- documenter comme option avancée.
+
+Aucun code ne doit être supprimé avant clarification documentaire et audit de cohérence.
+
+---
+
+# 10. Anti-patterns
 
 À éviter :
 
-- un module qui fait tout ;
-- un tool qui juge juridiquement ou politiquement ;
-- une skill vague ;
-- un workflow caché dans un prompt ;
-- de la logique domaine dans core ;
-- des dépendances non déclarées ;
-- des effets de bord hors policy gate ;
-- une activation silencieuse d’agents décoratifs ;
-- des cards mémoire append-only ;
-- une promotion automatique de raw output en mémoire durable ;
-- un dashboard externe séparé comme source de vérité d’approbation ;
-- un agent libre sur navigateur connecté ;
-- une auto-modification de helpers pendant un run.
+- module qui réimplémente Hermes sans gain ;
+- skill active non validée ;
+- agent métier figé ;
+- workflow caché dans un prompt ;
+- knowledge OpenWebUI qui remplace les Markdown ;
+- mémoire Hermes promue automatiquement ;
+- plusieurs sources de vérité pour les agents ;
+- duplication d’un scheduler, gateway ou terminal backend sans besoin clair ;
+- accès Docker socket ou secrets sans policy.
 
 ---
 
-# 18. Final Rule
+# 11. Règle finale
 
-Les modules sont le tissu d’exécution de Pantheon OS.
+Un module Pantheon est bon s’il rend le système plus clair, plus gouverné, plus portable ou plus réutilisable.
 
-Un bon module est explicite, borné, testable, découvrable, remplaçable et gouvernable.
-
-Si un module ne peut pas être compris par son manifest, son contrat et ses tests, il est trop implicite pour la production.
+Un module est mauvais s’il recrée une capacité déjà fournie par Hermes, ajoute une source de vérité concurrente ou masque des effets de bord derrière du prompt engineering.
