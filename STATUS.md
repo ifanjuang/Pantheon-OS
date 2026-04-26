@@ -60,7 +60,7 @@ Pantheon OS dispose d’un socle MVP réel : FastAPI, PostgreSQL + pgvector, Ope
 - Exemple workflow : `modules/workflows/document_analysis/` existe avec `manifest.yaml`, `workflow.yaml`, `tasks.yaml` et test de validation.
 - Debug runtime : `/debug/runtime-registry` expose les agents, skills, workflow manifests, workflow definitions et modules API chargés au startup.
 - Approval Gate : module API `approvals` présent mais désactivé dans `modules.yaml`. Migration et tests ajoutés, non vérifiés en CI/local dans cette session.
-- Installer UI : mini-app locale autonome ajoutée sous `scripts/install/ui/` pour installation NAS + Ollama LAN avec suivi `install_status.json`. Non testée en local dans cette session.
+- Installer UI : mini-app locale autonome ajoutée sous `scripts/install/ui/` pour installation NAS + Ollama LAN avec suivi `install_status.json`. Dépendances dédiées et script de lancement ajoutés. Non testée en local dans cette session.
 - Mémoire agent : `AgentMemory` et `extract_and_store_memories()` sont utilisés par les tests, avec promotion `promotable` projet → agence. Cette mémoire n’est pas encore alignée avec la doctrine complète `raw_history / candidate_facts / active_facts / summaries / cards / traces`.
 - Hermes Console : activée et manifest présent, mais contenu fonctionnel complet non audité.
 
@@ -217,6 +217,8 @@ Livré sur branche `feature/approval-gate-activation` :
 - `scripts/install/ui/templates/index.html`
 - `scripts/install/ui/static/style.css`
 - `scripts/install/ui/README.md`
+- `scripts/install/ui/requirements.txt`
+- `scripts/install/ui/launch_installer.sh`
 - `scripts/install/windows/setup_ollama_windows.ps1`
 
 Rôle :
@@ -232,14 +234,14 @@ Rôle :
 - lancer les tests ciblés ;
 - vérifier `/health` ;
 - vérifier `/debug/runtime-registry` ;
-- écrire le suivi dans `install_status.json`.
+- écrire le suivi dans `install_status.json` ;
+- lancer via environnement dédié `.venv-installer`.
 
-Statut : 🔄 Partiel. UI et runner ajoutés, non testés localement. À garder strictement en LAN administrateur.
+Statut : 🔄 Partiel avancé. UI, runner, requirements et script de lancement ajoutés, non testés localement. À garder strictement en LAN administrateur.
 
 Reste à faire :
 
-- ajouter dépendances éventuelles si l’environnement ne contient pas `jinja2`, `python-multipart`, `httpx`, `uvicorn` ;
-- tester le lancement `python scripts/install/ui/installer_api.py` ;
+- tester le lancement `bash scripts/install/ui/launch_installer.sh` ;
 - tester l’exécution complète sur NAS ;
 - ajouter éventuellement un Dockerfile dédié installer si besoin.
 
@@ -409,11 +411,11 @@ Priorité : P2.
 
 ### 🔄 Installer UI autonome
 
-Partiel.
+Partiel avancé.
 
-Disponible sous `scripts/install/ui/`. Elle permet d’installer et diagnostiquer Pantheon OS avant que le runtime principal soit opérationnel.
+Disponible sous `scripts/install/ui/`. Elle permet d’installer et diagnostiquer Pantheon OS avant que le runtime principal soit opérationnel. Elle dispose maintenant d’un `requirements.txt` dédié et d’un script `launch_installer.sh`.
 
-Reste à faire : tests locaux, vérification dépendances Python, éventuel Dockerfile dédié.
+Reste à faire : test local/NAS, éventuel Dockerfile dédié.
 
 Priorité : P1 pour self-hosting.
 
@@ -439,7 +441,7 @@ Statut : à intégrer seulement après PolicyEngine, Approval Gate et Observabil
 
 À retenir : primitives browser simples, screenshots comme preuve d’état, action trace avant/après, domain browser skills, HTTP direct quand possible.
 
-À rejeter : agent libre sur le Chrome personnel par défaut, auto-modification des helpers pendant un run, clics coordonnées sans trace, actions sur compte connecté sans Approval Gate.
+À rejeter : agent libre sur le Chrome personnel par défaut, auto-modification de helpers, actions sans Approval Gate.
 
 Priorité : P4.
 
@@ -587,22 +589,21 @@ Règles :
 
 Ordre recommandé :
 
-1. Tester l’installer UI : `python scripts/install/ui/installer_api.py` puis `http://NAS_IP:8090`.
-2. Vérifier les dépendances Python nécessaires : `fastapi`, `uvicorn`, `jinja2`, `python-multipart`, `httpx`.
-3. Exécuter les tests ajoutés : `pytest tests/test_manifest_loader.py tests/test_manifest_contract.py tests/test_task_contracts.py tests/test_workflow_definition_loader.py tests/test_document_analysis_workflow.py tests/test_approval_contracts.py` puis suite existante pertinente.
-4. Vérifier la chaîne Alembic et corriger `down_revision` de la migration approvals si nécessaire.
-5. Corriger les éventuels échecs liés aux contrats.
-6. Finaliser l’audit code/docs avec inspection complète locale ou CI.
-7. Enrichir progressivement les manifests API et runtime.
-8. Activer `approvals` après validation migration + tests.
-9. Brancher PolicyGate / Approval Gate.
-10. Compléter la mémoire : raw/candidate/active/summaries/cards/traces.
-11. Ajouter context preview.
-12. Ajouter dry-run de consolidation.
-13. Compléter tests mémoire, approvals DB/service et workflows C1-C5.
-14. Renforcer monitoring consolidé : approvals, contexte injecté, traces d’action.
-15. Reporter Browser Tool après PolicyEngine, Approval Gate et Observability.
-16. Instrumenter DSPy plus tard.
+1. Tester l’installer UI : `bash scripts/install/ui/launch_installer.sh` puis `http://NAS_IP:8090`.
+2. Exécuter les tests ajoutés : `pytest tests/test_manifest_loader.py tests/test_manifest_contract.py tests/test_task_contracts.py tests/test_workflow_definition_loader.py tests/test_document_analysis_workflow.py tests/test_approval_contracts.py` puis suite existante pertinente.
+3. Vérifier la chaîne Alembic et corriger `down_revision` de la migration approvals si nécessaire.
+4. Corriger les éventuels échecs liés aux contrats.
+5. Finaliser l’audit code/docs avec inspection complète locale ou CI.
+6. Enrichir progressivement les manifests API et runtime.
+7. Activer `approvals` après validation migration + tests.
+8. Brancher PolicyGate / Approval Gate.
+9. Compléter la mémoire : raw/candidate/active/summaries/cards/traces.
+10. Ajouter context preview.
+11. Ajouter dry-run de consolidation.
+12. Compléter tests mémoire, approvals DB/service et workflows C1-C5.
+13. Renforcer monitoring consolidé : approvals, contexte injecté, traces d’action.
+14. Reporter Browser Tool après PolicyEngine, Approval Gate et Observability.
+15. Instrumenter DSPy plus tard.
 
 ---
 
