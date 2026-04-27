@@ -99,13 +99,23 @@ PROMETHEUS
 
 ---
 
-## Technique
+## Optimisation tactique
+
+METIS  
+→ raffinage de plan ou solution existante  
+→ raccourcis intelligents  
+→ identification des leviers d'optimisation  
+→ jamais sur un plan déjà optimal  
+
+---
+
+## Abstraction et spatialisation
 
 HEPHAESTUS  
-→ faisabilité technique  
-→ robustesse  
-→ contraintes  
-→ compatibilité  
+→ visualisation et diagrammes  
+→ transformation dimensionnelle (durées en hauteurs, intensités en longueurs)  
+→ projection spatiale des données  
+→ abstraction visuelle pour voir autrement  
 
 ---
 
@@ -132,9 +142,9 @@ MNEMOSYNE
 ## Communication
 
 IRIS  
-→ rédaction  
-→ adaptation du ton  
-→ communication client / entreprise  
+→ rédaction et adaptation du ton  
+→ communication client / institutionnel / pair  
+→ clarification (reformulation des questions Hécate en langage utilisateur)  
 
 ---
 
