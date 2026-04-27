@@ -50,7 +50,7 @@ Objectif : éviter les doublons, conflits de branches, modifications contradicto
 
 - ChatGPT : `work/chatgpt/*` ou `feature/chatgpt/*`
 - Claude : `work/claude/*` ou `feature/claude/*`
-- Branche actuelle de travail : `feature/approval-gate-activation`
+- Branche actuelle de travail : `work/chatgpt/hermes-code-rewrite`
 - `main` : stable uniquement
 
 ---
@@ -259,6 +259,60 @@ Prochaine action recommandée :
 3. Préparer `hermes/context/pantheon_context.md`, `agents_context.md` et `rules_context.md`.
 4. Définir la stratégie OpenWebUI Knowledge.
 5. Préparer un plan d’installation Hermes Lab isolé.
+
+---
+
+### 2026-04-26 — ChatGPT
+
+Branche : `work/chatgpt/hermes-code-rewrite`
+
+Objectif : créer une première couche code alignée avec le pivot Hermes-backed, sans supprimer brutalement l’ancien runtime autonome.
+
+Modifications :
+
+- Création de la branche dédiée `work/chatgpt/hermes-code-rewrite`.
+- Ajout du package `platform/api/pantheon_domain/`.
+- Ajout de contrats Pydantic : agents, skills, workflows, memory stores, knowledge collections, legacy components et approval classification.
+- Ajout d’un repository statique `DomainLayerRepository` représentant la doctrine Pantheon côté code.
+- Ajout des routes FastAPI `/domain/*` : snapshot, agents, skills, workflows, memory, knowledge, legacy, approval classifier.
+- Remplacement de `platform/api/main.py` par une entrée FastAPI simple Domain Layer.
+- Ajout des tests ciblés `tests/test_domain_layer_api.py`.
+- Mise à jour de `STATUS.md` pour indiquer que la première couche code existe, mais que les tests n’ont pas été exécutés ici.
+- Aucun code externe intégré.
+- Ancien runtime conservé dans le dépôt et marqué legacy à auditer.
+
+Fichiers critiques touchés :
+
+- `platform/api/main.py`
+- `platform/api/pantheon_domain/__init__.py`
+- `platform/api/pantheon_domain/contracts.py`
+- `platform/api/pantheon_domain/repository.py`
+- `platform/api/pantheon_domain/router.py`
+- `tests/test_domain_layer_api.py`
+- `STATUS.md`
+- `AI_LOG.md`
+
+Tests lancés :
+
+- Non exécutés dans cette session.
+- Tests ajoutés mais à lancer localement : `pytest tests/test_domain_layer_api.py`.
+
+Points à vérifier :
+
+- Compatibilité imports dans l’environnement local.
+- Dépendances FastAPI / Pydantic / pytest / httpx.
+- Ancien code legacy potentiellement cassé si `pytest` complet est lancé sans adaptation.
+- Docker/NAS non testé.
+- L’API ne charge plus automatiquement l’ancien runtime dynamique.
+- Les endpoints `/debug/runtime-registry` et anciens modules ne sont plus le chemin principal.
+
+Prochaine action recommandée :
+
+1. Lancer `pytest tests/test_domain_layer_api.py`.
+2. Démarrer l’API localement et vérifier `/health` et `/domain/snapshot`.
+3. Créer les dossiers contractuels Markdown : `agents/`, `domains/`, `skills/`, `workflows/`, `memory/`, `knowledge/`, `hermes/context/`, `operations/`.
+4. Auditer le legacy avant toute suppression.
+5. Préparer Hermes Lab isolé seulement après validation de la couche Domain Layer.
 
 ---
 
