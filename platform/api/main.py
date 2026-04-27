@@ -1,143 +1,59 @@
 """
-Pantheon OS — FastAPI entry point.
-Loads modules dynamically via ModuleRegistry.
-MVP: no LangGraph checkpointer, no Redis/ARQ queue.
+Pantheon OS — Hermes-backed Domain Layer API entry point.
+
+This API no longer boots the previous autonomous runtime by default.
+It exposes Pantheon definitions that Hermes Agent can execute and OpenWebUI
+can surface/retrieve. Legacy runtime components remain in the repository for
+post-pivot audit, not automatic startup.
 """
 
-from contextlib import asynccontextmanager
-from pathlib import Path
+from __future__ import annotations
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
 
-from core.logging import configure_logging, get_logger
-from database import AsyncSessionLocal
-from core.settings import settings
-from core.rate_limit import limiter
-from database import engine, Base
-
-configure_logging()
-log = get_logger("main")
-
-
-def _check_migrations() -> None:
-    """Crash explicitly if Alembic migrations are not up to date."""
-    try:
-        from alembic.runtime.migration import MigrationContext
-        from alembic.script import ScriptDirectory
-        from alembic.config import Config
-        from sqlalchemy import create_engine as sync_engine
-
-        cfg = Config("alembic.ini")
-        script = ScriptDirectory.from_config(cfg)
-        head = script.get_current_head()
-
-        eng = sync_engine(settings.DATABASE_URL_SYNC)
-        with eng.connect() as conn:
-            ctx = MigrationContext.configure(conn)
-            current = ctx.get_current_revision()
-        eng.dispose()
-
-        if current != head:
-            raise RuntimeError(
-                f"\n\n  ❌ Database not up to date.\n"
-                f"  Run: alembic upgrade head\n"
-                f"  Current: {current}\n"
-                f"  Expected: {head}\n"
-            )
-        log.info("migrations.ok", revision=current)
-    except ImportError:
-        log.warning("migrations.alembic_not_found")
-    except Exception as e:
-        if "not up to date" in str(e) or "non à jour" in str(e):
-            raise
-        log.warning("migrations.check_failed", error=str(e))
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # ── Startup ──────────────────────────────────────────────────
-    log.info("startup.begin", version="1.0.0", debug=settings.DEBUG)
-
-    # 1. Check migrations (prod only)
-    if not settings.DEBUG:
-        _check_migrations()
-
-    # 2. Create tables in dev (prod = alembic upgrade head)
-    if settings.DEBUG:
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-
-    # 3. Load Hermes Runtime registries (auto-discovery via manifest.yaml files)
-    from core.registries.loader import ManifestLoader
-    from core.registries.workflows import WorkflowDefinitionLoader
-
-    modules_root = Path("/modules")
-    loader = ManifestLoader(modules_root)
-    agents = loader.load_agents()
-    skills = loader.load_skills()
-    workflow_manifests = loader.load_workflows()
-
-    workflow_definitions = WorkflowDefinitionLoader(modules_root).load_all()
-
-    app.state.hermes_agents = agents
-    app.state.hermes_skills = skills
-    app.state.hermes_workflow_manifests = workflow_manifests
-    app.state.hermes_workflow_definitions = workflow_definitions
-
-    log.info(
-        "hermes.registries_loaded",
-        agents=len(agents),
-        skills=len(skills),
-        workflow_manifests=len(workflow_manifests),
-        workflow_definitions=len(workflow_definitions),
-    )
-
-    # 4. Seed default admin user
-    from apps.auth.service import seed_admin
-
-    async with AsyncSessionLocal() as db:
-        await seed_admin(db)
-
-    # 5. Load API apps
-    from core.registry import ModuleRegistry
-
-    reg = ModuleRegistry(app)
-    reg.load_all("modules.yaml")
-    app.state.module_registry = reg
-
-    log.info("startup.complete", modules=reg.loaded_modules)
-    yield
-
-    # ── Shutdown ─────────────────────────────────────────────────
-    await engine.dispose()
-    log.info("shutdown.complete")
-
+from pantheon_domain.router import router as domain_router
 
 app = FastAPI(
-    title="Pantheon OS API",
-    description="Hermes Runtime — multi-agent intelligence platform",
-    version="1.0.0",
-    lifespan=lifespan,
-    docs_url="/docs" if settings.DEBUG else None,
-    redoc_url="/redoc" if settings.DEBUG else None,
+    title="Pantheon OS Domain Layer API",
+    description=(
+        "Pantheon OS defines agents, workflows, skills contracts, memory rules "
+        "and knowledge strategy for a Hermes-backed / OpenWebUI-facing system."
+    ),
+    version="2.0.0-domain-layer",
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
-# ── Middleware ──────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://openwebui:8080"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:8080",
+        "http://openwebui:8080",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.include_router(domain_router)
 
-# ── Core routes (non-module) ────────────────────────────────────────
-from core.health import router as health_router  # noqa: E402
 
-app.include_router(health_router)
+@app.get("/health", tags=["system"])
+def health() -> dict[str, str]:
+    return {
+        "status": "ok",
+        "mode": "hermes_backed_domain_layer",
+        "doctrine": "Pantheon defines. Hermes executes. OpenWebUI exposes and retrieves.",
+    }
+
+
+@app.get("/", tags=["system"])
+def root() -> dict[str, str]:
+    return {
+        "service": "Pantheon OS Domain Layer API",
+        "health": "/health",
+        "domain_snapshot": "/domain/snapshot",
+        "docs": "/docs",
+    }
