@@ -1,423 +1,286 @@
-# Pantheon OS — Architecture
+# ARCHITECTURE — Pantheon OS
 
-> Document de référence.
-> Pantheon OS adopte une trajectoire Hermes-backed : Pantheon définit la couche métier et la gouvernance, Hermes Agent exécute, OpenWebUI expose l’interface et les knowledge bases.
-
----
-
-# 1. Décision architecturale
-
-Pantheon OS n’est plus prioritairement conçu comme un runtime agentique autonome complet.
-
-La trajectoire retenue est :
-
-```text
-OpenWebUI = interface chat + knowledge documentaire
-Hermes Agent = runtime agentique + skills exécutables + tools + scheduler + gateway + mémoire opérationnelle
-Pantheon OS = Domain Operating Layer + agents abstraits + workflows + skills contracts + mémoire validée + gouvernance
-```
-
-Formule de conception :
-
-```text
-Pantheon définit.
-Hermes exécute.
-OpenWebUI expose et retrouve.
-```
-
-Cette décision réduit les chantiers redondants : scheduler maison, gateway maison, terminal backend maison, runtime de skills maison, runtime agentique complet maison.
+> Document de référence technique.  
+> Décrit l’architecture réelle du système et la séparation des responsabilités.
 
 ---
 
-# 2. Vue d’ensemble
+# 1. Principe global
 
-```text
-Utilisateur
-  ↓
-OpenWebUI
-  - chat
-  - knowledge collections
-  - RAG documentaire simple
-  ↓
-Hermes Agent
-  - runtime agentique
-  - skills exécutables
-  - tools et toolsets
-  - scheduler / cron
-  - doctor / setup
-  - gateways éventuelles
-  - mémoire opérationnelle
-  ↓
-Pantheon OS
-  - agents abstraits
-  - domain overlays
-  - workflows métier
-  - skills contracts
-  - knowledge policy
-  - memory promotion rules
-  - approval rules
-  - documentation source de vérité
-```
+Pantheon OS est un Domain Operating Layer.
 
-Pantheon reste le référentiel de gouvernance. Hermes ne redéfinit pas les agents, les règles ou les workflows officiels. OpenWebUI ne devient pas source de vérité des agents ou de la mémoire validée.
+Il ne gère pas l’exécution.  
+Il définit :
+
+- la logique  
+- les méthodes  
+- les règles  
+- la mémoire  
 
 ---
 
-# 3. Domain Operating Layer
+# 2. Architecture en couches
 
-Un Domain Operating Layer est une couche contractuelle qui spécialise un runtime agentique généraliste pour un domaine professionnel.
+Le système repose sur trois couches distinctes :
 
-Pantheon contient :
-
-- les rôles cognitifs génériques ;
-- les règles de gouvernance ;
-- les overlays métier ;
-- les workflows ;
-- les définitions de skills ;
-- les règles de mémoire ;
-- les règles d’approbation ;
-- les politiques de sources ;
-- les formats de sortie ;
-- la mémoire projet et agence validée.
-
-Pantheon ne doit pas devenir un simple dossier de prompts. Chaque capacité importante doit être décrite par contrat lisible et versionnable.
+text id="q8bqjh" INTERFACE → OpenWebUI  DOMAIN LAYER → Pantheon OS  RUNTIME → Hermes Agent 
 
 ---
 
-# 4. Couches du système
+## 2.1 OpenWebUI (interface)
 
-## 4.1 OpenWebUI
+Rôle :
+
+- interaction utilisateur  
+- stockage documentaire  
+- recherche (RAG)  
+
+Contenu :
+
+- documents  
+- fichiers  
+- knowledge collections  
+
+Limites :
+
+- ne définit pas les agents  
+- ne stocke pas la mémoire validée  
+- ne décide pas  
+
+---
+
+## 2.2 Pantheon OS (domain layer)
+
+Rôle :
+
+- définir le système  
+- structurer la logique  
+- garantir la cohérence  
+
+Composants :
+
+- agents  
+- skills  
+- workflows  
+- mémoire  
+- règles  
+
+Pantheon :
+
+text id="tq7n0m" ne fait pas n’exécute pas ne stocke pas massivement 
+
+Il décrit.
+
+---
+
+## 2.3 Hermes Agent (runtime)
+
+Rôle :
+
+- exécuter les skills  
+- orchestrer les actions  
+- utiliser les tools  
+- gérer la mémoire opérationnelle  
 
 Responsabilités :
 
-- interface chat ;
-- knowledge collections ;
-- RAG documentaire simple ;
-- accès utilisateur aux modèles ;
-- consultation de corpus lourds : PDF, DOCX, Markdown, modèles, guides, références.
-
-Ne doit pas porter :
-
-- les agents officiels ;
-- la mémoire projet validée ;
-- les règles d’approbation ;
-- les workflows de référence ;
-- les skills critiques.
-
-## 4.2 Hermes Agent
-
-Responsabilités :
-
-- exécuter les tâches ;
-- charger et appliquer les skills ;
-- utiliser tools et terminal backends autorisés ;
-- gérer mémoire opérationnelle ;
-- proposer des skills candidates ;
-- scheduler des routines ;
-- diagnostiquer l’environnement ;
-- servir éventuellement de gateway Telegram, Discord, Slack, WhatsApp ou Signal.
-
-Ne doit pas :
-
-- promouvoir seul une mémoire durable comme vérité Pantheon ;
-- modifier les règles Pantheon sans validation ;
-- activer automatiquement une skill candidate ;
-- accéder aux volumes ou secrets Pantheon sans politique explicite ;
-- devenir un runtime concurrent non gouverné.
-
-## 4.3 Pantheon OS
-
-Responsabilités :
-
-- définir les agents abstraits ;
-- définir les domain overlays ;
-- définir les workflows métier ;
-- définir les skills contracts ;
-- définir les policies ;
-- définir la stratégie OpenWebUI Knowledge ;
-- valider la mémoire projet et agence ;
-- coordonner ChatGPT, Claude, Hermes et humains via `AI_LOG.md` ;
-- suivre les références externes via `EXTERNAL_WATCHLIST.md`.
+- appels modèles  
+- gestion des tokens  
+- accès outils  
+- exécution réelle  
 
 ---
 
-# 5. Agents abstraits
+# 3. Flux de fonctionnement
 
-Les agents Pantheon sont neutres métier. Ils représentent des fonctions cognitives génériques.
-
-Exemples :
-
-- ZEUS : orchestration, arbitrage, routing ;
-- ATHENA : planification, décomposition, stratégie ;
-- ARGOS : extraction factuelle, preuves, contradictions ;
-- THEMIS : conformité, procédure, légitimité, approval ;
-- APOLLO : validation finale, confiance, qualité ;
-- PROMETHEUS : contradiction, stress-test, anti-consensus ;
-- HESTIA : mémoire projet ;
-- MNEMOSYNE : mémoire agence et patterns ;
-- IRIS : communication ;
-- HEPHAESTUS : analyse technique.
-
-Le métier n’est pas codé dans les agents. Le métier est injecté par domain overlay, workflow, skill et knowledge policy.
+text id="9dj8mn" Utilisateur → OpenWebUI → Pantheon (workflow + agents + skills) → Hermes (exécution) → résultat → validation → mémoire (si applicable) 
 
 ---
 
-# 6. Domain overlays
+# 4. Composants Pantheon
 
-Les domaines portent la spécialisation.
+## 4.1 Agents
 
-```text
-domains/
-  architecture/
-    overlay.md
-    rules.md
-    knowledge_policy.md
-    output_formats.md
-    workflows/
-    skills/
-    templates/
-  software/
-  legal/
-  consulting/
-```
+Rôle :
 
-Un overlay peut définir :
+- raisonnement  
+- structuration  
+- validation  
 
-- règles métier ;
-- sources fiables ;
-- workflows ;
-- skills spécialisées ;
-- templates ;
-- formats de sortie ;
-- exemples ;
-- tests ;
-- règles de validation.
+Caractéristiques :
 
-Exemple : THEMIS reste abstrait. Dans `domains/architecture`, THEMIS vérifie mission, contrat, DOE, DGD, réception, CCTP, DPGF, ERP, SDIS, PLU ou responsabilité selon les règles du domaine.
+- abstraits  
+- non métier  
+- réutilisables  
 
 ---
 
-# 7. Skills contracts
+## 4.2 Skills
 
-Pantheon définit les skills. Hermes les exécute.
+Rôle :
 
-Une skill Pantheon doit définir :
+- exécution logique métier  
 
-- objectif ;
-- inputs ;
-- outputs ;
-- agents mobilisés ;
-- sources autorisées ;
-- risques ;
-- approval requis ;
-- format attendu ;
-- exemples ;
-- tests ;
-- état : draft, candidate, active, archived.
+Caractéristiques :
 
-Structure cible :
-
-```text
-skills/
-  generic/
-  architecture/
-    cctp_audit/
-      SKILL.md
-      manifest.yaml
-      examples.md
-      tests.md
-  software/
-```
-
-Une skill créée automatiquement par Hermes reste candidate. Elle ne devient active qu’après validation dans Pantheon.
+- inputs / outputs définis  
+- scope précis  
+- réutilisables  
 
 ---
 
-# 8. Workflows
+## 4.3 Workflows
 
-Les workflows décrivent les séquences de travail. Ils sont définis dans Pantheon et peuvent être exécutés par Hermes comme procédure.
+Rôle :
 
-```text
-workflows/
-  generic/
-  architecture/
-  software/
-```
+- enchaîner les étapes  
+- orchestrer agents et skills  
 
-Un workflow doit définir :
+Caractéristiques :
 
-- id ;
-- domaine ;
-- agents mobilisés ;
-- steps ;
-- inputs ;
-- outputs ;
-- points de validation ;
-- risques ;
-- fallback ;
-- mémoire cible.
-
-LangGraph reste une option ultérieure pour exécuter formellement des workflows complexes. Il n’est pas la priorité tant que Hermes peut exécuter les procédures avec contexte Pantheon.
+- déterministes  
+- explicites  
+- validables  
 
 ---
 
-# 9. Knowledge layer
+## 4.4 Domains
 
-OpenWebUI peut porter les knowledge collections. Pantheon définit la politique.
+Rôle :
 
-```text
-knowledge/
-  openwebui_collections.md
-  source_policy.md
-  document_taxonomy.md
-```
+- spécialisation métier  
 
-Règles :
+Contenu :
 
-- documents lourds dans OpenWebUI Knowledge ;
-- décisions, règles et statuts dans Pantheon ;
-- aucune collection OpenWebUI ne remplace les Markdown de référence ;
-- les sources obsolètes doivent être marquées ;
-- les sources projet doivent être séparées des sources agence ;
-- les sources réglementaires doivent être distinguées des modèles internes.
+- règles  
+- contraintes  
+- conventions  
 
 ---
 
-# 10. Memory model
+## 4.5 Memory
 
-La mémoire est séparée.
+Structure :
 
-| Type | Emplacement | Statut |
-|---|---|---|
-| Mémoire documentaire | OpenWebUI Knowledge | consultable |
-| Mémoire opérationnelle | Hermes Agent | vivante, pratique, non souveraine |
-| Mémoire validée | Pantheon OS | source de vérité |
+text id="hfsm7z" session candidate project system 
 
-Structure cible Pantheon :
+Rôle :
 
-```text
-memory/
-  project/
-    facts.md
-    decisions.md
-    risks.md
-  agency/
-    patterns.md
-    clauses.md
-    preferences.md
-  candidates/
-    pending_facts.md
-    pending_skills.md
-    pending_rules.md
-```
-
-Règle :
-
-```text
-Hermes peut apprendre.
-Pantheon valide.
-OpenWebUI documente.
-```
-
-Toute promotion mémoire doit être traçable. Une mémoire opérationnelle Hermes ne devient pas automatiquement vérité Pantheon.
+- capitalisation  
+- cohérence  
+- traçabilité  
 
 ---
 
-# 11. Approval discipline
+## 4.6 Knowledge
 
-Le système démarre avec une discipline documentaire et opératoire. Un module logiciel d’Approval Gate peut rester utile plus tard si le besoin l’exige.
+Rôle :
 
-Règles minimales :
+- sources documentaires  
 
-- diagnostic : autorisé ;
-- modification de fichier : validation requise ;
-- envoi email : validation requise ;
-- suppression : confirmation explicite ;
-- commande shell hors allowlist : validation requise ;
-- promotion mémoire : validation requise ;
-- activation skill candidate : validation requise ;
-- action web à effet de bord : validation requise ;
-- accès secrets / volumes / Docker socket : interdit sans politique explicite.
+Implémentation :
+
+- OpenWebUI  
 
 ---
 
-# 12. Hermes Integration Layer
+# 5. Séparation des responsabilités
 
-Pantheon doit fournir à Hermes des contextes contrôlés.
-
-```text
-hermes/
-  context/
-    pantheon_context.md
-    agents_context.md
-    rules_context.md
-    domain_architecture.md
-  exports/
-    skills/
-    prompts/
-    workflows/
-```
-
-Objectifs :
-
-- permettre à Hermes de charger les rôles Pantheon ;
-- exposer les règles de validation ;
-- exporter les skills candidates ou actives ;
-- éviter la redéfinition divergente des agents ;
-- garder Pantheon comme référence officielle.
+text id="v3tq9r" Pantheon ≠ exécution Hermes ≠ définition OpenWebUI ≠ logique 
 
 ---
 
-# 13. Exploitation NAS
+# 6. Interaction Pantheon / Hermes
 
-Pantheon doit tenir compte d’un environnement existant : Portainer, OpenWebUI, PostgreSQL, Ollama sur PC LAN.
+Pantheon fournit :
 
-Règles :
+- contexte  
+- règles  
+- workflows  
+- sélection des skills  
 
-- ne jamais écraser une stack existante ;
-- détecter avant d’installer ;
-- générer `.env` sans écraser ;
-- proposer un dry-run ;
-- ne pas réutiliser automatiquement un volume existant ;
-- garder OpenWebUI existant si présent ;
-- isoler Hermes Lab avant intégration ;
-- ne pas exposer inutilement PostgreSQL ;
-- ne pas utiliser de tags Docker instables en production.
+Hermes exécute :
 
----
-
-# 14. Code existant
-
-Le dépôt contient encore des éléments de l’ancienne architecture autonome : FastAPI, registries, workflows, approvals, Installer UI, manifests, tests.
-
-Ces éléments sont désormais à classer :
-
-- à conserver comme outils d’intégration ;
-- à simplifier ;
-- à archiver ;
-- à réorienter vers Hermes-backed Pantheon ;
-- à supprimer si redondants après validation documentaire.
-
-Aucune suppression automatique n’est décidée par ce fichier. Un audit post-pivot doit précéder toute modification du code.
+- appels modèles  
+- outils  
+- actions  
 
 ---
 
-# 15. Contraintes de conception
+# 7. Gestion des décisions
 
-- pas de second runtime de vérité ;
-- pas d’agents métier figés dans le core ;
-- pas de skill active sans contrat ;
-- pas de mémoire validée sans source ;
-- pas de modification sensible sans validation ;
-- pas d’installation Hermes globale non isolée ;
-- pas de duplication inutile des fonctions Hermes ;
-- pas de knowledge OpenWebUI qui remplace les Markdown ;
-- pas de workflow caché dans un prompt.
+Les décisions passent par :
+
+text id="8ntwkh" ARGOS → données THEMIS → règles PROMETHEUS → contradiction APOLLO → validation ZEUS → arbitrage 
 
 ---
 
-# 16. Résultat cible
+# 8. Gestion de la mémoire
 
-Pantheon OS devient une couche contractuelle métier, portable et maintenable, qui spécialise Hermes Agent et OpenWebUI pour produire un assistant professionnel gouverné.
+Cycle :
 
-La valeur de Pantheon n’est plus de reconstruire tout le runtime. Sa valeur est de définir une méthode, des rôles, des règles, des skills et une mémoire fiable pour l’agence.
+text id="lrb9y3" SESSION → CANDIDATE → validation → PROJECT ou SYSTEM 
+
+Aucune promotion automatique.
+
+---
+
+# 9. Gestion des risques
+
+Risques principaux :
+
+- hallucination  
+- dérive mémoire  
+- mauvaise validation  
+- mélange responsabilités  
+
+Réponse :
+
+- agents spécialisés  
+- validation obligatoire  
+- séparation stricte  
+- workflows explicites  
+
+---
+
+# 10. Modules techniques actuels
+
+Implémentation minimale :
+
+text id="e0f9p7" FastAPI (Domain API) → expose agents, skills, workflows  Docker / Portainer → déploiement  OpenWebUI → interface  Ollama (PC) → modèles 
+
+---
+
+# 11. Legacy
+
+Présent dans le repo :
+
+- ancien runtime FastAPI  
+- registry dynamique  
+- workflow loader  
+- approval API  
+
+Statut :
+
+text id="r5smy9" à auditer non supprimé non prioritaire 
+
+---
+
+# 12. Règles d’évolution
+
+Toute évolution doit :
+
+- partir des Markdown  
+- respecter la séparation des couches  
+- éviter les duplications  
+- rester simple  
+
+---
+
+# 13. Résumé
+
+text id="6q1kw1" Pantheon = structure Hermes = exécution OpenWebUI = interface 
+
+---
+
+FIN DU FICHIER
