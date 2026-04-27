@@ -1,0 +1,8 @@
+id: chronos
+name: "@Chronos"
+layer: meta
+role: scheduler
+enabled: false
+veto: false
+description: "Time and scheduling — orders steps, manages dependencies, surfaces deadlines and critical paths"
+class: modules.agents.meta.chronos_scheduler.agent.Chronos
