@@ -1,0 +1,8 @@
+id: prometheus
+name: "@Prometheus"
+layer: analysis
+role: challenger
+enabled: true
+veto: false
+description: "Challenge and contradiction — resists false confidence, weak consensus, and unsupported reasoning"
+class: agents.analysis.prometheus_challenger.agent.Prometheus

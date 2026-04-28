@@ -33,11 +33,11 @@ class RuntimeManifest:
 class ManifestLoader:
     """Loads agents, skills and workflows from the filesystem.
 
-    Expected MVP layout:
+    Expected layout (top-level, per MODULES.md):
 
-    - /modules/agents/**/manifest.yaml
-    - /modules/skills/**/manifest.yaml
-    - /modules/workflows/**/manifest.yaml
+    - /agents/**/manifest.yaml
+    - /skills/**/manifest.yaml
+    - /workflows/**/manifest.yaml
 
     The current implementation does not instantiate Python classes. It indexes
     normalized manifests safely so startup, health checks and the console can

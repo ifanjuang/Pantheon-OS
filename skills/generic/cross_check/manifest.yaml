@@ -1,0 +1,7 @@
+id: cross_check
+name: "Cross-Check"
+enabled: true
+description: "Detects contradictions and inconsistencies across sources"
+agents: [prometheus]
+inputs: [facts, sources]
+outputs: [contradictions, weak_hypotheses]

@@ -1,8 +1,0 @@
-id: argos
-name: "@Argos"
-layer: analysis
-role: extractor
-enabled: true
-veto: false
-description: "Extraction — objective evidence extractor (facts, citations, entities, relations)"
-class: modules.agents.analysis.argos_extractor.agent.Argos

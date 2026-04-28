@@ -1,34 +1,39 @@
 # config/domains.yaml — Domain-specific overlay configuration
 # Domain overlays live in domains/{name}/ and extend base config.
+#
+# Naming convention:
+#   - {name}        → generic / language-neutral domain
+#   - {name}_fr     → French-specific domain (uses FR-specific terminology,
+#                     references FR norms, content authored in French)
 
-active_domain: architecture
+active_domain: architecture_fr
 
 domains:
-  architecture:
-    label: "Architecture & Maîtrise d'Œuvre"
-    skills_overlay: domains/architecture/skills
-    workflows_overlay: domains/architecture/workflows
-    policies_overlay: domains/architecture/policies
+  architecture_fr:
+    label: "Architecture & Maîtrise d'Œuvre (FR)"
+    skills_overlay: domains/architecture_fr/skills
+    workflows_overlay: domains/architecture_fr/workflows
+    policies_overlay: domains/architecture_fr/policies
     trusted_sources:
       - DTU
       - CCAG
       - PUCA
       - Legifrance
 
-  legal:
-    label: "Juridique"
-    skills_overlay: domains/legal/skills
-    workflows_overlay: domains/legal/workflows
+  legal_fr:
+    label: "Juridique (FR)"
+    skills_overlay: domains/legal_fr/skills
+    workflows_overlay: domains/legal_fr/workflows
     policies_overlay: null
     trusted_sources:
       - Legifrance
       - EurLex
       - Dalloz
 
-  medical:
-    label: "Médical"
-    skills_overlay: domains/medical/skills
-    workflows_overlay: domains/medical/workflows
+  medical_fr:
+    label: "Médical (FR)"
+    skills_overlay: domains/medical_fr/skills
+    workflows_overlay: domains/medical_fr/workflows
     policies_overlay: null
     trusted_sources:
       - HAS

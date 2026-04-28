@@ -1,8 +1,0 @@
-id: artemis
-name: "@Artemis"
-layer: analysis
-role: filter
-enabled: false
-veto: false
-description: "Relevance filtering — narrows evidence so the system remains focused"
-class: modules.agents.analysis.artemis_filter.agent.Artemis

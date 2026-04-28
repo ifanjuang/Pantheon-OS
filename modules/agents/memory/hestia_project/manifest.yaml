@@ -1,8 +1,0 @@
-id: hestia
-name: "@Hestia"
-layer: memory
-role: project_memory
-enabled: true
-veto: false
-description: "Project continuity memory — preserves the living memory of the current case, project, or affair"
-class: modules.agents.memory.hestia_project.agent.Hestia

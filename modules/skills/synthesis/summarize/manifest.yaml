@@ -1,7 +1,0 @@
-id: summarize
-name: "Synthèse"
-enabled: true
-description: "Contextual synthesis — selects essential info and hierarchizes"
-agents: [kairos]
-inputs: [facts, context]
-outputs: [summary, key_points]

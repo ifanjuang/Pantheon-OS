@@ -1,0 +1,8 @@
+id: mnemosyne
+name: "@Mnemosyne"
+layer: memory
+role: agency_memory
+enabled: false
+veto: false
+description: "Agency and reusable knowledge memory — preserves what should outlive one project"
+class: agents.memory.mnemosyne_agency.agent.Mnemosyne

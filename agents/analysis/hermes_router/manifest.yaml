@@ -1,0 +1,8 @@
+id: hermes
+name: "@Hermes"
+layer: analysis
+role: router
+enabled: true
+veto: false
+description: "Research routing and precheck — decides how a run should enter the system before orchestration expands it"
+class: agents.analysis.hermes_router.agent.Hermes

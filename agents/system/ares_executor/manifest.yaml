@@ -1,0 +1,8 @@
+id: ares
+name: "@Ares"
+layer: system
+role: fast_executor
+enabled: false
+veto: false
+description: "Fast fallback and execution guard — provides a degraded but controlled path when urgency or simplification demands it"
+class: agents.system.ares_executor.agent.Ares

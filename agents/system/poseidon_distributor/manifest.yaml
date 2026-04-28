@@ -1,0 +1,8 @@
+id: poseidon
+name: "@Poseidon"
+layer: system
+role: distributor
+enabled: false
+veto: false
+description: "Flow and load control — protects runtime stability under parallel or branching execution"
+class: agents.system.poseidon_distributor.agent.Poseidon

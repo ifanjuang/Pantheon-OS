@@ -4,9 +4,9 @@ from core.registries.workflows import WorkflowDefinitionLoader
 
 
 def test_document_analysis_workflow_definition_is_valid():
-    workflow_dir = Path("modules/workflows/document_analysis")
+    workflow_dir = Path("workflows/document_analysis")
 
-    workflow = WorkflowDefinitionLoader(Path("modules")).load_one(workflow_dir)
+    workflow = WorkflowDefinitionLoader(Path(".")).load_one(workflow_dir)
 
     assert workflow is not None
     assert workflow.id == "document_analysis"

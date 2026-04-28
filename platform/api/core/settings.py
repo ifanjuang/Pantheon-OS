@@ -49,8 +49,8 @@ class Settings(BaseSettings):
     CONFIG_DIR: str = "/config"
 
     # ── Domain ───────────────────────────────────────────────────
-    DOMAIN: str = "architecture"
-    DOMAIN_LABEL: str = "Architecture & Maîtrise d'Œuvre"
+    DOMAIN: str = "architecture_fr"
+    DOMAIN_LABEL: str = "Architecture & Maîtrise d'Œuvre (FR)"
 
     # ── RAG ──────────────────────────────────────────────────────
     RAG_TOP_K: int = 10

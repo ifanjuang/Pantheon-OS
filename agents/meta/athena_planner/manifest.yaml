@@ -1,0 +1,8 @@
+id: athena
+name: "@ATHENA"
+layer: meta
+role: planner
+enabled: true
+veto: false
+description: "Planning and decomposition — turns a user request into a structured execution approach"
+class: agents.meta.athena_planner.agent.Athena

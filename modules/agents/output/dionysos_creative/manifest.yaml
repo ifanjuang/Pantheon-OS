@@ -1,8 +1,0 @@
-id: dionysos
-name: "@Dionysos"
-layer: output
-role: creative
-enabled: false
-veto: false
-description: "Lateral thinking and generative output — proposes alternatives, narratives, and angles others have not considered"
-class: modules.agents.output.dionysos_creative.agent.Dionysos

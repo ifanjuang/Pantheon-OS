@@ -1,8 +1,0 @@
-id: hephaestus
-name: "@Hephaestus"
-layer: output
-role: diagram_builder
-enabled: false
-veto: false
-description: "Diagrams and technical artifacts — turns structured reasoning into visual or technical representations"
-class: modules.agents.output.hephaestus_diagrams.agent.Hephaestus

@@ -1,0 +1,8 @@
+id: zeus
+name: "@ZEUS"
+layer: meta
+role: orchestrator
+enabled: true
+veto: false
+description: "Orchestration and arbitration — coordinates the overall run when multiple agents are involved"
+class: agents.meta.zeus_orchestrator.agent.Zeus

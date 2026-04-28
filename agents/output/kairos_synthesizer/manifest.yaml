@@ -1,0 +1,8 @@
+id: kairos
+name: "@Kairos"
+layer: output
+role: synthesizer
+enabled: true
+veto: false
+description: "Synthesis — assembles the final narrative from validated material"
+class: agents.output.kairos_synthesizer.agent.Kairos

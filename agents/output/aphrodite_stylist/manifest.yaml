@@ -1,0 +1,8 @@
+id: aphrodite
+name: "@Aphrodite"
+layer: output
+role: stylist
+enabled: false
+veto: false
+description: "Presentation polish — improves perception, readability, and presentation quality without changing the factual core"
+class: agents.output.aphrodite_stylist.agent.Aphrodite

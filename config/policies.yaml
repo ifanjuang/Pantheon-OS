@@ -34,18 +34,19 @@ rate_limits:
 
 domains:
   # Active domain — determines injected context and trusted sources
-  # Options: architecture | legal | medical | audit | consulting | it
-  active: architecture
+  # Naming: {name} = generic, {name}_fr = French-specific
+  # Options: architecture_fr | legal_fr | medical_fr | audit_fr | consulting_fr | it
+  active: architecture_fr
 
   # Domain-specific trusted sources for web research
   trusted_sources:
-    architecture:
+    architecture_fr:
       - "legifrance.gouv.fr"
       - "architectes.org"
       - "construction.gouv.fr"
-    legal:
+    legal_fr:
       - "legifrance.gouv.fr"
       - "doctrine.fr"
-    medical:
+    medical_fr:
       - "has-sante.fr"
       - "ameli.fr"

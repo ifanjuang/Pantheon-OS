@@ -1,8 +1,0 @@
-id: hera
-name: "@HERA"
-layer: meta
-role: supervisor
-enabled: false
-veto: false
-description: "Post-run supervision — evaluates whether final orchestration stayed aligned with expected quality"
-class: modules.agents.meta.hera_supervisor.agent.Hera

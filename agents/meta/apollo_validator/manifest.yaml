@@ -1,0 +1,8 @@
+id: apollo
+name: "@APOLLO"
+layer: meta
+role: validator
+enabled: true
+veto: false
+description: "Validation and confidence — final validator of output integrity, confidence, and support quality"
+class: agents.meta.apollo_validator.agent.Apollo

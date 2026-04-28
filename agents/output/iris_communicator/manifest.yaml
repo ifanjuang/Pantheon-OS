@@ -1,0 +1,8 @@
+id: iris
+name: "@Iris"
+layer: output
+role: communicator
+enabled: true
+veto: false
+description: "Communication — adapts formulation for audience and channel without corrupting substance"
+class: agents.output.iris_communicator.agent.Iris

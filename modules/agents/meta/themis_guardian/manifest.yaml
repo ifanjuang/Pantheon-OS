@@ -1,8 +1,0 @@
-id: themis
-name: "@THEMIS"
-layer: meta
-role: process_guardian
-enabled: false
-veto: true
-description: "Rules and compliance — ensures the system respects procedure, policy, and required workflow structure"
-class: modules.agents.meta.themis_guardian.agent.Themis

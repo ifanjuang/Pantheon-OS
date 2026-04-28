@@ -1,8 +1,0 @@
-id: daedalus
-name: "@Daedalus"
-layer: output
-role: builder
-enabled: true
-veto: false
-description: "Document construction — transforms validated content into formal deliverables"
-class: modules.agents.output.daedalus_builder.agent.Daedalus

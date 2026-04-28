@@ -1,0 +1,8 @@
+id: demeter
+name: "@Demeter"
+layer: analysis
+role: collector
+enabled: false
+veto: false
+description: "Data ingestion and normalization — standardizes incoming material so the rest of the system can reason over it"
+class: agents.analysis.demeter_collector.agent.Demeter

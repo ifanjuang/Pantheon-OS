@@ -1,8 +1,0 @@
-id: metis
-name: "@Metis"
-layer: analysis
-role: deliberator
-enabled: false
-veto: false
-description: "Structured deliberation — surfaces uncertainty, hypotheses, and hidden assumptions before synthesis hardens"
-class: modules.agents.analysis.metis_deliberator.agent.Metis
