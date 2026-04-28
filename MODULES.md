@@ -1,7 +1,7 @@
 # MODULES — Pantheon OS
 
 > Functional reference for Pantheon OS modules after the Hermes-backed pivot.
-> Pantheon OS is not the agent runtime. It is the governed domain layer that defines skills, workflows, memory, knowledge, rules and validation.
+> Pantheon OS is not the agent runtime. It is the governed domain layer that defines skills, workflows, memory, knowledge, rules, task contracts, evidence and validation.
 
 ---
 
@@ -23,9 +23,11 @@ Pantheon modules define:
 - workflows;
 - memory;
 - knowledge;
+- task contracts;
+- approvals;
+- evidence packs;
 - Hermes integration;
 - consultation;
-- evidence packs;
 - run graphs;
 - operations.
 
@@ -90,6 +92,9 @@ Current structure:
 ```text
 domains/{domain}/
   domain.md
+  rules.md
+  knowledge_policy.md
+  output_formats.md
   skills/
   workflows/
   templates/
@@ -176,7 +181,75 @@ Rules:
 
 ---
 
-## 2.5 Adaptive orchestration
+## 2.5 Task contracts
+
+Reference:
+
+```text
+TASK_CONTRACTS.md
+```
+
+Role:
+
+- define what an executable task is;
+- bind task purpose, inputs, outputs, allowed tools, forbidden tools and approval level;
+- prevent Hermes from operating without a visible contract when the task is consequential;
+- expose expected agents, skills, memory impact and evidence requirements.
+
+Initial contracts:
+
+```text
+repo_consistency_audit
+quote_vs_cctp_review
+client_message_review
+memory_promotion_review
+skill_candidate_review
+legacy_component_audit
+```
+
+Rule:
+
+```text
+A task contract defines the safe frame.
+It does not authorize execution by itself.
+```
+
+---
+
+## 2.6 Approvals
+
+Reference:
+
+```text
+APPROVALS.md
+```
+
+Role:
+
+- classify action criticality from C0 to C5;
+- define when explicit validation is required;
+- prevent low-risk reads, drafts, persistent changes and critical actions from sharing the same control path.
+
+Levels:
+
+```text
+C0 = read / diagnostic
+C1 = draft / suggestion
+C2 = reversible low-risk action
+C3 = persistent internal change
+C4 = external / contractual / financial / responsibility action
+C5 = critical / irreversible / secrets / destructive
+```
+
+Rule:
+
+```text
+No persistent, external, critical or irreversible action without a visible approval path.
+```
+
+---
+
+## 2.7 Adaptive orchestration
 
 Path:
 
@@ -206,7 +279,7 @@ After execution: propose candidate improvement when useful.
 
 ---
 
-## 2.6 Memory
+## 2.8 Memory
 
 Path:
 
@@ -216,6 +289,13 @@ memory/
   candidates/
   project/
   system/
+```
+
+Reference:
+
+```text
+MEMORY.md
+EVIDENCE_PACK.md
 ```
 
 Role:
@@ -233,26 +313,29 @@ project    = validated project context
 system     = validated reusable rules, methods and patterns
 ```
 
-Rule:
+Rules:
 
 ```text
 No automatic promotion.
-```
-
-Terminology rule:
-
-```text
+Memory promotion is at least C3.
+Memory promotion requires an Evidence Pack.
 Use system memory, not agency memory.
 ```
 
 ---
 
-## 2.7 Knowledge
+## 2.9 Knowledge
 
 Path:
 
 ```text
 knowledge/
+```
+
+Reference:
+
+```text
+KNOWLEDGE_TAXONOMY.md
 ```
 
 Role:
@@ -282,7 +365,7 @@ Pantheon alone canonizes memory.
 
 ---
 
-## 2.8 Knowledge selection
+## 2.10 Knowledge selection
 
 Status: planned.
 
@@ -302,12 +385,19 @@ domains/general/skills/knowledge_selection/
 
 ---
 
-## 2.9 Hermes integration
+## 2.11 Hermes integration
 
 Path:
 
 ```text
 hermes/
+```
+
+References:
+
+```text
+HERMES_INTEGRATION.md
+hermes/skill_policy.md
 ```
 
 Role:
@@ -322,6 +412,7 @@ Current files:
 ```text
 hermes/skill_policy.md
 hermes/external_skill_repos.md
+hermes/templates/pantheon-os/
 ```
 
 Planned context exports:
@@ -334,6 +425,7 @@ hermes/context/
   rules_context.md
   architecture_fr_context.md
   software_context.md
+  tools_policy.md
 ```
 
 Rule:
@@ -345,7 +437,7 @@ Pantheon defines, validates and canonizes.
 
 ---
 
-## 2.10 Consultation
+## 2.12 Consultation
 
 Status: planned.
 
@@ -356,25 +448,14 @@ Role:
 - prevent recursive consultation loops;
 - make every Hermes result reviewable by Pantheon.
 
-Planned code structure:
-
-```text
-core/consultation/
-  contracts.py
-  router.py
-  hermes_client.py
-  policy.py
-  events.py
-```
-
 Planned contracts:
 
 ```text
-RunContract
 ConsultationRequest
 ConsultationResult
-EvidencePack
 HermesScorecard
+EvidencePack
+TaskContract
 ```
 
 Rules:
@@ -388,9 +469,15 @@ max_consultation_depth = 2.
 
 ---
 
-## 2.11 Evidence Pack
+## 2.13 Evidence Pack
 
-Status: planned.
+Reference:
+
+```text
+EVIDENCE_PACK.md
+```
+
+Status: documented; runtime enforcement planned.
 
 Role:
 
@@ -399,31 +486,33 @@ Role:
 - prevent unsupported conclusions;
 - support THEMIS and APOLLO review.
 
-Required fields:
+Required minimal fields:
 
 ```text
 files_read
-commands_run
-tests_run
 sources_used
+commands_run
+tools_used
 knowledge_bases_consulted
 documents_used
-diffs_created
-errors
+assumptions
+unsupported_claims
 limitations
-confidence
+outputs
+approval_required
+next_safe_action
 ```
 
 Rule:
 
 ```text
-Any Hermes output intended for Pantheon must include an Evidence Pack.
-Any RAG-based answer should expose the consulted sources when the answer is consequential.
+Any consequential output must include an Evidence Pack.
+A model statement is not evidence.
 ```
 
 ---
 
-## 2.12 Run Graph
+## 2.14 Run Graph
 
 Status: planned.
 
@@ -464,9 +553,9 @@ Never display raw chain-of-thought.
 
 ---
 
-## 2.13 Runtime Context Pack
+## 2.15 Runtime Context Pack
 
-Status: first static endpoint planned.
+Status: first static endpoint exists.
 
 Endpoint:
 
@@ -492,7 +581,7 @@ It does not replace the reference Markdown files.
 
 ---
 
-## 2.14 Operations
+## 2.16 Operations
 
 Path:
 
@@ -559,6 +648,7 @@ The following are not Pantheon modules:
 User
 → OpenWebUI
 → Pantheon Router / adaptive orchestration
+→ Task Contract + approval classification
 → optional Hermes consultation
 → Evidence Pack
 → THEMIS / APOLLO review when needed
@@ -571,15 +661,17 @@ User
 # 6. Summary
 
 ```text
-agents       → cognitive roles
-domains      → professional/context boundaries
-skills       → reusable capabilities
-workflows    → methods and orchestration
-memory       → validated durable context
-knowledge    → document retrieval and source policy
-hermes       → execution integration
-consultation → controlled delegation
-evidence     → auditability
-run graph    → trace and visibility
-operations   → deployment and maintenance
+agents        → cognitive roles
+domains       → professional/context boundaries
+skills        → reusable capabilities
+workflows     → methods and orchestration
+task contracts→ executable frames
+approvals     → C0-C5 validation rules
+memory        → validated durable context
+knowledge     → document retrieval and source policy
+hermes        → execution integration
+consultation  → controlled delegation
+evidence      → auditability
+run graph     → trace and visibility
+operations    → deployment and maintenance
 ```
