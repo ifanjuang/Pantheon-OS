@@ -1,0 +1,98 @@
+id: project_context_resolution
+name: Project Context Resolution
+domain: general
+status: candidate
+version: 0.1.0
+language: en
+
+summary: >
+  Resolves the real project context of a request before using project-specific memory, knowledge or workflows.
+
+lifecycle:
+  state: candidate
+  level: 0
+  xp:
+    validated: 0
+    pending: 0
+  review_required: true
+
+capabilities:
+  - project_detection
+  - alias_matching
+  - session_context_review
+  - project_memory_lookup
+  - knowledge_registry_lookup
+  - notion_read_only_lookup
+  - ambiguity_detection
+  - user_clarification
+  - alias_update_candidate
+  - notion_update_candidate
+
+allowed_actions:
+  - read_current_request
+  - read_visible_conversation_context
+  - read_session_memory
+  - read_project_memory
+  - read_knowledge_registry
+  - request_notion_read_only_lookup
+  - ask_user_for_project_confirmation
+  - propose_project_alias_candidate
+  - propose_notion_update_candidate
+
+forbidden_actions:
+  - write_notion_without_user_approval
+  - promote_memory_automatically
+  - merge_projects_silently
+  - use_unresolved_project_knowledge
+  - expose_raw_private_conversation_history
+  - persist_alias_without_validation
+  - treat_notion_as_final_authority
+
+resolution_order:
+  - current_request
+  - recent_visible_messages
+  - session_memory
+  - project_alias_registry
+  - project_memory
+  - knowledge_registry
+  - notion_read_only_lookup_if_allowed
+  - user_clarification
+
+confidence_policy:
+  high:
+    threshold: 0.85
+    action: proceed_with_trace
+  medium:
+    threshold: 0.60
+    action: consult_memory_or_notion_read_only
+  low:
+    threshold: 0.0
+    action: ask_user
+
+approval_required_if:
+  - notion_write
+  - memory_promotion
+  - alias_persistence
+  - project_merge
+  - cross_project_comparison
+  - contract_sensitive_context
+  - low_confidence
+  - unresolved_ambiguity
+
+outputs:
+  - project_context_result
+  - ambiguity_report
+  - alias_candidate
+  - notion_update_candidate
+
+privacy:
+  real_project_data_allowed_in_examples: false
+  raw_private_history_allowed_in_output: false
+  examples_must_be_fictional: true
+
+review:
+  required_before_activation: true
+  required_documents:
+    - MEMORY.md
+    - MODULES.md
+    - operations/openwebui_hermes_pantheon.md
