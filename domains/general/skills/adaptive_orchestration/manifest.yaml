@@ -1,0 +1,117 @@
+id: adaptive_orchestration
+name: Adaptive Orchestration
+domain: general
+status: candidate
+version: 0.1.0
+language: en
+
+summary: >
+  Selects, adapts, simplifies, switches or extends workflows before and during execution.
+
+owners:
+  - Pantheon OS
+
+lifecycle:
+  state: candidate
+  level: 0
+  xp:
+    validated: 0
+    pending: 0
+  last_review: null
+  review_required: true
+  probation_reason: null
+
+capabilities:
+  - workflow_preflight
+  - runtime_workflow_adaptation
+  - workflow_switching
+  - subworkflow_insertion
+  - agent_add_remove
+  - step_add_skip
+  - context_expansion
+  - agent_consultation
+  - user_validation_fallback
+  - candidate_update_proposal
+  - agent_status_report
+  - workflow_adaptation_report
+
+allowed_actions:
+  - use_as_is
+  - adapt_existing
+  - insert_subworkflow
+  - switch_workflow
+  - add_agent
+  - remove_agent
+  - add_step
+  - skip_step
+  - expand_context
+  - ask_agents
+  - ask_user
+  - propose_candidate_workflow
+  - propose_skill_update
+  - propose_workflow_update
+
+forbidden_actions:
+  - auto_create_active_workflow
+  - auto_modify_active_workflow
+  - auto_promote_memory
+  - auto_level_up_skill
+  - expose_raw_chain_of_thought
+  - bypass_themis
+  - bypass_user_validation_when_risky
+
+confidence_policy:
+  high:
+    action: direct_adaptation_allowed
+    requirements:
+      - low_risk
+      - reversible
+      - privacy_safe
+      - no_external_action
+      - no_contractual_commitment
+  medium:
+    action: consult_relevant_agents
+  low:
+    action: expand_context
+  unresolved:
+    action: ask_user
+
+context_expansion_order:
+  - session_memory
+  - project_memory
+  - system_memory
+  - knowledge
+  - external_sources_when_policy_allows
+
+approval_required_if:
+  - irreversible_change
+  - risky_change
+  - external_action
+  - legal_or_contractual_sensitivity
+  - memory_promotion
+  - permanent_workflow_change
+  - skill_level_up
+  - new_active_workflow_creation
+  - unresolved_uncertainty
+
+hermes_mapping:
+  type: none_found
+  checked: true
+
+privacy:
+  real_project_data_allowed: false
+  real_client_data_allowed: false
+  examples_must_be_fictional: true
+
+outputs:
+  - workflow_preflight_report
+  - workflow_adaptation_report
+  - agent_status_report
+  - candidate_update_proposal
+
+review:
+  required_before_activation: true
+  required_documents:
+    - hermes/skill_policy.md
+    - MODULES.md
+    - MEMORY.md

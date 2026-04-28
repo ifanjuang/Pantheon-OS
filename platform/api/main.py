@@ -13,6 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from pantheon_domain.router import router as domain_router
+from pantheon_runtime.router import router as runtime_router
 
 app = FastAPI(
     title="Pantheon OS Domain Layer API",
@@ -38,6 +39,7 @@ app.add_middleware(
 )
 
 app.include_router(domain_router)
+app.include_router(runtime_router)
 
 
 @app.get("/health", tags=["system"])
@@ -55,5 +57,6 @@ def root() -> dict[str, str]:
         "service": "Pantheon OS Domain Layer API",
         "health": "/health",
         "domain_snapshot": "/domain/snapshot",
+        "runtime_context_pack": "/runtime/context-pack",
         "docs": "/docs",
     }

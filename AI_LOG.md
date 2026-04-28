@@ -9,12 +9,13 @@ Objectif : éviter les doublons, conflits de branches, modifications contradicto
 ## Règles simples
 
 1. Lire `AI_LOG.md` avant toute modification.
-2. Lire les six fichiers Markdown de référence avant toute modification structurante :
+2. Lire les fichiers Markdown de référence avant toute modification structurante :
    - `STATUS.md`
    - `ROADMAP.md`
    - `ARCHITECTURE.md`
    - `AGENTS.md`
    - `MODULES.md`
+   - `MEMORY.md`
    - `README.md`
 3. Ne jamais pousser directement sur `main`.
 4. Travailler sur une branche dédiée.
@@ -22,6 +23,7 @@ Objectif : éviter les doublons, conflits de branches, modifications contradicto
 6. Si un fichier critique est touché, le signaler clairement.
 7. Les Markdown de référence restent la base du développement.
 8. Si le code est plus pertinent que les Markdown, proposer ou appliquer d’abord la mise à jour documentaire.
+9. Ne jamais inscrire dans le repo des informations issues de conversations privées, projets réels, clients, entreprises, adresses, chantiers ou personnes identifiables.
 
 ---
 
@@ -32,7 +34,11 @@ Objectif : éviter les doublons, conflits de branches, modifications contradicto
 - `ARCHITECTURE.md`
 - `AGENTS.md`
 - `MODULES.md`
+- `MEMORY.md`
 - `README.md`
+- `AI_LOG.md`
+- `hermes/skill_policy.md`
+- `hermes/external_skill_repos.md`
 - `modules.yaml`
 - `platform/api/main.py`
 - `platform/api/core/health.py`
@@ -50,7 +56,8 @@ Objectif : éviter les doublons, conflits de branches, modifications contradicto
 
 - ChatGPT : `work/chatgpt/*` ou `feature/chatgpt/*`
 - Claude : `work/claude/*` ou `feature/claude/*`
-- Branche actuelle de travail : `work/chatgpt/hermes-code-rewrite`
+- Branche actuelle de travail : `work/chatgpt/hermes-docs-architecture-fr`
+- Branche divergente à éviter : `work/chatgpt/hermes-code-rewrite`
 - `main` : stable uniquement
 
 ---
@@ -313,6 +320,108 @@ Prochaine action recommandée :
 3. Créer les dossiers contractuels Markdown : `agents/`, `domains/`, `skills/`, `workflows/`, `memory/`, `knowledge/`, `hermes/context/`, `operations/`.
 4. Auditer le legacy avant toute suppression.
 5. Préparer Hermes Lab isolé seulement après validation de la couche Domain Layer.
+
+---
+
+### 2026-04-28 — ChatGPT
+
+Branche : `work/chatgpt/hermes-docs-architecture-fr`
+
+Objectif : formaliser le système de progression des skills Pantheon avec XP, niveaux, anti-farming et feedback utilisateur non intrusif.
+
+Modifications :
+
+- Mise à jour de `hermes/skill_policy.md`.
+- Ajout des états de lifecycle : `candidate`, `active`, `probation`, `quarantine`, `archived`, `rejected`.
+- Ajout d’un modèle XP qualitatif basé sur les améliorations validées, pas sur le volume d’usage.
+- Ajout d’une table XP : feedback utile, clarification, correction de blocage, checklist, garde-fou, extraction de workflow, upgrade majeur.
+- Ajout de règles anti-farming : pas de XP pour volume brut, doublons, auto-évaluation ou cosmétique.
+- Ajout des niveaux : Candidate, Usable, Stable, Reliable, Expert, Core.
+- Ajout des conditions de level-up : XP validée, absence de critique ouverte, exemples/tests/checklists à jour, privacy check, rollback, validation humaine.
+- Ajout d’une politique de feedback non intrusif : demander seulement après réponse substantielle, méthode réutilisable, correction de blocage ou proposition de workflow/skill.
+- Ajout du modèle `lifecycle` dans `manifest.yaml`.
+
+Fichiers critiques touchés :
+
+- `hermes/skill_policy.md`
+- `AI_LOG.md`
+
+Tests lancés :
+
+- Non exécutés. Modification documentaire uniquement.
+
+Points à vérifier :
+
+- Reporter les règles XP/levels dans `MODULES.md` lors de l’alignement.
+- Prévoir les champs `lifecycle` dans les futurs `manifest.yaml`.
+- Ne pas transformer le feedback utilisateur en demande systématique après chaque réponse.
+- Garder les XP comme `pending_xp` tant qu’une review n’a pas validé l’amélioration.
+
+Prochaine action recommandée :
+
+1. Aligner `MODULES.md` sur lifecycle + XP.
+2. Créer les premières skills `domains/general` avec `manifest.yaml` incluant `lifecycle`.
+3. Prévoir un workflow `skill_review.yaml` avant tout level-up.
+
+---
+
+### 2026-04-29 — ChatGPT
+
+Branche : `work/chatgpt/hermes-docs-architecture-fr`
+
+Objectif : poser le P0 de l’interaction OpenWebUI / Hermes / Pantheon et ajouter la résolution de contexte projet.
+
+Modifications :
+
+- Mise à jour de `STATUS.md` avec `OpenWebUI / Hermes / Pantheon interaction layer — planned`.
+- Mise à jour de `MODULES.md` pour ajouter les modules planifiés : Consultation, Evidence Pack, Run Graph, Runtime Context Pack, Knowledge Selection.
+- Ajout du package `platform/api/pantheon_runtime/`.
+- Ajout d’un endpoint statique read-only `GET /runtime/context-pack`.
+- Branchement du router runtime dans `platform/api/main.py`.
+- Ajout de la skill candidate `domains/general/skills/project_context_resolution/`.
+- Ajout de règles de résolution de contexte projet : alias, fautes de frappe, indices partiels, commune, rue, client, sujet, mémoire session/projet, Knowledge Registry, Notion read-only éventuel.
+- Ajout de la règle inverse : ne pas forcer le contexte projet si la question est générale ou répondable sans contexte spécifique.
+- Ajout de la politique Notion : lecture seule par défaut, écriture uniquement après affichage des champs à modifier et validation explicite.
+- Ajout du template local Hermes `hermes/templates/pantheon-os/` avec `SKILL.md`, exemple d’audit repo et helper read-only `pantheon_context_pack.py`.
+
+Fichiers critiques touchés :
+
+- `STATUS.md`
+- `MODULES.md`
+- `AI_LOG.md`
+- `platform/api/main.py`
+- `platform/api/pantheon_runtime/__init__.py`
+- `platform/api/pantheon_runtime/router.py`
+- `domains/general/skills/project_context_resolution/SKILL.md`
+- `domains/general/skills/project_context_resolution/manifest.yaml`
+- `domains/general/skills/project_context_resolution/examples.md`
+- `domains/general/skills/project_context_resolution/tests.md`
+- `domains/general/skills/project_context_resolution/UPDATES.md`
+- `hermes/templates/pantheon-os/SKILL.md`
+- `hermes/templates/pantheon-os/examples/audit_repo.md`
+- `hermes/templates/pantheon-os/scripts/pantheon_context_pack.py`
+
+Tests lancés :
+
+- Non exécutés dans cette session.
+
+Points à vérifier :
+
+- Lancer les tests existants ciblés après checkout local.
+- Vérifier le démarrage FastAPI et les routes `/health`, `/domain/snapshot`, `/runtime/context-pack`.
+- Le Context Pack est statique : il oriente Hermes mais ne remplace pas les Markdown de référence.
+- Le template Hermes `pantheon-os` n’est pas installé localement ; il doit être copié vers `~/.hermes/skills/pantheon-os/` avant usage.
+- La connexion Notion n’est pas implémentée ; seule la politique de lecture/écriture candidate est documentée.
+- Le template Evidence Pack exécutable ou YAML n’a pas été ajouté : deux tentatives de création ont été bloquées par le contrôle de sécurité de l’outil GitHub. La structure reste documentée dans `MODULES.md` et `hermes/templates/pantheon-os/SKILL.md`.
+- Le legacy autonome reste à auditer avant conservation, réorientation ou suppression.
+
+Prochaine action recommandée :
+
+1. Lancer `pytest tests/test_domain_layer_api.py` et vérifier l’import du nouveau router runtime.
+2. Démarrer l’API localement et tester `GET /runtime/context-pack`.
+3. Créer `knowledge/registry.yaml` et la skill candidate `knowledge_selection`.
+4. Définir un mapping Notion read-only avant toute écriture possible.
+5. Créer une spécification OpenWebUI Router Pipe + Actions.
 
 ---
 
