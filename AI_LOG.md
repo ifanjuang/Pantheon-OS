@@ -9,12 +9,13 @@ Objectif : éviter les doublons, conflits de branches, modifications contradicto
 ## Règles simples
 
 1. Lire `AI_LOG.md` avant toute modification.
-2. Lire les six fichiers Markdown de référence avant toute modification structurante :
+2. Lire les fichiers Markdown de référence avant toute modification structurante :
    - `STATUS.md`
    - `ROADMAP.md`
    - `ARCHITECTURE.md`
    - `AGENTS.md`
    - `MODULES.md`
+   - `MEMORY.md`
    - `README.md`
 3. Ne jamais pousser directement sur `main`.
 4. Travailler sur une branche dédiée.
@@ -22,6 +23,7 @@ Objectif : éviter les doublons, conflits de branches, modifications contradicto
 6. Si un fichier critique est touché, le signaler clairement.
 7. Les Markdown de référence restent la base du développement.
 8. Si le code est plus pertinent que les Markdown, proposer ou appliquer d’abord la mise à jour documentaire.
+9. Ne jamais inscrire dans le repo des informations issues de conversations privées, projets réels, clients, entreprises, adresses, chantiers ou personnes identifiables.
 
 ---
 
@@ -32,7 +34,11 @@ Objectif : éviter les doublons, conflits de branches, modifications contradicto
 - `ARCHITECTURE.md`
 - `AGENTS.md`
 - `MODULES.md`
+- `MEMORY.md`
 - `README.md`
+- `AI_LOG.md`
+- `hermes/skill_policy.md`
+- `hermes/external_skill_repos.md`
 - `modules.yaml`
 - `platform/api/main.py`
 - `platform/api/core/health.py`
@@ -50,7 +56,8 @@ Objectif : éviter les doublons, conflits de branches, modifications contradicto
 
 - ChatGPT : `work/chatgpt/*` ou `feature/chatgpt/*`
 - Claude : `work/claude/*` ou `feature/claude/*`
-- Branche actuelle de travail : `work/chatgpt/hermes-code-rewrite`
+- Branche actuelle de travail : `work/chatgpt/hermes-docs-architecture-fr`
+- Branche divergente à éviter : `work/chatgpt/hermes-code-rewrite`
 - `main` : stable uniquement
 
 ---
@@ -313,6 +320,48 @@ Prochaine action recommandée :
 3. Créer les dossiers contractuels Markdown : `agents/`, `domains/`, `skills/`, `workflows/`, `memory/`, `knowledge/`, `hermes/context/`, `operations/`.
 4. Auditer le legacy avant toute suppression.
 5. Préparer Hermes Lab isolé seulement après validation de la couche Domain Layer.
+
+---
+
+### 2026-04-28 — ChatGPT
+
+Branche : `work/chatgpt/hermes-docs-architecture-fr`
+
+Objectif : formaliser le système de progression des skills Pantheon avec XP, niveaux, anti-farming et feedback utilisateur non intrusif.
+
+Modifications :
+
+- Mise à jour de `hermes/skill_policy.md`.
+- Ajout des états de lifecycle : `candidate`, `active`, `probation`, `quarantine`, `archived`, `rejected`.
+- Ajout d’un modèle XP qualitatif basé sur les améliorations validées, pas sur le volume d’usage.
+- Ajout d’une table XP : feedback utile, clarification, correction de blocage, checklist, garde-fou, extraction de workflow, upgrade majeur.
+- Ajout de règles anti-farming : pas de XP pour volume brut, doublons, auto-évaluation ou cosmétique.
+- Ajout des niveaux : Candidate, Usable, Stable, Reliable, Expert, Core.
+- Ajout des conditions de level-up : XP validée, absence de critique ouverte, exemples/tests/checklists à jour, privacy check, rollback, validation humaine.
+- Ajout d’une politique de feedback non intrusif : demander seulement après réponse substantielle, méthode réutilisable, correction de blocage ou proposition de workflow/skill.
+- Ajout du modèle `lifecycle` dans `manifest.yaml`.
+
+Fichiers critiques touchés :
+
+- `hermes/skill_policy.md`
+- `AI_LOG.md`
+
+Tests lancés :
+
+- Non exécutés. Modification documentaire uniquement.
+
+Points à vérifier :
+
+- Reporter les règles XP/levels dans `MODULES.md` lors de l’alignement.
+- Prévoir les champs `lifecycle` dans les futurs `manifest.yaml`.
+- Ne pas transformer le feedback utilisateur en demande systématique après chaque réponse.
+- Garder les XP comme `pending_xp` tant qu’une review n’a pas validé l’amélioration.
+
+Prochaine action recommandée :
+
+1. Aligner `MODULES.md` sur lifecycle + XP.
+2. Créer les premières skills `domains/general` avec `manifest.yaml` incluant `lifecycle`.
+3. Prévoir un workflow `skill_review.yaml` avant tout level-up.
 
 ---
 
