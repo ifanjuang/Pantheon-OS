@@ -16,7 +16,11 @@ class AgentBase:
 
     @classmethod
     def soul(cls) -> str:
-        path = cls._soul_dir / "SOUL.md"
+        # SOUL location: <repo>/agents/{layer}/{name}.md
+        # _soul_dir = modules/agents/{layer}/{name}/  → repo_root = parents[3]
+        repo_root = cls._soul_dir.parents[3]
+        name = cls._soul_dir.name
+        path = repo_root / "agents" / cls.layer / f"{name}.md"
         return path.read_text(encoding="utf-8") if path.exists() else ""
 
     @classmethod
