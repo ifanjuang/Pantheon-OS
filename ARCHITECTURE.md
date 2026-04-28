@@ -6,15 +6,28 @@
 
 # 1. Structural decision
 
-Pantheon OS is a Domain Operating Layer.
+Pantheon OS is a governed Domain Operating Layer.
 
 ```text
-Pantheon defines.
+Pantheon defines and canonizes.
 Hermes executes.
-OpenWebUI exposes and retrieves.
+OpenWebUI exposes, retrieves and asks for approval.
 ```
 
 Pantheon must not reimplement subsystems already handled by Hermes Agent: agent loop, prompt assembly, provider resolution, tool registry, terminal/browser/web/MCP backends, session storage, scheduler, gateways, optional skills or the Skills Hub.
+
+Reference governance documents:
+
+```text
+APPROVALS.md
+TASK_CONTRACTS.md
+EVIDENCE_PACK.md
+HERMES_INTEGRATION.md
+KNOWLEDGE_TAXONOMY.md
+MEMORY.md
+MODULES.md
+AGENTS.md
+```
 
 ---
 
@@ -22,30 +35,36 @@ Pantheon must not reimplement subsystems already handled by Hermes Agent: agent 
 
 ```text
 OpenWebUI
-  user interface
-  document knowledge
+  user cockpit
+  document Knowledge surface
+  approval surface
 
 Pantheon OS
+  source-of-truth Markdown
   abstract agents
   domain packages
-  domain skills
-  workflows
-  memory policies
-  approval policies
-  Hermes skill policy
+  task contracts
+  approval policy
+  evidence policy
+  memory policy
+  Knowledge taxonomy
+  Hermes integration rules
+  candidate skills and workflows
 
 Hermes Agent
-  agent loop
-  prompt assembly
-  runtime provider resolution
-  tool registry
-  session storage
-  cron scheduler
-  gateways
-  optional skills
+  operational runtime
+  executable skills
+  tools
+  session execution
+  provider/runtime features
+  local operational memory
 ```
 
-Hermes is the runtime. Pantheon is the definition, governance and domain-specialization layer.
+Hermes is the runtime.
+
+Pantheon is the definition, governance and domain-specialization layer.
+
+OpenWebUI is the cockpit and Knowledge surface.
 
 ---
 
@@ -57,30 +76,142 @@ Official structure:
 domains/
   general/
     domain.md
+    rules.md
+    knowledge_policy.md
+    output_formats.md
     skills/
     workflows/
     templates/
   architecture_fr/
     domain.md
+    rules.md
+    knowledge_policy.md
+    output_formats.md
     skills/
     workflows/
     templates/
   software/
     domain.md
+    rules.md
+    knowledge_policy.md
+    output_formats.md
     skills/
     workflows/
     templates/
 ```
 
-`general` contains invariant system capabilities: triage, verification, on-the-fly creation, memory promotion, skill/workflow design, repository inspiration, source check and prompt system design.
+`general` contains invariant system capabilities: triage, verification, approval risk, evidence checks, memory promotion, skill/workflow design, repository inspiration, source check and prompt system design.
 
 `architecture_fr` contains French-speaking architecture-domain capabilities: CCTP, quotes, DPGF, notices, site reports, PLU, ERP/SDIS, responsibilities and construction contracts.
 
-Rule: the French architecture domain must not be recreated under `domains/architecture/`.
+`software` contains repository, documentation, code governance, API layer, legacy audit and context export capabilities.
+
+Rule:
+
+```text
+The French architecture domain must not be recreated under domains/architecture/.
+```
 
 ---
 
-# 4. Hermes skill strategy
+# 4. Task contracts
+
+Reference:
+
+```text
+TASK_CONTRACTS.md
+```
+
+A task contract defines what Hermes or Pantheon may execute for a bounded task.
+
+It defines:
+
+- task id;
+- domain;
+- purpose;
+- mode;
+- inputs;
+- outputs;
+- allowed tools;
+- forbidden tools;
+- approval level;
+- agents;
+- skills;
+- memory impact;
+- evidence requirement.
+
+Rule:
+
+```text
+A task contract frames execution.
+It does not authorize execution by itself.
+```
+
+---
+
+# 5. Approval policy
+
+Reference:
+
+```text
+APPROVALS.md
+```
+
+Criticality levels:
+
+```text
+C0 = read / diagnostic
+C1 = draft / suggestion
+C2 = reversible low-risk action
+C3 = persistent internal change
+C4 = external / contractual / financial / responsibility action
+C5 = critical / irreversible / secrets / destructive
+```
+
+Rule:
+
+```text
+No persistent, external, critical or irreversible action without a visible approval path.
+```
+
+---
+
+# 6. Evidence Pack
+
+Reference:
+
+```text
+EVIDENCE_PACK.md
+```
+
+Consequential outputs require an Evidence Pack.
+
+Minimum evidence frame:
+
+```text
+files_read
+sources_used
+commands_run
+tools_used
+knowledge_bases_consulted
+documents_used
+assumptions
+unsupported_claims
+limitations
+outputs
+approval_required
+next_safe_action
+```
+
+Rule:
+
+```text
+A model statement is not evidence.
+```
+
+---
+
+# 7. Hermes skill strategy
 
 Before creating a Pantheon skill:
 
@@ -103,7 +234,7 @@ If Hermes already provides a technical capability, Pantheon must not recode it. 
 
 ---
 
-# 5. Skills and lifecycle
+# 8. Skills and lifecycle
 
 Minimal structure of a Pantheon skill:
 
@@ -131,7 +262,7 @@ XP is allowed only for:
 
 ---
 
-# 6. Workflows
+# 9. Workflows
 
 Workflows are YAML files in:
 
@@ -145,7 +276,13 @@ A workflow must not be a long prompt disguised as architecture.
 
 ---
 
-# 7. Memory
+# 10. Memory
+
+Reference:
+
+```text
+MEMORY.md
+```
 
 Structure:
 
@@ -169,14 +306,38 @@ system     = validated rules, methods and patterns
 Cycle:
 
 ```text
-SESSION → CANDIDATES → validation → PROJECT or SYSTEM
+SESSION → CANDIDATES → Evidence Pack → validation → PROJECT or SYSTEM
 ```
+
+Memory promotion is at least C3.
 
 No automatic promotion.
 
 ---
 
-# 8. Privacy by default
+# 11. Knowledge taxonomy
+
+Reference:
+
+```text
+KNOWLEDGE_TAXONOMY.md
+```
+
+OpenWebUI Knowledge is not Pantheon memory.
+
+Rule:
+
+```text
+Documents are knowledge.
+Validated reusable facts become memory candidates.
+Pantheon alone canonizes memory.
+```
+
+Initial Knowledge collections use `architecture_fr`, not `architecture`.
+
+---
+
+# 12. Privacy by default
 
 No real data from private conversations, real projects, clients, companies, construction sites, addresses, persons or identifiable situations may be written into the repository.
 
@@ -186,7 +347,7 @@ Every memory promotion must check anonymization.
 
 ---
 
-# 9. Change triage
+# 13. Change triage
 
 Before any modification, Pantheon must classify the request:
 
@@ -198,13 +359,22 @@ skill_update
 workflow_update
 new_capability
 policy_update
+code_patch
+external_action
 ```
 
-The classification determines the target and the validation level.
+The classification determines:
+
+- task contract;
+- approval level;
+- agents;
+- skills;
+- Evidence Pack requirement;
+- next safe action.
 
 ---
 
-# 10. Runtime security
+# 14. Runtime security
 
 Risky capabilities remain on the Hermes side but must be policy-gated by Pantheon:
 
@@ -229,11 +399,15 @@ Minimal rules:
 
 ---
 
-# 11. Hermes context strategy
+# 15. Hermes context strategy
 
-Hermes assembles prompts from personality, memory, skills, context files, tool guidance and model instructions.
+Reference:
 
-Pantheon therefore provides controlled context exports:
+```text
+HERMES_INTEGRATION.md
+```
+
+Pantheon provides controlled context exports:
 
 ```text
 hermes/context/
@@ -243,13 +417,14 @@ hermes/context/
   rules_context.md
   architecture_fr_context.md
   software_context.md
+  tools_policy.md
 ```
 
-These files do not replace the reference Markdown files. They export a stable operational version for Hermes.
+These files do not replace the reference Markdown files. They export a compact operational version for Hermes.
 
 ---
 
-# 12. OpenWebUI / Hermes / Pantheon operating protocol
+# 16. OpenWebUI / Hermes / Pantheon operating protocol
 
 Pantheon uses an explicit operating protocol for the three-system setup:
 
@@ -296,7 +471,7 @@ Status: documented target architecture, not fully implemented.
 
 ---
 
-# 13. Installation and operations
+# 17. Installation and operations
 
 Target environment: NAS with Portainer, existing OpenWebUI, existing PostgreSQL and Ollama on a LAN PC.
 
@@ -311,7 +486,7 @@ Rules:
 
 ---
 
-# 14. Existing code
+# 18. Existing code
 
 The repository still contains elements from the previous autonomous architecture: FastAPI apps, registries, workflow loader, approvals, installer UI, migrations and legacy tests.
 
@@ -319,9 +494,15 @@ Status: legacy to audit.
 
 No automatic deletion before diagnosis.
 
+Target audit document:
+
+```text
+CODE_AUDIT_POST_PIVOT.md
+```
+
 ---
 
-# 15. Final rule
+# 19. Final rule
 
 Pantheon must remain simpler than the runtime it governs.
 
