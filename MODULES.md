@@ -1,289 +1,585 @@
 # MODULES — Pantheon OS
 
-> Ce document définit le découpage fonctionnel réel du système Pantheon OS.  
-> Les modules représentent les composants structurants du Domain Operating Layer.
+> Functional reference for Pantheon OS modules after the Hermes-backed pivot.
+> Pantheon OS is not the agent runtime. It is the governed domain layer that defines skills, workflows, memory, knowledge, rules and validation.
 
 ---
 
-# 1. Principe
+# 1. Principle
 
-Pantheon OS n’est pas un runtime.
+Pantheon OS must remain simpler than the runtime it governs.
 
-C’est un système de définition structuré autour de :
+```text
+OpenWebUI = cockpit and knowledge surface
+Hermes Agent = operational runtime and executable skills
+Pantheon OS = governed domain authority and source of truth
+```
 
-- skills  
-- workflows  
-- agents  
-- mémoire  
-- knowledge  
-- règles  
+Pantheon modules define:
 
-Chaque module doit être :
+- agents;
+- domains;
+- skills;
+- workflows;
+- memory;
+- knowledge;
+- Hermes integration;
+- consultation;
+- evidence packs;
+- run graphs;
+- operations.
 
-- lisible  
-- isolé  
-- maintenable  
-- aligné avec les Markdown  
+A module must be:
+
+- readable;
+- isolated;
+- maintainable;
+- traceable;
+- aligned with the reference Markdown files.
 
 ---
 
-# 2. Modules principaux
+# 2. Core modules
 
 ## 2.1 Agents
 
-text agents/ 
+Path:
 
-Rôle :
+```text
+agents/
+```
 
-- définir les fonctions cognitives du système  
-- structurer l’analyse  
-- organiser les workflows  
+Role:
 
-Contenu :
+- define universal cognitive functions;
+- structure analysis;
+- orchestrate workflows;
+- validate outputs;
+- detect risk and uncertainty.
 
-- un fichier par agent  
-- rôle  
-- responsabilités  
-- limites  
+Agents are abstract and not business-specific.
 
-Important :
+They must not:
 
-Les agents sont abstraits et non métier.
-
----
-
-## 2.2 Skills
-
-text skills/ 
-
-Rôle :
-
-- représenter les capacités du système  
-- porter la logique métier  
-- produire des outputs exploitables  
-
-Structure :
-
-text skills/   generic/   architecture/     cctp_audit/       SKILL.md 
-
-Contenu d’une skill :
-
-- objectif  
-- inputs  
-- outputs  
-- règles  
-- risques  
-- conditions d’activation  
-
-Important :
-
-Toute logique métier doit être dans les skills.
+- contain domain-specific business logic;
+- execute technical actions directly;
+- mutate files without validation;
+- bypass THEMIS, APOLLO or human validation when required.
 
 ---
 
-## 2.3 Workflows
+## 2.2 Domains
 
-text workflows/ 
+Path:
 
-Rôle :
+```text
+domains/
+  general/
+  architecture_fr/
+  software/
+```
 
-- structurer les enchaînements d’actions  
-- orchestrer les agents et les skills  
+Role:
 
-Structure :
+- group domain-specific skills, workflows and templates;
+- inject professional rules and constraints;
+- prevent business logic from leaking into agents.
 
-text workflows/   generic/   architecture/     cctp_review.yaml 
+Current structure:
 
-Contenu :
+```text
+domains/{domain}/
+  domain.md
+  skills/
+  workflows/
+  templates/
+```
 
-- étapes  
-- ordre  
-- agents mobilisés  
-- skills utilisées  
-- points de validation  
+Rules:
 
-Important :
-
-Un workflow = une méthode claire.
-
----
-
-## 2.4 Domains (overlays métier)
-
-text domains/ 
-
-Rôle :
-
-- spécialiser le système par métier  
-- injecter contexte, règles et contraintes  
-
-Structure :
-
-text domains/   architecture/     overlay.md     workflows/     skills/ 
-
-Contenu :
-
-- règles métier  
-- contraintes réglementaires  
-- conventions  
-
-Important :
-
-Le domaine ne modifie pas les agents.  
-Il influence uniquement skills et workflows.
+- `general` contains invariant system capabilities.
+- `architecture_fr` contains French-speaking architecture-domain capabilities.
+- `software` contains repository, documentation and code governance capabilities.
+- The French architecture domain must not be recreated as `domains/architecture/`.
 
 ---
 
-## 2.5 Memory
+## 2.3 Skills
 
-text memory/ 
+Path:
 
-Rôle :
+```text
+domains/{domain}/skills/{skill_id}/
+```
 
-- structurer la connaissance du système  
+Minimal structure:
 
-Structure :
+```text
+SKILL.md
+manifest.yaml
+examples.md
+tests.md
+UPDATES.md
+```
 
-text memory/   session/   candidates/   project/   system/ 
+Role:
 
-### session
+- represent reusable capabilities;
+- define inputs, outputs, limits and risks;
+- carry domain logic;
+- provide outputs usable by workflows or humans.
 
-- temporaire  
-- non persistée  
+Lifecycle:
 
-### candidates
+```text
+candidate
+active
+probation
+quarantine
+archived
+rejected
+```
 
-- persistée  
-- non validée  
+XP and level metadata live in `manifest.yaml`.
 
-### project
+Rule:
 
-- spécifique à un projet  
-- contexte opérationnel  
-
-### system
-
-- globale  
-- validée  
-- réutilisable  
-
-Règle :
-
-Aucune promotion sans validation THEMIS.
-
----
-
-## 2.6 Knowledge
-
-text knowledge/ 
-
-Rôle :
-
-- définir la stratégie documentaire  
-- organiser OpenWebUI  
-
-Contenu :
-
-- collections  
-- source policy  
-- classification  
-
-Important :
-
-La knowledge n’est pas la mémoire.  
-Elle alimente les skills.
+```text
+A new skill starts as candidate.
+No level-up is automatic.
+No active skill is modified directly without review.
+```
 
 ---
 
-## 2.7 Hermes Integration
+## 2.4 Workflows
 
-text hermes/ 
+Path:
 
-Rôle :
+```text
+domains/{domain}/workflows/*.yaml
+```
 
-- connecter Pantheon au runtime Hermes  
+Role:
 
-Structure :
+- define structured procedures;
+- orchestrate agents and skills;
+- define validation points;
+- expose expected outputs and fallback paths.
 
-text hermes/   context/     pantheon_context.md     agents_context.md     rules_context.md 
+Rules:
 
-Contenu :
-
-- règles transmises à Hermes  
-- contexte système  
-- contraintes  
-
-Important :
-
-Pantheon ne remplace pas Hermes.  
-Il le pilote.
-
----
-
-## 2.8 Operations
-
-text operations/ 
-
-Rôle :
-
-- exploitation du système  
-- installation  
-- maintenance  
-
-Contenu :
-
-- installation NAS  
-- update  
-- versioning  
-- monitoring  
+- a workflow must be a method, not a long prompt;
+- workflows may be adaptive if `adaptive_orchestration` authorizes it;
+- every durable workflow change starts as a candidate update;
+- risky workflow changes require validation.
 
 ---
 
-# 3. Modules legacy
+## 2.5 Adaptive orchestration
 
-Certains éléments existants sont considérés comme legacy :
+Path:
 
-- runtime FastAPI autonome  
-- module registry  
-- workflow loader  
-- approval API initiale  
-- installer UI  
+```text
+domains/general/skills/adaptive_orchestration/
+```
 
-Règle :
+Status: candidate.
 
-- ne pas supprimer sans audit  
-- classer  
-- réorienter ou archiver  
+Role:
 
----
+- run workflow preflight;
+- choose, adapt, simplify or switch workflows;
+- insert subworkflows when prerequisites are missing;
+- add or remove agents when justified;
+- expand context when uncertainty remains;
+- ask the user only when required;
+- propose candidate skill/workflow updates after useful patterns.
 
-# 4. Règles de conception
+Core rule:
 
-Un module doit :
-
-- avoir une responsabilité claire  
-- ne pas dépendre implicitement d’un autre  
-- être documenté  
-- être testable  
-
----
-
-# 5. Ce qui n’est PAS un module
-
-text ❌ agent métier ❌ runtime complet ❌ interface UI ❌ base de données métier implicite ❌ logique cachée dans le code 
+```text
+Before execution: select or adapt.
+During execution: reevaluate and adjust.
+After execution: propose candidate improvement when useful.
+```
 
 ---
 
-# 6. Flux global
+## 2.6 Memory
 
-text User → OpenWebUI → Pantheon (agents + workflows + skills) → Hermes (exécution) → résultats → mémoire (si validé) 
+Path:
+
+```text
+memory/
+  session/
+  candidates/
+  project/
+  system/
+```
+
+Role:
+
+- preserve validated context;
+- separate temporary context from durable knowledge;
+- prevent raw documents from becoming memory automatically.
+
+Memory levels:
+
+```text
+session    = temporary context
+candidates = persisted but not validated
+project    = validated project context
+system     = validated reusable rules, methods and patterns
+```
+
+Rule:
+
+```text
+No automatic promotion.
+```
+
+Terminology rule:
+
+```text
+Use system memory, not agency memory.
+```
 
 ---
 
-# 7. Résumé
+## 2.7 Knowledge
 
-text agents     → raisonnement skills     → métier workflows  → méthode domains    → contexte métier memory     → connaissance validée knowledge  → sources hermes     → exécution operations → exploitation 
+Path:
+
+```text
+knowledge/
+```
+
+Role:
+
+- define document strategy;
+- describe OpenWebUI Knowledge Bases;
+- define source policy;
+- prevent cross-project contamination;
+- support RAG without turning documents into memory.
+
+Planned components:
+
+```text
+knowledge/registry.yaml
+knowledge/source_tiers.md
+knowledge/freshness_policy.md
+knowledge/openwebui_collections.md
+```
+
+Rule:
+
+```text
+Documents are knowledge.
+Validated reusable facts become memory candidates.
+Pantheon alone canonizes memory.
+```
 
 ---
 
-FIN DU FICHIER
+## 2.8 Knowledge selection
+
+Status: planned.
+
+Role:
+
+- select relevant OpenWebUI Knowledge Bases based on the request;
+- avoid consulting all bases by default;
+- prevent mixing project documents without explicit approval;
+- request user validation when the source choice is ambiguous or sensitive;
+- record consulted bases in the Evidence Pack.
+
+Planned location:
+
+```text
+domains/general/skills/knowledge_selection/
+```
+
+---
+
+## 2.9 Hermes integration
+
+Path:
+
+```text
+hermes/
+```
+
+Role:
+
+- define how Pantheon exposes controlled context to Hermes;
+- define Hermes skill policy;
+- classify external Hermes skill repositories;
+- prepare local Hermes skill templates.
+
+Current files:
+
+```text
+hermes/skill_policy.md
+hermes/external_skill_repos.md
+```
+
+Planned context exports:
+
+```text
+hermes/context/
+  pantheon_context.md
+  agents_context.md
+  memory_context.md
+  rules_context.md
+  architecture_fr_context.md
+  software_context.md
+```
+
+Rule:
+
+```text
+Hermes executes operational work.
+Pantheon defines, validates and canonizes.
+```
+
+---
+
+## 2.10 Consultation
+
+Status: planned.
+
+Role:
+
+- govern Pantheon ↔ Hermes delegation;
+- define allowed and forbidden actions;
+- prevent recursive consultation loops;
+- make every Hermes result reviewable by Pantheon.
+
+Planned code structure:
+
+```text
+core/consultation/
+  contracts.py
+  router.py
+  hermes_client.py
+  policy.py
+  events.py
+```
+
+Planned contracts:
+
+```text
+RunContract
+ConsultationRequest
+ConsultationResult
+EvidencePack
+HermesScorecard
+```
+
+Rules:
+
+```text
+Hermes outputs candidates.
+Pantheon canonizes.
+Consultations must bring new information.
+max_consultation_depth = 2.
+```
+
+---
+
+## 2.11 Evidence Pack
+
+Status: planned.
+
+Role:
+
+- make outputs auditable;
+- record sources and limits;
+- prevent unsupported conclusions;
+- support THEMIS and APOLLO review.
+
+Required fields:
+
+```text
+files_read
+commands_run
+tests_run
+sources_used
+knowledge_bases_consulted
+documents_used
+diffs_created
+errors
+limitations
+confidence
+```
+
+Rule:
+
+```text
+Any Hermes output intended for Pantheon must include an Evidence Pack.
+Any RAG-based answer should expose the consulted sources when the answer is consequential.
+```
+
+---
+
+## 2.12 Run Graph
+
+Status: planned.
+
+Role:
+
+- expose workflow progress;
+- show active agents;
+- show Hermes consultations;
+- show warnings, vetoes, approvals and blockers;
+- provide a base for future OpenWebUI visual trace.
+
+Minimal event types:
+
+```text
+run.created
+run.started
+agent.started
+agent.completed
+consultation.requested
+consultation.completed
+skill.candidate_created
+memory.candidate_created
+decision.candidate_created
+veto.warning
+veto.blocking
+approval.required
+artifact.created
+run.completed
+run.failed
+```
+
+Rule:
+
+```text
+Display state, summaries, evidence and decisions.
+Never display raw chain-of-thought.
+```
+
+---
+
+## 2.13 Runtime Context Pack
+
+Status: first static endpoint planned.
+
+Endpoint:
+
+```http
+GET /runtime/context-pack
+```
+
+Role:
+
+- give Hermes a compact operational view of Pantheon;
+- list truth files;
+- list active rules;
+- list domain packages;
+- list known blockers;
+- recommend the correct entrypoint.
+
+Rule:
+
+```text
+The Context Pack is orientation only.
+It does not replace the reference Markdown files.
+```
+
+---
+
+## 2.14 Operations
+
+Path:
+
+```text
+operations/
+```
+
+Role:
+
+- document operating protocols;
+- document deployment assumptions;
+- document NAS/OpenWebUI/Hermes setup;
+- document maintenance and upgrade procedures.
+
+Current protocol:
+
+```text
+operations/openwebui_hermes_pantheon.md
+```
+
+---
+
+# 3. Legacy modules
+
+Status: to audit.
+
+Legacy elements include:
+
+- previous autonomous FastAPI runtime;
+- dynamic module registry;
+- previous workflow loader;
+- initial approval API;
+- Alembic approval migration;
+- Installer UI;
+- old tests coupled to the previous runtime direction.
+
+Rules:
+
+```text
+Do not delete without audit.
+Do not reactivate the autonomous runtime accidentally.
+Do not keep duplicate workflow/skill definitions.
+```
+
+---
+
+# 4. What is not a Pantheon module
+
+The following are not Pantheon modules:
+
+- business-specific agents;
+- a full agent runtime duplicated from Hermes;
+- an OpenWebUI frontend fork;
+- a hidden database of business truth;
+- raw document storage pretending to be memory;
+- unreviewed local Hermes skills;
+- community skills installed directly into production.
+
+---
+
+# 5. Global flow
+
+```text
+User
+→ OpenWebUI
+→ Pantheon Router / adaptive orchestration
+→ optional Hermes consultation
+→ Evidence Pack
+→ THEMIS / APOLLO review when needed
+→ OpenWebUI display / approval
+→ memory candidate only if validated
+```
+
+---
+
+# 6. Summary
+
+```text
+agents       → cognitive roles
+domains      → professional/context boundaries
+skills       → reusable capabilities
+workflows    → methods and orchestration
+memory       → validated durable context
+knowledge    → document retrieval and source policy
+hermes       → execution integration
+consultation → controlled delegation
+evidence     → auditability
+run graph    → trace and visibility
+operations   → deployment and maintenance
+```
