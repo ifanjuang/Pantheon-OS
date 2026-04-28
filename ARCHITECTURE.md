@@ -1,286 +1,281 @@
-# ARCHITECTURE — Pantheon OS
+# System Anatomy — Pantheon OS
 
-> Document de référence technique.  
-> Décrit l’architecture réelle du système et la séparation des responsabilités.
-
----
-
-# 1. Principe global
-
-Pantheon OS est un Domain Operating Layer.
-
-Il ne gère pas l’exécution.  
-Il définit :
-
-- la logique  
-- les méthodes  
-- les règles  
-- la mémoire  
+> Technical reference document. Describes the real system anatomy after the Hermes-backed pivot.
 
 ---
 
-# 2. Architecture en couches
+# 1. Structural decision
 
-Le système repose sur trois couches distinctes :
+Pantheon OS is a Domain Operating Layer.
 
-text id="q8bqjh" INTERFACE → OpenWebUI  DOMAIN LAYER → Pantheon OS  RUNTIME → Hermes Agent 
+```text
+Pantheon defines.
+Hermes executes.
+OpenWebUI exposes and retrieves.
+```
 
----
-
-## 2.1 OpenWebUI (interface)
-
-Rôle :
-
-- interaction utilisateur  
-- stockage documentaire  
-- recherche (RAG)  
-
-Contenu :
-
-- documents  
-- fichiers  
-- knowledge collections  
-
-Limites :
-
-- ne définit pas les agents  
-- ne stocke pas la mémoire validée  
-- ne décide pas  
+Pantheon must not reimplement subsystems already handled by Hermes Agent: agent loop, prompt assembly, provider resolution, tool registry, terminal/browser/web/MCP backends, session storage, scheduler, gateways, optional skills or the Skills Hub.
 
 ---
 
-## 2.2 Pantheon OS (domain layer)
+# 2. Layered anatomy
 
-Rôle :
+```text
+OpenWebUI
+  user interface
+  document knowledge
 
-- définir le système  
-- structurer la logique  
-- garantir la cohérence  
+Pantheon OS
+  abstract agents
+  domain packages
+  domain skills
+  workflows
+  memory policies
+  approval policies
+  Hermes skill policy
 
-Composants :
+Hermes Agent
+  agent loop
+  prompt assembly
+  runtime provider resolution
+  tool registry
+  session storage
+  cron scheduler
+  gateways
+  optional skills
+```
 
-- agents  
-- skills  
-- workflows  
-- mémoire  
-- règles  
-
-Pantheon :
-
-text id="tq7n0m" ne fait pas n’exécute pas ne stocke pas massivement 
-
-Il décrit.
-
----
-
-## 2.3 Hermes Agent (runtime)
-
-Rôle :
-
-- exécuter les skills  
-- orchestrer les actions  
-- utiliser les tools  
-- gérer la mémoire opérationnelle  
-
-Responsabilités :
-
-- appels modèles  
-- gestion des tokens  
-- accès outils  
-- exécution réelle  
+Hermes is the runtime. Pantheon is the definition, governance and domain-specialization layer.
 
 ---
 
-# 3. Flux de fonctionnement
+# 3. Domain packages
 
-text id="9dj8mn" Utilisateur → OpenWebUI → Pantheon (workflow + agents + skills) → Hermes (exécution) → résultat → validation → mémoire (si applicable) 
+Official structure:
 
----
+```text
+domains/
+  general/
+    domain.md
+    skills/
+    workflows/
+    templates/
+  architecture_fr/
+    domain.md
+    skills/
+    workflows/
+    templates/
+  software/
+    domain.md
+    skills/
+    workflows/
+    templates/
+```
 
-# 4. Composants Pantheon
+`general` contains invariant system capabilities: triage, verification, on-the-fly creation, memory promotion, skill/workflow design, repository inspiration, source check and prompt system design.
 
-## 4.1 Agents
+`architecture_fr` contains French-speaking architecture-domain capabilities: CCTP, quotes, DPGF, notices, site reports, PLU, ERP/SDIS, responsibilities and construction contracts.
 
-Rôle :
-
-- raisonnement  
-- structuration  
-- validation  
-
-Caractéristiques :
-
-- abstraits  
-- non métier  
-- réutilisables  
-
----
-
-## 4.2 Skills
-
-Rôle :
-
-- exécution logique métier  
-
-Caractéristiques :
-
-- inputs / outputs définis  
-- scope précis  
-- réutilisables  
+Rule: the French architecture domain must not be recreated under `domains/architecture/`.
 
 ---
 
-## 4.3 Workflows
+# 4. Hermes skill strategy
 
-Rôle :
+Before creating a Pantheon skill:
 
-- enchaîner les étapes  
-- orchestrer agents et skills  
+```text
+1. search existing Pantheon skills;
+2. search Hermes built-in or optional skills;
+3. review community skills only as inspiration;
+4. decide: use_existing, wrap_hermes_skill, create_candidate, reject_duplicate;
+5. create only after validation.
+```
 
-Caractéristiques :
+Rule:
 
-- déterministes  
-- explicites  
-- validables  
+```text
+Pantheon skill = domain contract + governance.
+Hermes skill = executable capability.
+```
 
----
-
-## 4.4 Domains
-
-Rôle :
-
-- spécialisation métier  
-
-Contenu :
-
-- règles  
-- contraintes  
-- conventions  
+If Hermes already provides a technical capability, Pantheon must not recode it. Pantheon may create a domain wrapper that defines context, inputs, outputs, approvals, privacy, memory impact and templates.
 
 ---
 
-## 4.5 Memory
+# 5. Skills and lifecycle
 
-Structure :
+Minimal structure of a Pantheon skill:
 
-text id="hfsm7z" session candidate project system 
+```text
+SKILL.md
+manifest.yaml
+examples.md
+tests.md
+UPDATES.md
+```
 
-Rôle :
+`SKILL.md` is the active version.
+`UPDATES.md` contains proposals.
+`manifest.yaml` contains status, level, XP, policy and optional Hermes mapping.
 
-- capitalisation  
-- cohérence  
-- traçabilité  
+No level changes without review, optimization and validation.
 
----
+XP is allowed only for:
 
-## 4.6 Knowledge
-
-Rôle :
-
-- sources documentaires  
-
-Implémentation :
-
-- OpenWebUI  
-
----
-
-# 5. Séparation des responsabilités
-
-text id="v3tq9r" Pantheon ≠ exécution Hermes ≠ définition OpenWebUI ≠ logique 
+- real improvement;
+- blockage identified;
+- blockage fixed;
+- method simplified;
+- guardrail added.
 
 ---
 
-# 6. Interaction Pantheon / Hermes
+# 6. Workflows
 
-Pantheon fournit :
+Workflows are YAML files in:
 
-- contexte  
-- règles  
-- workflows  
-- sélection des skills  
+```text
+domains/{domain}/workflows/*.yaml
+```
 
-Hermes exécute :
+They describe structured and testable procedures.
 
-- appels modèles  
-- outils  
-- actions  
+A workflow must not be a long prompt disguised as architecture.
 
 ---
 
-# 7. Gestion des décisions
+# 7. Memory
 
-Les décisions passent par :
+Structure:
 
-text id="8ntwkh" ARGOS → données THEMIS → règles PROMETHEUS → contradiction APOLLO → validation ZEUS → arbitrage 
+```text
+memory/
+  session/
+  candidates/
+  project/
+  system/
+```
 
----
+Rules:
 
-# 8. Gestion de la mémoire
+```text
+session    = temporary
+candidates = persisted but not validated
+project    = validated project context
+system     = validated rules, methods and patterns
+```
 
-Cycle :
+Cycle:
 
-text id="lrb9y3" SESSION → CANDIDATE → validation → PROJECT ou SYSTEM 
+```text
+SESSION → CANDIDATES → validation → PROJECT or SYSTEM
+```
 
-Aucune promotion automatique.
-
----
-
-# 9. Gestion des risques
-
-Risques principaux :
-
-- hallucination  
-- dérive mémoire  
-- mauvaise validation  
-- mélange responsabilités  
-
-Réponse :
-
-- agents spécialisés  
-- validation obligatoire  
-- séparation stricte  
-- workflows explicites  
+No automatic promotion.
 
 ---
 
-# 10. Modules techniques actuels
+# 8. Privacy by default
 
-Implémentation minimale :
+No real data from private conversations, real projects, clients, companies, construction sites, addresses, persons or identifiable situations may be written into the repository.
 
-text id="e0f9p7" FastAPI (Domain API) → expose agents, skills, workflows  Docker / Portainer → déploiement  OpenWebUI → interface  Ollama (PC) → modèles 
+Examples, tests and templates must be fictional, neutral and non-traceable.
 
----
-
-# 11. Legacy
-
-Présent dans le repo :
-
-- ancien runtime FastAPI  
-- registry dynamique  
-- workflow loader  
-- approval API  
-
-Statut :
-
-text id="r5smy9" à auditer non supprimé non prioritaire 
+Every memory promotion must check anonymization.
 
 ---
 
-# 12. Règles d’évolution
+# 9. Change triage
 
-Toute évolution doit :
+Before any modification, Pantheon must classify the request:
 
-- partir des Markdown  
-- respecter la séparation des couches  
-- éviter les duplications  
-- rester simple  
+```text
+situation
+project_memory
+system_memory
+skill_update
+workflow_update
+new_capability
+policy_update
+```
+
+The classification determines the target and the validation level.
 
 ---
 
-# 13. Résumé
+# 10. Runtime security
 
-text id="6q1kw1" Pantheon = structure Hermes = exécution OpenWebUI = interface 
+Risky capabilities remain on the Hermes side but must be policy-gated by Pantheon:
+
+- browser automation;
+- terminal;
+- web actions;
+- MCP;
+- file mutations;
+- scheduler;
+- gateways;
+- memory providers;
+- optional/community skills.
+
+Minimal rules:
+
+- sandbox or Docker for risky tools;
+- no Docker socket at startup;
+- no secrets access without policy;
+- no external action without approval;
+- visible execution required;
+- logs and traceability.
 
 ---
 
-FIN DU FICHIER
+# 11. Hermes context strategy
+
+Hermes assembles prompts from personality, memory, skills, context files, tool guidance and model instructions.
+
+Pantheon therefore provides controlled context exports:
+
+```text
+hermes/context/
+  pantheon_context.md
+  agents_context.md
+  memory_context.md
+  rules_context.md
+  architecture_fr_context.md
+  software_context.md
+```
+
+These files do not replace the reference Markdown files. They export a stable operational version for Hermes.
+
+---
+
+# 12. Installation and operations
+
+Target environment: NAS with Portainer, existing OpenWebUI, existing PostgreSQL and Ollama on a LAN PC.
+
+Rules:
+
+- never overwrite an existing stack;
+- detect before installing;
+- isolate Hermes Lab;
+- do not expose PostgreSQL unnecessarily;
+- do not use unstable Docker tags in production;
+- test locally before merge.
+
+---
+
+# 13. Existing code
+
+The repository still contains elements from the previous autonomous architecture: FastAPI apps, registries, workflow loader, approvals, installer UI, migrations and legacy tests.
+
+Status: legacy to audit.
+
+No automatic deletion before diagnosis.
+
+---
+
+# 14. Final rule
+
+Pantheon must remain simpler than the runtime it governs.
+
+If a capability already exists in Hermes, Pantheon must govern it, not duplicate it.
