@@ -365,6 +365,66 @@ Prochaine action recommandée :
 
 ---
 
+### 2026-04-29 — ChatGPT
+
+Branche : `work/chatgpt/hermes-docs-architecture-fr`
+
+Objectif : poser le P0 de l’interaction OpenWebUI / Hermes / Pantheon et ajouter la résolution de contexte projet.
+
+Modifications :
+
+- Mise à jour de `STATUS.md` avec `OpenWebUI / Hermes / Pantheon interaction layer — planned`.
+- Mise à jour de `MODULES.md` pour ajouter les modules planifiés : Consultation, Evidence Pack, Run Graph, Runtime Context Pack, Knowledge Selection.
+- Ajout du package `platform/api/pantheon_runtime/`.
+- Ajout d’un endpoint statique read-only `GET /runtime/context-pack`.
+- Branchement du router runtime dans `platform/api/main.py`.
+- Ajout de la skill candidate `domains/general/skills/project_context_resolution/`.
+- Ajout de règles de résolution de contexte projet : alias, fautes de frappe, indices partiels, commune, rue, client, sujet, mémoire session/projet, Knowledge Registry, Notion read-only éventuel.
+- Ajout de la règle inverse : ne pas forcer le contexte projet si la question est générale ou répondable sans contexte spécifique.
+- Ajout de la politique Notion : lecture seule par défaut, écriture uniquement après affichage des champs à modifier et validation explicite.
+- Ajout du template local Hermes `hermes/templates/pantheon-os/` avec `SKILL.md`, exemple d’audit repo et helper read-only `pantheon_context_pack.py`.
+
+Fichiers critiques touchés :
+
+- `STATUS.md`
+- `MODULES.md`
+- `AI_LOG.md`
+- `platform/api/main.py`
+- `platform/api/pantheon_runtime/__init__.py`
+- `platform/api/pantheon_runtime/router.py`
+- `domains/general/skills/project_context_resolution/SKILL.md`
+- `domains/general/skills/project_context_resolution/manifest.yaml`
+- `domains/general/skills/project_context_resolution/examples.md`
+- `domains/general/skills/project_context_resolution/tests.md`
+- `domains/general/skills/project_context_resolution/UPDATES.md`
+- `hermes/templates/pantheon-os/SKILL.md`
+- `hermes/templates/pantheon-os/examples/audit_repo.md`
+- `hermes/templates/pantheon-os/scripts/pantheon_context_pack.py`
+
+Tests lancés :
+
+- Non exécutés dans cette session.
+
+Points à vérifier :
+
+- Lancer les tests existants ciblés après checkout local.
+- Vérifier le démarrage FastAPI et les routes `/health`, `/domain/snapshot`, `/runtime/context-pack`.
+- Le Context Pack est statique : il oriente Hermes mais ne remplace pas les Markdown de référence.
+- Le template Hermes `pantheon-os` n’est pas installé localement ; il doit être copié vers `~/.hermes/skills/pantheon-os/` avant usage.
+- La connexion Notion n’est pas implémentée ; seule la politique de lecture/écriture candidate est documentée.
+- Le template Evidence Pack exécutable ou YAML n’a pas été ajouté : deux tentatives de création ont été bloquées par le contrôle de sécurité de l’outil GitHub. La structure reste documentée dans `MODULES.md` et `hermes/templates/pantheon-os/SKILL.md`.
+- Le legacy autonome reste à auditer avant conservation, réorientation ou suppression.
+
+Prochaine action recommandée :
+
+1. Lancer `pytest tests/test_domain_layer_api.py` et vérifier l’import du nouveau router runtime.
+2. Démarrer l’API localement et tester `GET /runtime/context-pack`.
+3. Créer `knowledge/registry.yaml` et la skill candidate `knowledge_selection`.
+4. Définir un mapping Notion read-only avant toute écriture possible.
+5. Créer une spécification OpenWebUI Router Pipe + Actions.
+
+---
+
 ### YYYY-MM-DD — Claude
 
 Branche :
