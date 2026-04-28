@@ -1,167 +1,125 @@
 # Pantheon OS
 
-Pantheon OS est un système qui permet de structurer, sécuriser et industrialiser l’usage des agents IA.
+Pantheon OS est une couche de gouvernance pour structurer, sécuriser et industrialiser l’usage des agents IA.
 
-Il ne remplace pas les modèles.  
-Il organise leur utilisation.
-
----
-
-# Pourquoi Pantheon OS
-
-Les outils IA actuels sont puissants mais désorganisés :
-
-- réponses non reproductibles  
-- logique implicite  
-- décisions non traçables  
-- mélange entre réflexion, exécution et mémoire  
-
-Pantheon apporte :
-
-text structure méthode cohérence contrôle 
+Il ne remplace pas les modèles. Il organise leur utilisation.
 
 ---
 
-# Ce que fait Pantheon
+# Principe
 
-Pantheon transforme une demande en système :
+```text
+Pantheon définit.
+Hermes exécute.
+OpenWebUI expose et retrouve.
+```
 
-text demande → méthode → exécution → validation → mémoire 
-
-Résultat :
-
-- décisions explicables  
-- processus reproductibles  
-- risques maîtrisés  
-- connaissance capitalisée  
+Pantheon OS est un Domain Operating Layer. Il définit les agents, les domaines, les skills, les workflows, les mémoires et les règles d’évolution. L’exécution est déléguée à Hermes Agent. L’interface et la knowledge documentaire restent portées par OpenWebUI.
 
 ---
 
-# Comment ça fonctionne
+# Domain packages
 
-Pantheon repose sur trois couches simples :
+Les capacités sont regroupées par domaine.
 
-text Pantheon OS → définit la logique (agents, workflows, règles)  Hermes → exécute les actions  OpenWebUI → permet d’interagir et d’accéder aux documents 
+```text
+domains/
+  general/
+  architecture_fr/
+  software/
+```
 
-Principe clé :
+Chaque domaine suit la même structure :
 
-text Pantheon définit Hermes exécute OpenWebUI expose 
+```text
+domains/{domain}/
+  domain.md
+  skills/
+  workflows/
+  templates/
+```
 
----
+`general` contient les capacités invariantes : triage, vérification de sources, création de skills/workflows, contrôle Hermes, memory promotion, prompt system design.
 
-# Les briques du système
-
-Pantheon structure tout autour de quatre éléments :
-
-## Agents
-
-Fonctions de raisonnement :
-
-- analyser  
-- structurer  
-- vérifier  
-- décider  
-
-Ils sont génériques et réutilisables.
+`architecture_fr` contient les capacités métier francophones : CCTP, devis, DPGF, notices, chantier, PLU, ERP/SDIS, responsabilités et marchés travaux.
 
 ---
 
-## Skills
+# Skills et workflows
 
-Capacités concrètes :
+Une skill décrit une capacité réutilisable.
 
-- analyser un CCTP  
-- vérifier un devis  
-- structurer un projet  
-- rédiger un message  
+Un workflow décrit une procédure structurée.
 
-C’est ici que se trouve le métier.
+Pantheon ne crée pas directement une nouvelle capacité. Il vérifie d’abord :
 
----
+1. les skills Pantheon existantes ;
+2. les workflows Pantheon existants ;
+3. les skills Hermes built-in ou optional ;
+4. les noms proches ;
+5. les risques et validations.
 
-## Workflows
-
-Méthodes d’exécution :
-
-- quelles étapes  
-- dans quel ordre  
-- avec quels agents  
-
-Un workflow = une façon fiable de résoudre un problème.
+Toute nouvelle capacité commence en `candidate`.
 
 ---
 
-## Mémoire
+# Mémoire
 
-Pantheon distingue :
+Pantheon distingue quatre niveaux :
 
-text session    → réflexion temporaire candidate  → en attente de validation project    → contexte projet system     → règles validées 
+```text
+session     = contexte temporaire
+candidates  = propositions non validées
+project     = contexte projet validé
+system      = règles, méthodes et patterns validés
+```
 
-Ce qui est validé devient réutilisable.
+Cycle :
 
----
+```text
+SESSION → CANDIDATES → REVIEW → PROJECT ou SYSTEM
+```
 
-# Exemple concret
-
-Analyse d’un devis par rapport à un CCTP :
-
-text skill      → analyse devis vs CCTP workflow   → vérification structurée agents     → analyse, technique, règles, validation 
-
-Résultat :
-
-- écarts identifiés  
-- risques détectés  
-- décision sécurisée  
+Aucune mémoire n’est promue automatiquement.
 
 ---
 
-# Ce que Pantheon change
+# Confidentialité
 
-Avant :
+Privacy by default.
 
-text réponse directe → rapide → mais fragile 
+Les documents Pantheon ne doivent jamais contenir d’informations issues de conversations privées, projets réels, clients, entreprises, chantiers, adresses ou situations identifiables.
 
-Après :
-
-text méthode structurée → plus fiable → réutilisable → maîtrisée 
+Les exemples doivent être fictifs, neutres et non traçables.
 
 ---
 
-# À qui ça s’adresse
+# Évolution des skills
 
-Pantheon est conçu pour :
+Chaque skill peut contenir :
 
-- les métiers techniques  
-- les environnements à responsabilité  
-- les systèmes complexes  
-- les utilisateurs avancés d’IA  
+```text
+SKILL.md
+manifest.yaml
+examples.md
+tests.md
+UPDATES.md
+```
+
+Règle :
+
+```text
+résultat utile → UPDATES.md → review → optimisation → validation → SKILL.md
+```
+
+XP possible uniquement si une amélioration réelle, un blocage détecté ou une remédiation utile est formalisée.
+
+Pas d’auto-upgrade. Pas d’auto-level.
 
 ---
 
-# Objectif
-
-Créer un système :
-
-- lisible  
-- pilotable  
-- scalable  
-- fiable  
-
----
-
-# État du projet
+# État
 
 Pantheon OS est en cours de structuration.
 
-La documentation est la source de vérité.  
-Le code implémente cette structure.
-
----
-
-# Résumé
-
-text Pantheon organise l’intelligence au lieu de simplement la produire 
-
----
-
-FIN
+La documentation est la source de vérité. Le code implémente cette structure, pas l’inverse.
