@@ -249,7 +249,54 @@ These files do not replace the reference Markdown files. They export a stable op
 
 ---
 
-# 12. Installation and operations
+# 12. OpenWebUI / Hermes / Pantheon operating protocol
+
+Pantheon uses an explicit operating protocol for the three-system setup:
+
+```text
+OpenWebUI = user cockpit
+Hermes Agent = privileged operational worker
+Pantheon OS = governed domain authority and source of truth
+```
+
+Corrected rule:
+
+```text
+Hermes operates.
+Pantheon arbitrates.
+OpenWebUI pilots and displays.
+```
+
+Hermes may inspect, prepare, test, research, draft local skills, propose patches, create candidate assets and return evidence.
+
+Hermes must not canonize.
+
+Pantheon remains the authority for:
+
+- active skills;
+- active workflows;
+- project memory;
+- system memory;
+- decisions;
+- governance rules;
+- validations;
+- vetoes;
+- criticality;
+- candidate promotion.
+
+OpenWebUI remains the cockpit and approval surface.
+
+Detailed protocol:
+
+```text
+operations/openwebui_hermes_pantheon.md
+```
+
+Status: documented target architecture, not fully implemented.
+
+---
+
+# 13. Installation and operations
 
 Target environment: NAS with Portainer, existing OpenWebUI, existing PostgreSQL and Ollama on a LAN PC.
 
@@ -264,7 +311,7 @@ Rules:
 
 ---
 
-# 13. Existing code
+# 14. Existing code
 
 The repository still contains elements from the previous autonomous architecture: FastAPI apps, registries, workflow loader, approvals, installer UI, migrations and legacy tests.
 
@@ -274,7 +321,7 @@ No automatic deletion before diagnosis.
 
 ---
 
-# 14. Final rule
+# 15. Final rule
 
 Pantheon must remain simpler than the runtime it governs.
 
