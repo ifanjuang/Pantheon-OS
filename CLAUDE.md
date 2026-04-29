@@ -94,6 +94,9 @@ pantheon-os/
 │   ├── domains.yaml               # Domain overlay mapping (active_domain, overlays)
 │   └── policies.yaml              # Veto patterns, safety, rate limits, trusted sources
 │
+├── docs/
+│   └── governance/                # Governance docs (AGENTS, ARCHITECTURE, MODULES,
+│                                  #   ROADMAP, STATUS, MEMORY, APPROVALS, ...)
 ├── hermes/                        # Hermes integration: skill policy + repo references
 ├── operations/                    # Operating protocols (OpenWebUI/Hermes/Pantheon)
 ├── scripts/                       # install/, update/, openclaude-setup.sh

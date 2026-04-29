@@ -113,5 +113,5 @@ review:
   required_before_activation: true
   required_documents:
     - hermes/skill_policy.md
-    - MODULES.md
-    - MEMORY.md
+    - docs/governance/MODULES.md
+    - docs/governance/MEMORY.md

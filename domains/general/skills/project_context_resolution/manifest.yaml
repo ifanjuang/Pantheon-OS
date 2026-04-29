@@ -93,6 +93,6 @@ privacy:
 review:
   required_before_activation: true
   required_documents:
-    - MEMORY.md
-    - MODULES.md
+    - docs/governance/MEMORY.md
+    - docs/governance/MODULES.md
     - operations/openwebui_hermes_pantheon.md
