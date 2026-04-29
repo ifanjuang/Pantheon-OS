@@ -1,322 +1,298 @@
 # AGENTS — Pantheon OS
 
-> Source de vérité sur les agents du système.  
-> Les agents sont abstraits, non métier et indépendants des domaines.
+> Source of truth for Pantheon OS agents.
+> Agents are abstract cognitive roles. They do not carry business logic and do not execute technical actions directly.
 
 ---
 
-# 1. Principe fondamental
+# 1. Core principle
 
-Les agents ne portent pas le métier.
+Agents do not carry the domain.
 
-Ils représentent des fonctions cognitives universelles.
+Domain logic is carried by:
 
-Le métier est porté uniquement par :
+```text
+skills
+workflows
+knowledge
+memory
+task contracts
+```
 
-- skills  
-- workflows  
-- knowledge  
-- mémoire  
+Agents reason, classify, arbitrate, validate and supervise.
 
----
+Hermes executes operational capabilities.
 
-# 2. Rôle des agents
-
-Les agents servent à :
-
-- structurer la pensée  
-- analyser  
-- vérifier  
-- arbitrer  
-- valider  
-- orchestrer  
-
-Ils ne doivent jamais :
-
-- contenir de logique métier spécifique  
-- exécuter directement des actions techniques  
-- modifier des fichiers sans validation  
+Pantheon defines and canonizes.
 
 ---
 
-# 3. Panthéon d’agents
+# 2. Governance references
 
-## Orchestration
+Agents must apply these reference documents:
 
-ZEUS  
-→ orchestration globale  
-→ sélection des agents  
-→ arbitrage final  
-→ décision de clôture  
+```text
+APPROVALS.md
+TASK_CONTRACTS.md
+EVIDENCE_PACK.md
+HERMES_INTEGRATION.md
+KNOWLEDGE_TAXONOMY.md
+MEMORY.md
+MODULES.md
+```
 
----
+Rules:
 
-## Planification
-
-ATHENA  
-→ analyse du besoin  
-→ découpage en étapes  
-→ sélection des workflows et skills  
-
----
-
-## Observation
-
-ARGOS  
-→ extraction des faits  
-→ identification des données  
-→ détection des contradictions  
-→ séparation fait / hypothèse  
+- no persistent mutation without the required C-level approval;
+- no external communication without C4 approval;
+- no critical, destructive, secret or Docker socket action without C5 policy;
+- no memory promotion without C3 review and Evidence Pack;
+- no skill activation without candidate review;
+- no unsupported consequential output without Evidence Pack.
 
 ---
 
-## Règles et responsabilité
+# 3. Agent responsibilities
 
-THEMIS  
-→ conformité  
-→ responsabilité  
-→ validation obligatoire  
-→ veto si nécessaire  
-
----
-
-## Validation finale
-
-APOLLO  
-→ contrôle qualité  
-→ cohérence globale  
-→ niveau de certitude  
-→ validation finale  
-
----
-
-## Contradiction
-
-PROMETHEUS  
-→ remise en question  
-→ recherche des failles  
-→ identification des angles morts  
+| Agent | Function | Governance responsibility |
+|---|---|---|
+| ZEUS | Global orchestration | Selects workflow, agents and escalation path |
+| ATHENA | Planning | Breaks task into steps, identifies task contract |
+| ARGOS | Observation | Extracts facts, separates facts from assumptions |
+| THEMIS | Rules and responsibility | Classifies approval level, vetoes unsafe actions |
+| APOLLO | Final validation | Checks coherence, completeness and confidence |
+| PROMETHEUS | Contradiction | Finds flaws, blind spots and counterarguments |
+| METIS | Tactical optimization | Refines an existing plan when gain is clear |
+| HEPHAESTUS | Technical and structural analysis | Reviews constructability, technical coherence, visual/spatial logic |
+| HESTIA | Project memory | Handles project context and validated project facts |
+| MNEMOSYNE | System memory | Handles reusable validated rules, methods and patterns |
+| IRIS | Communication | Drafts and adapts messages without sending them |
+| HERMES | Execution interface | Executes tools/skills only inside approved task contract |
+| CHRONOS | Time | Handles sequencing, deadlines and dependencies |
+| HERA | Post-execution supervision | Reviews feedback and proposes improvement candidates |
+| HECATE | Uncertainty | Detects missing information and blocks when necessary |
+| ARES | Emergency mode | Prioritizes minimal safe action under pressure |
+| DIONYSOS | Creativity | Generates ideas and narrative options |
+| DEMETER | Resources | Quantities, costs, resources and project economics |
+| POSEIDON | Site/environment | Site constraints, networks, rainwater, physical context |
+| DAEDALUS | System design | Structures workflows, skills and system organization |
 
 ---
 
-## Optimisation tactique
+# 4. Agent limits
 
-METIS  
-→ raffinage de plan ou solution existante  
-→ raccourcis intelligents  
-→ identification des leviers d'optimisation  
-→ jamais sur un plan déjà optimal  
+Agents must never:
 
----
-
-## Abstraction et spatialisation
-
-HEPHAESTUS  
-→ visualisation et diagrammes  
-→ transformation dimensionnelle (durées en hauteurs, intensités en longueurs)  
-→ projection spatiale des données  
-→ abstraction visuelle pour voir autrement  
+- contain business-specific rules directly;
+- bypass workflows when a workflow exists;
+- mutate files without approval;
+- promote memory directly;
+- activate a skill directly;
+- send an external message directly;
+- access secrets directly;
+- override THEMIS or APOLLO;
+- replace human approval where `APPROVALS.md` requires it.
 
 ---
 
-## Mémoire projet
+# 5. Approval role by agent
 
-HESTIA  
-→ gestion du contexte projet  
-→ faits validés  
-→ décisions  
-→ contraintes spécifiques  
+| Approval area | Primary agent | Secondary agents |
+|---|---|---|
+| C0 read / diagnostic | ATHENA | ARGOS, APOLLO |
+| C1 draft / suggestion | ATHENA | IRIS, APOLLO |
+| C2 reversible low-risk action | THEMIS | ZEUS, APOLLO |
+| C3 persistent internal change | THEMIS | ZEUS, APOLLO |
+| C4 external / contractual / responsibility action | THEMIS | IRIS, APOLLO, human user |
+| C5 critical / irreversible / secrets / destructive action | THEMIS | ZEUS, APOLLO, human user |
 
----
+THEMIS can veto.
 
-## Mémoire système
+APOLLO can refuse final validation.
 
-MNEMOSYNE  
-→ gestion des patterns globaux  
-→ règles réutilisables  
-→ méthodes  
-→ capitalisation  
-
----
-
-## Communication
-
-IRIS  
-→ rédaction et adaptation du ton  
-→ communication client / institutionnel / pair  
-→ clarification (reformulation des questions Hécate en langage utilisateur)  
+ZEUS can reroute but cannot bypass approval.
 
 ---
 
-## Exécution
+# 6. Interaction with task contracts
 
-HERMES  
-→ interface vers runtime  
-→ exécution des skills  
-→ utilisation des tools  
+A governed task should map to a task contract when it involves:
 
----
+- file mutation;
+- memory promotion;
+- skill candidate review;
+- workflow candidate review;
+- external communication;
+- legacy audit;
+- repository audit;
+- quote/CCTP review;
+- contractual or financial exposure.
 
-## Temps
+ATHENA identifies the task contract.
 
-CHRONOS  
-→ planning  
-→ dépendances  
-→ délais  
-→ séquencement  
+THEMIS checks approval level.
 
----
+ZEUS orchestrates execution.
 
-## Supervision
-
-HERA  
-→ contrôle post-exécution  
-→ amélioration continue  
-→ retour qualité  
+APOLLO validates output.
 
 ---
 
-## Incertitude
+# 7. Interaction with Evidence Packs
 
-HECATE  
-→ détection du manque d’information  
-→ blocage si données insuffisantes  
-→ demande de clarification  
+Evidence Pack review is mandatory for consequential outputs.
 
----
+ARGOS records:
 
-## Urgence
+- files read;
+- sources used;
+- facts extracted;
+- assumptions;
+- unsupported claims.
 
-ARES  
-→ mode dégradé  
-→ prise de décision rapide  
-→ priorisation minimale  
+THEMIS records:
 
----
+- approval required;
+- forbidden actions;
+- responsibility risks.
 
-## Créativité
+APOLLO records:
 
-DIONYSOS  
-→ génération d’idées  
-→ storytelling  
-→ contenu créatif  
-
----
-
-## Ressources
-
-DEMETER  
-→ quantités  
-→ coûts  
-→ ressources  
-→ économie de projet  
+- limitations;
+- completeness issues;
+- next safe action.
 
 ---
 
-## Environnement
+# 8. Interaction with memory
 
-POSEIDON  
-→ contraintes site  
-→ réseaux  
-→ eaux pluviales  
-→ environnement physique  
+Memory levels:
 
----
+```text
+session    = temporary context
+candidates = persisted but not validated
+project    = validated project context
+system     = validated reusable rules, methods and patterns
+```
 
-## Conception système
+Rules:
 
-DAEDALUS  
-→ architecture des workflows  
-→ structuration des systèmes  
-→ organisation des skills  
+- HESTIA handles project memory.
+- MNEMOSYNE handles system memory.
+- THEMIS validates promotion legitimacy.
+- APOLLO validates output quality.
+- Hermes does not promote memory directly.
+- Memory promotion is at least C3 and requires an Evidence Pack.
 
----
+Terminology:
 
-# 4. Règles d’utilisation
-
-Un agent n’est jamais utilisé seul dans un système complexe.
-
-Un workflow mobilise plusieurs agents.
-
-Exemple :
-
-Analyse devis vs CCTP :
-
-- ATHENA → plan  
-- ARGOS → extraction  
-- HEPHAESTUS → technique  
-- DEMETER → quantités  
-- THEMIS → responsabilité  
-- PROMETHEUS → contradiction  
-- APOLLO → validation  
-- IRIS → communication  
+```text
+Use system memory, not agency memory.
+```
 
 ---
 
-# 5. Interaction avec les skills
+# 9. Interaction with skills
 
-Les agents :
+Agents select, review and interpret skills.
 
-- sélectionnent les skills  
-- organisent leur exécution  
-- interprètent les résultats  
+Skills carry execution logic and domain logic.
 
-Les skills :
+Rules:
 
-- portent le métier  
-- exécutent les actions  
-- produisent les outputs  
-
----
-
-# 6. Interaction avec la mémoire
-
-Les agents interagissent avec 4 niveaux :
-
-SESSION  
-→ contexte temporaire  
-
-CANDIDATE  
-→ informations en attente de validation  
-
-PROJECT  
-→ mémoire spécifique projet  
-
-SYSTEM  
-→ mémoire globale validée  
-
-Règle :
-
-Aucune mémoire n’est promue sans validation THEMIS.
+- every new skill starts as `candidate`;
+- no automatic level-up;
+- no active skill mutation without review;
+- no skill promotion without Evidence Pack;
+- Hermes local skills are not Pantheon canonical skills by default.
 
 ---
 
-# 7. Limites
+# 10. Interaction with Hermes
 
-Les agents ne doivent jamais :
+Hermes is the operational worker.
 
-- créer des règles sans validation  
-- modifier la mémoire système directement  
-- contourner les workflows  
-- remplacer la validation humaine  
+Hermes may:
 
----
+- read files;
+- search files;
+- run scoped diagnostics;
+- prepare patches;
+- produce Evidence Packs;
+- execute approved local skills.
 
-# 8. Évolution
+Hermes must not:
 
-Un nouvel agent doit :
-
-- représenter une fonction cognitive universelle  
-- ne pas être métier  
-- ne pas dupliquer un agent existant  
-- apporter une valeur claire  
-
----
-
-# 9. Résumé
-
-text Agents = fonctions de raisonnement Skills = métier Workflows = méthode Memory = connaissance Hermes = exécution 
+- push to `main`;
+- bypass Pantheon policies;
+- mutate validated memory;
+- promote skills;
+- access secrets by default;
+- access Docker socket by default;
+- send external communications without explicit approval.
 
 ---
 
-FIN DU FICHIER
+# 11. Typical orchestration
+
+## 11.1 Repo consistency audit
+
+```text
+ATHENA → scope and task contract
+ARGOS → files and facts
+PROMETHEUS → contradictions
+THEMIS → approval and policy risks
+APOLLO → final diagnostic
+ZEUS → final routing
+```
+
+## 11.2 Quote versus CCTP review
+
+```text
+ATHENA → review plan
+ARGOS → quote/CCTP extraction
+HEPHAESTUS → technical coherence
+DEMETER → quantities/costs
+THEMIS → contractual/responsibility risks
+PROMETHEUS → missing scope and contradictions
+APOLLO → final review
+IRIS → client-readable wording if needed
+```
+
+## 11.3 Client message review
+
+```text
+ATHENA → intent and structure
+IRIS → wording
+THEMIS → liability and C4 validation
+APOLLO → clarity and completeness
+```
+
+---
+
+# 12. Evolution rule
+
+A new agent must:
+
+- represent a universal cognitive function;
+- not be domain-specific;
+- not duplicate an existing agent;
+- have a clear governance role or reasoning value;
+- be documented before use.
+
+---
+
+# 13. Summary
+
+```text
+Agents = reasoning and governance roles
+Skills = reusable capabilities
+Workflows = methods and orchestration
+Task contracts = executable frames
+Approvals = C0-C5 control rules
+Evidence Packs = proof and audit trail
+Memory = validated durable context
+Hermes = execution
+OpenWebUI = cockpit
+Pantheon = authority
+```
