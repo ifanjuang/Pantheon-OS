@@ -97,6 +97,8 @@ pantheon-os/
 ├── docs/
 │   └── governance/                # Governance docs (AGENTS, ARCHITECTURE, MODULES,
 │                                  #   ROADMAP, STATUS, MEMORY, APPROVALS, ...)
+├── ai_logs/                       # AI session journal: README.md (rules) +
+│                                  #   YYYY-MM-DD-slug.md per intervention
 ├── hermes/                        # Hermes integration: skill policy + repo references
 ├── operations/                    # Operating protocols (OpenWebUI/Hermes/Pantheon)
 ├── scripts/                       # install/, update/, openclaude-setup.sh

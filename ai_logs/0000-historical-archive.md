@@ -1,86 +1,13 @@
-# AI LOG — Pantheon OS
+# AI LOG — Archive historique
 
-Ce fichier sert de journal minimal de coordination entre l’utilisateur, ChatGPT, Claude et tout autre assistant IA intervenant sur le dépôt.
+Entrées historiques préservées telles qu'elles figuraient dans
+`docs/governance/AI_LOG.md` (ancien fichier unique) avant l'unification
+sur le format `ai_logs/YYYY-MM-DD-slug.md`.
 
-Objectif : éviter les doublons, conflits de branches, modifications contradictoires et incohérences entre code et documentation.
-
----
-
-## Règles simples
-
-1. Lire `AI_LOG.md` avant toute modification.
-2. Lire les fichiers Markdown de référence avant toute modification structurante :
-   - `STATUS.md`
-   - `ROADMAP.md`
-   - `ARCHITECTURE.md`
-   - `AGENTS.md`
-   - `MODULES.md`
-   - `MEMORY.md`
-   - `README.md`
-3. Ne jamais pousser directement sur `main`.
-4. Travailler sur une branche dédiée.
-5. Noter ici chaque intervention significative.
-6. Si un fichier critique est touché, le signaler clairement.
-7. Les Markdown de référence restent la base du développement.
-8. Si le code est plus pertinent que les Markdown, proposer ou appliquer d’abord la mise à jour documentaire.
-9. Ne jamais inscrire dans le repo des informations issues de conversations privées, projets réels, clients, entreprises, adresses, chantiers ou personnes identifiables.
-
----
-
-## Fichiers critiques
-
-- `STATUS.md`
-- `ROADMAP.md`
-- `ARCHITECTURE.md`
-- `AGENTS.md`
-- `MODULES.md`
-- `MEMORY.md`
-- `README.md`
-- `AI_LOG.md`
-- `hermes/skill_policy.md`
-- `hermes/external_skill_repos.md`
-- `modules.yaml`
-- `platform/api/main.py`
-- `platform/api/core/health.py`
-- `platform/api/core/registry.py`
-- `platform/api/core/registries/*`
-- `platform/api/core/contracts/*`
-- `platform/api/apps/*`
-- `alembic/versions/*`
-- `docker-compose.yml`
-- `.env.example`
-
----
-
-## Branches recommandées
-
-- ChatGPT : `work/chatgpt/*` ou `feature/chatgpt/*`
-- Claude : `work/claude/*` ou `feature/claude/*`
-- Branche actuelle de travail : `work/chatgpt/hermes-docs-architecture-fr`
-- Branche divergente à éviter : `work/chatgpt/hermes-code-rewrite`
-- `main` : stable uniquement
-
----
-
-## Template d’entrée
-
-```md
-### YYYY-MM-DD — Assistant / outil
-
-Branche :
-
-Objectif :
-
-Modifications :
-
-Fichiers critiques touchés :
-
-Tests lancés :
-
-Points à vérifier :
-
-Prochaine action recommandée :
-```
+Les chemins mentionnés dans ces entrées (`STATUS.md`, `MODULES.md`, etc.)
+faisaient référence à la racine du dépôt à l'époque ; ils correspondent
+aujourd'hui à `docs/governance/STATUS.md`, `docs/governance/MODULES.md`,
+etc.
 
 ---
 

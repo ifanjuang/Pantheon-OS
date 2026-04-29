@@ -12,7 +12,6 @@ manifests under `domains/general/skills/`.
 | File | Role |
 |---|---|
 | `AGENTS.md` | Abstract agent roster and responsibilities |
-| `AI_LOG.md` | Coordination journal between human and AI sessions |
 | `APPROVALS.md` | Approval criticality policy (C1/C2/C3) |
 | `ARCHITECTURE.md` | Technical anatomy post-pivot |
 | `EVIDENCE_PACK.md` | Audit contract for consequential outputs |
@@ -33,3 +32,5 @@ Stays at the repository root (entry points / SemVer):
 - `CLAUDE.md`
 - `CHANGELOG.md`
 - `VERSION`
+
+The AI coordination journal lives in `ai_logs/` (one file per session, plus `ai_logs/README.md` for the rules).

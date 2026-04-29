@@ -16,7 +16,13 @@ Le projet suit SemVer : `MAJOR.MINOR.PATCH`.
 ### Added
 
 - Section `[project]` dans `pyproject.toml` (PEP 621) avec dépendances explicites — la source de vérité runtime reste `platform/api/requirements.txt`.
-- `docs/governance/` : 15 documents de gouvernance déplacés depuis la racine (AGENTS, AI_LOG, APPROVALS, ARCHITECTURE, EVIDENCE_PACK, EXTERNAL_TOOLS_POLICY, EXTERNAL_WATCHLIST, HERMES_INTEGRATION, KNOWLEDGE_TAXONOMY, MEMORY, MODULES, ROADMAP, STATUS, TASK_CONTRACTS, VERSIONS) + `docs/governance/README.md`.
+- `docs/governance/` : 14 documents de gouvernance déplacés depuis la racine (AGENTS, APPROVALS, ARCHITECTURE, EVIDENCE_PACK, EXTERNAL_TOOLS_POLICY, EXTERNAL_WATCHLIST, HERMES_INTEGRATION, KNOWLEDGE_TAXONOMY, MEMORY, MODULES, ROADMAP, STATUS, TASK_CONTRACTS, VERSIONS) + `docs/governance/README.md`.
+- `ai_logs/README.md` : hub canonique du journal IA (règles, fichiers critiques, conventions branches, template d'entrée).
+- `ai_logs/0000-historical-archive.md` : entrées historiques de l'ancien `AI_LOG.md` préservées.
+
+### Removed
+
+- `docs/governance/AI_LOG.md` (déplacé/scindé) : règles + template → `ai_logs/README.md`, entrées historiques → `ai_logs/0000-historical-archive.md`. Convention unifiée : un fichier par session sous `ai_logs/YYYY-MM-DD-slug.md`.
 
 ### Changed
 
@@ -27,7 +33,7 @@ Le projet suit SemVer : `MAJOR.MINOR.PATCH`.
 - `pyproject.toml` exclut désormais `legacy/` au lieu de `benchmarks/` (Ruff).
 - `CLAUDE.md` aligné sur la structure réelle : pas de wrapper `modules/`, 24 agents, domaines `architecture_fr` + `general`, 27 apps FastAPI, 6 fichiers de config, table Alembic à jour, mention de `docs/governance/`.
 
-### Removed
+### Removed (modules)
 
 - `modules.yaml` : entrées `control` et `monitoring` retirées (apps archivées).
 

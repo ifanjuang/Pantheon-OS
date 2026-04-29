@@ -18,7 +18,7 @@ def get_context_pack() -> dict:
         "doctrine": "Pantheon defines and canonizes. Hermes operates and proposes. OpenWebUI routes, displays and asks for validation.",
         "truth_files": [
             "README.md",
-            "docs/governance/AI_LOG.md",
+            "ai_logs/README.md",
             "docs/governance/STATUS.md",
             "docs/governance/ARCHITECTURE.md",
             "docs/governance/MODULES.md",

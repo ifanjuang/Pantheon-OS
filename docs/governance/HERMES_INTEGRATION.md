@@ -130,7 +130,7 @@ GET /runtime/context-pack
 
 The Context Pack is an orientation layer. It does not replace:
 
-- `AI_LOG.md`;
+- `ai_logs/README.md` and recent entries in `ai_logs/`;
 - `STATUS.md`;
 - `README.md`;
 - `ARCHITECTURE.md`;

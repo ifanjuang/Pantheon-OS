@@ -533,7 +533,7 @@ Before installing any external tool:
 6. define sandbox if needed;
 7. update task contracts if the tool performs actions;
 8. update Evidence Pack requirements if the tool produces outputs;
-9. log the intervention in `AI_LOG.md`.
+9. log the intervention by adding an `ai_logs/YYYY-MM-DD-slug.md` entry.
 
 ---
 
