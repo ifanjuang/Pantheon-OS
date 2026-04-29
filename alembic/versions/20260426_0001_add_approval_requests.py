@@ -1,10 +1,8 @@
 """add approval requests
 
 Revision ID: 20260426_0001
-Revises: None
+Revises: 0028
 Create Date: 2026-04-26
-
-NOTE: adjust `down_revision` if the repository already has an Alembic head.
 """
 
 from __future__ import annotations
@@ -15,7 +13,7 @@ from sqlalchemy.dialects import postgresql
 
 
 revision = "20260426_0001"
-down_revision = None
+down_revision = "0028"
 branch_labels = None
 depends_on = None
 

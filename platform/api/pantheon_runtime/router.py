@@ -41,7 +41,6 @@ def get_context_pack() -> dict:
         "domain_packages": [
             "domains/general",
             "domains/architecture_fr",
-            "domains/software",
         ],
         "memory_levels": [
             "session",
