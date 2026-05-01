@@ -1,8 +1,8 @@
 """
-Pantheon OS — Hermes-backed Domain Layer API entry point.
+Pantheon Next — Hermes-backed Domain Layer API entry point.
 
 This API no longer boots the previous autonomous runtime by default.
-It exposes Pantheon definitions that Hermes Agent can execute and OpenWebUI
+It exposes Pantheon Next definitions that Hermes Agent can execute and OpenWebUI
 can surface/retrieve. Legacy runtime components remain in the repository for
 post-pivot audit, not automatic startup.
 """
@@ -16,10 +16,11 @@ from pantheon_domain.router import router as domain_router
 from pantheon_runtime.router import router as runtime_router
 
 app = FastAPI(
-    title="Pantheon OS Domain Layer API",
+    title="Pantheon Next Domain Layer API",
     description=(
-        "Pantheon OS defines agents, workflows, skills contracts, memory rules "
-        "and knowledge strategy for a Hermes-backed / OpenWebUI-facing system."
+        "Pantheon Next defines agents, workflows, skill contracts, memory rules "
+        "and knowledge strategy for a Hermes-backed / OpenWebUI-facing system. "
+        "It is a governance/context API, not the final OpenAI-compatible model backend."
     ),
     version="2.0.0-domain-layer",
     docs_url="/docs",
@@ -47,16 +48,16 @@ def health() -> dict[str, str]:
     return {
         "status": "ok",
         "mode": "hermes_backed_domain_layer",
-        "doctrine": "Pantheon defines. Hermes executes. OpenWebUI exposes and retrieves.",
+        "doctrine": "Pantheon Next defines. Hermes executes. OpenWebUI exposes and retrieves.",
     }
 
 
 @app.get("/", tags=["system"])
 def root() -> dict[str, str]:
     return {
-        "service": "Pantheon OS Domain Layer API",
+        "service": "Pantheon Next Domain Layer API",
         "health": "/health",
         "domain_snapshot": "/domain/snapshot",
-        "runtime_context_pack": "/runtime/context-pack",
+        "context_pack": "/runtime/context-pack",
         "docs": "/docs",
     }
