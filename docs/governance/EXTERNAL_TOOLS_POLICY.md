@@ -1,4 +1,4 @@
-# EXTERNAL TOOLS POLICY — Pantheon OS
+# EXTERNAL TOOLS POLICY — Pantheon Next
 
 > Governance reference for external services, plugins, skills, frameworks and automation layers.
 
@@ -6,18 +6,18 @@
 
 # 1. Purpose
 
-Pantheon OS may use external tools, but external tools must never become Pantheon’s authority.
+Pantheon Next may use external tools, but external tools must never become Pantheon’s authority.
 
 Core rule:
 
 ```text
-Pantheon defines and governs.
-Hermes executes under policy.
-OpenWebUI exposes the interface and Knowledge.
+OpenWebUI expose.
+Hermes Agent exécute under policy.
+Pantheon Next gouverne.
 External tools provide bounded capabilities only.
 ```
 
-This policy exists because external tools can affect files, memory, network access, secrets, shell access, plugins, cost, autonomy, PDF processing, browser automation or remote services.
+This policy exists because external tools can affect files, memory, network access, secrets, shell access, plugins, cost, autonomy, PDF processing, browser automation, MCP access, remote services or runtime permissions.
 
 No external tool may be integrated, installed, executed in production, or exposed to Hermes/OpenWebUI without classification.
 
@@ -37,6 +37,8 @@ This policy applies to:
 - OCR tools;
 - workflow frameworks;
 - memory frameworks;
+- runtime authority systems;
+- budget / cost-control systems;
 - self-evolution systems;
 - browser automation;
 - remote bridges;
@@ -57,10 +59,14 @@ Hermes community skills
 GBrain
 BrainAPI2
 AgentScope
+Cycles / runcycles
 Hermes self-evolution
 OCRmyPDF
 Gotenberg
 qpdf
+SearXNG
+Hermes Dashboard
+remote MCP servers
 ```
 
 Additional tools may be added only through this document or a future machine-readable registry.
@@ -77,7 +83,7 @@ Every external tool entry must define:
 | `repository` | yes | Source repository or official source |
 | `license` | yes | Declared license |
 | `license_status` | yes | `verified`, `unclear`, `conflicting`, `not_checked` |
-| `type` | yes | service, plugin, skill, framework, UI, memory, PDF, OCR, MCP, automation |
+| `type` | yes | service, plugin, skill, framework, UI, memory, PDF, OCR, MCP, automation, runtime_authority |
 | `status` | yes | allowed, test, blocked, rejected, watch |
 | `maturity` | yes | production, beta, experimental, unknown |
 | `data_classification` | yes | public, internal, project, sensitive, secrets |
@@ -173,7 +179,9 @@ Baseline mapping:
 | local service install | C3 |
 | OpenWebUI plugin install | C3 |
 | Hermes plugin install | C3 |
+| MCP server install | C3/C4 |
 | memory plugin install | C4 |
+| runtime authority integration | C4 |
 | autonomy plugin install | C5 |
 | secrets access | C5 |
 | Docker socket access | C5 |
@@ -518,6 +526,68 @@ review_frequency: before_any_code_use
 last_reviewed: null
 default_decision: conceptual_only
 ```
+
+## 10.8 Cycles / runcycles
+
+```yaml
+tool_name: Cycles / runcycles
+repository: runcycles/cycles-server; runcycles/cycles-protocol; runcycles/cycles-mcp-server; runcycles/cycles-dashboard
+license: Apache-2.0_claimed_by_docs_to_verify_in_repos
+license_status: not_checked
+type: runtime_authority_budget_action_control_mcp_dashboard
+status: watch
+maturity: emerging_production_candidate
+data_classification: internal_or_project_sensitive
+local_only: true
+network_exposure: LAN_only_if_tested
+auth_required: true
+sandbox_required: true
+file_access: none_by_default
+network_access: limited_to_cycles_stack
+memory_access: none
+secrets_access: forbidden_by_default
+shell_access: none_by_default
+side_effects:
+  - may_block_or_allow_agent_actions
+  - may_track_budget_reservations
+  - may_track_action_events
+  - may expose admin dashboard and API keys
+approval_level: C0_for_conceptual_review_C3_for_local_sandbox_C4_for_execution_path_integration_C5_for_remote_or_secret_access
+allowed_usage:
+  - conceptual_inspiration_for_runtime_authority
+  - reserve_execute_commit_release_pattern_for_task_contract_design
+  - budget_and_action_scope_model_inspiration
+  - incident_response_dashboard_inspiration
+  - future_local_sandbox_only_after_license_and_security_review
+forbidden_usage:
+  - replace_pantheon_approval_policy
+  - become_pantheon_source_of_truth
+  - install_mcp_server_without_policy
+  - expose_dashboard_publicly
+  - store_prompts_or_project_documents
+  - access_secrets_without_explicit_C5_review
+  - make_external_remote_service_a_required_dependency
+  - block_or_execute_real_actions_without_task_contract_and_approval
+rollback_plan: documentation_only_now; future_sandbox_remove_containers_keys_and_network_bindings
+review_frequency: before_any_sandbox_then_quarterly_if_retained
+last_reviewed: 2026-05-01
+default_decision: conceptual_only_watch
+```
+
+Pantheon interpretation:
+
+```text
+Cycles is useful as a pattern for runtime authority.
+It is not Pantheon authority.
+It must not replace APPROVALS.md, TASK_CONTRACTS.md or EVIDENCE_PACK.md.
+```
+
+Potential Pantheon reuse:
+
+- add `reserve_before_execute` semantics to future Hermes task contracts;
+- add `budget_scope`, `risk_scope`, `action_scope` and `reservation_id` fields to future Evidence Packs;
+- add `ALLOW`, `ALLOW_WITH_CAPS`, `DENY` as possible runtime decision vocabulary under Pantheon approval policy;
+- use Cycles only as optional local sandbox infrastructure if a real execution-cost problem appears.
 
 ---
 
