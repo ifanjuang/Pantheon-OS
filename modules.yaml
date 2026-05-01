@@ -61,12 +61,6 @@ modules:
   - name: memory
     enabled: false
 
-  - name: monitoring
-    enabled: false
-
-  - name: control
-    enabled: false
-
   - name: flowmanager
     enabled: false
 

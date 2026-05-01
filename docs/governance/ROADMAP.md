@@ -52,7 +52,7 @@ TASK_CONTRACTS.md
 EVIDENCE_PACK.md
 HERMES_INTEGRATION.md
 KNOWLEDGE_TAXONOMY.md
-AI_LOG.md
+ai_logs/README.md
 ```
 
 Rules:
@@ -85,7 +85,7 @@ Pantheon-OS/
   HERMES_INTEGRATION.md
   KNOWLEDGE_TAXONOMY.md
   EXTERNAL_TOOLS_POLICY.md
-  AI_LOG.md
+  ai_logs/README.md
 
   agents/
 

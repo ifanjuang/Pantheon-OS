@@ -167,9 +167,9 @@ Hermes should know the Pantheon operating protocol, not a frozen copy of all Pan
 
 Mandatory sequence for Pantheon repository work:
 
-1. Read `AI_LOG.md`.
-2. Read `STATUS.md`.
-3. Read the relevant reference Markdown files before the code.
+1. Read recent entries in `ai_logs/` (start with `ai_logs/README.md`).
+2. Read `docs/governance/STATUS.md`.
+3. Read the relevant reference Markdown files under `docs/governance/` before the code.
 4. Respect the documentation hierarchy.
 5. Treat Markdown reference files as the source of truth.
 6. If code contradicts Markdown, Markdown wins.
@@ -178,7 +178,7 @@ Mandatory sequence for Pantheon repository work:
 9. Work on a dedicated branch.
 10. Produce candidates, not active canonical objects.
 11. Ask for validation for structural or risky changes.
-12. Add an `AI_LOG.md` entry after a meaningful intervention.
+12. Add an `ai_logs/YYYY-MM-DD-slug.md` entry after a meaningful intervention.
 13. Avoid new abstractions unless the gain is clear.
 14. Avoid unnecessary complexity.
 
@@ -213,14 +213,14 @@ Target response:
 {
   "project": "Pantheon OS",
   "truth_files": [
-    "AI_LOG.md",
-    "STATUS.md",
     "README.md",
-    "ARCHITECTURE.md",
-    "MODULES.md",
-    "AGENTS.md",
-    "MEMORY.md",
-    "ROADMAP.md"
+    "ai_logs/README.md",
+    "docs/governance/STATUS.md",
+    "docs/governance/ARCHITECTURE.md",
+    "docs/governance/MODULES.md",
+    "docs/governance/AGENTS.md",
+    "docs/governance/MEMORY.md",
+    "docs/governance/ROADMAP.md"
   ],
   "current_status": "Hermes-backed domain operating layer, documentation-first, partially implemented",
   "active_rules": [
@@ -421,15 +421,15 @@ Hermes must not bypass Pantheon governance.
 
 ## Mandatory Sequence for Repo Work
 
-1. Read AI_LOG.md.
-2. Read STATUS.md.
-3. Read README.md, ARCHITECTURE.md, MODULES.md, AGENTS.md, MEMORY.md and ROADMAP.md as needed.
+1. Read recent entries in ai_logs/ (start with ai_logs/README.md).
+2. Read docs/governance/STATUS.md.
+3. Read README.md and the relevant files under docs/governance/ (ARCHITECTURE.md, MODULES.md, AGENTS.md, MEMORY.md, ROADMAP.md) as needed.
 4. Do not start from code before reading the Markdown references.
 5. If code contradicts Markdown, Markdown wins.
 6. If code is better than Markdown, propose a Markdown update first.
 7. Never push to main.
 8. Work on a dedicated branch.
-9. Add an AI_LOG.md entry after intervention.
+9. Add an ai_logs/YYYY-MM-DD-slug.md entry after intervention.
 10. Do not create abstractions without clear gain.
 
 ## Forbidden Actions
@@ -526,9 +526,9 @@ Every Hermes output intended for Pantheon must include an Evidence Pack.
 {
   "evidence_pack": {
     "files_read": [
-      "AI_LOG.md",
-      "STATUS.md",
-      "ARCHITECTURE.md"
+      "ai_logs/README.md",
+      "docs/governance/STATUS.md",
+      "docs/governance/ARCHITECTURE.md"
     ],
     "commands_run": [],
     "tests_run": [],
@@ -904,7 +904,7 @@ Flow:
 3. It routes to Hermes Pantheon Operator.
 4. Hermes loads the `pantheon-os` local skill.
 5. Hermes calls `GET /runtime/context-pack` when available.
-6. Hermes reads `AI_LOG.md`, then `STATUS.md`.
+6. Hermes reads recent entries in `ai_logs/`, then `docs/governance/STATUS.md`.
 7. Hermes reads relevant reference Markdown files.
 8. Hermes analyzes the code.
 9. Hermes produces a diagnostic and Evidence Pack.

@@ -14,7 +14,10 @@ COPY platform/api/ .
 
 # Hermes Runtime framework (auto-discovery)
 COPY core/ /core/
-COPY modules/ /modules/
+COPY agents/ /agents/
+COPY skills/ /skills/
+COPY tools/ /tools/
+COPY workflows/ /workflows/
 
 # Config files
 COPY config/ /config/

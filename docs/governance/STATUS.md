@@ -296,7 +296,7 @@ Do not reactivate the autonomous runtime path by accident.
 
 1. ✅ Add `OpenWebUI / Hermes / Pantheon interaction layer — planned` to `STATUS.md`.
 2. ✅ Update `MODULES.md` with consultation, evidence pack and run graph modules.
-3. ✅ Add `AI_LOG.md` entries after interventions.
+3. ✅ Add `ai_logs/YYYY-MM-DD-slug.md` entries after interventions.
 4. ✅ Create first static `GET /runtime/context-pack` endpoint.
 5. ✅ Create Hermes `pantheon-os` local skill template.
 6. ✅ Add `APPROVALS.md`.

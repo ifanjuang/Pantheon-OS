@@ -9,6 +9,13 @@
 active_domain: architecture_fr
 
 domains:
+  general:
+    label: "Socle générique (skills agnostiques)"
+    skills_overlay: domains/general/skills
+    workflows_overlay: null
+    policies_overlay: null
+    trusted_sources: []
+
   architecture_fr:
     label: "Architecture & Maîtrise d'Œuvre (FR)"
     skills_overlay: domains/architecture_fr/skills
@@ -19,23 +26,3 @@ domains:
       - CCAG
       - PUCA
       - Legifrance
-
-  legal_fr:
-    label: "Juridique (FR)"
-    skills_overlay: domains/legal_fr/skills
-    workflows_overlay: domains/legal_fr/workflows
-    policies_overlay: null
-    trusted_sources:
-      - Legifrance
-      - EurLex
-      - Dalloz
-
-  medical_fr:
-    label: "Médical (FR)"
-    skills_overlay: domains/medical_fr/skills
-    workflows_overlay: domains/medical_fr/workflows
-    policies_overlay: null
-    trusted_sources:
-      - HAS
-      - PubMed
-      - Vidal

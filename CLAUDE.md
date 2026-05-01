@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Pantheon OS** is a multi-agent intelligence platform for professional organizations (architecture/MOE, legal, audit, consulting, medicine, IT). It centralizes document management, semantic RAG, multi-agent orchestration, project tracking, planning, and finance across the full lifecycle of cases.
+**Pantheon OS** is a multi-agent intelligence platform for professional organizations (architecture/MOE, with planned overlays for legal, audit, consulting, medicine, IT). It centralizes document management, semantic RAG, multi-agent orchestration, project tracking, planning, and finance across the full lifecycle of cases.
 
 **Stack (MVP):** FastAPI · PostgreSQL + pgvector · Hermes Runtime (agents/skills/workflows) · OpenWebUI · Ollama/OpenAI · Docker Compose
 
@@ -24,38 +24,57 @@ pantheon-os/
 │   ├── observability/             # HermesLogger — structured run logging
 │   └── utils/                     # Shared helpers (truncate, Timer)
 │
-├── modules/                       # Self-contained, discoverable components
-│   ├── agents/
-│   │   ├── meta/                  # zeus_orchestrator, athena_planner, themis_guardian, hera_supervisor, apollo_validator
-│   │   ├── analysis/              # hermes_router, demeter_collector, argos_extractor, prometheus_challenger, artemis_filter, hecate_uncertainty, metis_deliberator
-│   │   ├── memory/                # hestia_project, mnemosyne_agency, hades_retrieval
-│   │   ├── output/                # kairos_synthesizer, daedalus_builder, iris_communicator, aphrodite_stylist, hephaestus_diagrams
-│   │   └── system/                # ares_executor, poseidon_distributor
-│   ├── skills/                    # research/, extraction/, validation/, synthesis/, communication/, document/
-│   ├── tools/                     # file/, pdf/, web/, database/, storage/, diagrams/
-│   └── workflows/                 # base/, dynamic/, templates/
+├── agents/                        # 24 agents — auto-discovered via manifest.yaml
+│   ├── meta/                      # zeus_orchestrator, athena_planner, apollo_validator,
+│   │                              #   themis_guardian, hera_supervisor, chronos_scheduler
+│   ├── analysis/                  # hermes_router, demeter_collector, argos_extractor,
+│   │                              #   prometheus_challenger, artemis_filter,
+│   │                              #   hecate_uncertainty, metis_deliberator
+│   ├── memory/                    # hestia_project, mnemosyne_agency, hades_retrieval
+│   ├── output/                    # kairos_synthesizer, daedalus_builder, iris_communicator,
+│   │                              #   aphrodite_stylist, hephaestus_diagrams, dionysos_creative
+│   └── system/                    # ares_executor, poseidon_distributor
+│
+├── skills/                        # Reusable skill packs
+│   └── generic/                   # build_dossier, cross_check, extract_facts,
+│                                  #   hybrid_research, summarize
+│
+├── tools/                         # Atomic capabilities used by skills
+│   ├── database/  diagrams/  file/  pdf/  storage/  web/
+│
+├── workflows/                     # Multi-agent orchestrations
+│   ├── base/                      # clarification, dossier_build, research, simple_answer
+│   ├── dynamic/                   # deep_research
+│   ├── document_analysis/         # Document-driven analysis pipelines
+│   └── templates/                 # YAML workflow templates
 │
 ├── platform/
-│   ├── api/                       # FastAPI server (moved from api/)
-│   │   ├── apps/                  # FastAPI app modules (renamed from modules/)
+│   ├── api/                       # FastAPI server
+│   │   ├── apps/                  # Functional API modules (27 — see modules.yaml)
 │   │   │   ├── auth/              # JWT login, register, seed admin
 │   │   │   ├── admin/             # Config YAML, setup wizard, healthcheck
 │   │   │   ├── affaires/          # Case/project CRUD
 │   │   │   ├── documents/         # Upload, RAG ingest
 │   │   │   ├── agent/             # ReAct loop, memory, RAG tools
-│   │   │   ├── openai_compat/     # OpenAI API v1 compatibility (for OpenWebUI)
-│   │   │   └── hermes_console/    # Console API: agents/skills/workflows/logs
+│   │   │   ├── openai_compat/     # OpenAI v1 compatibility (OpenWebUI)
+│   │   │   ├── hermes_console/    # Console API: agents/skills/workflows/logs
+│   │   │   ├── approvals/         # Approval gate (HITL) — V2 prep
+│   │   │   ├── memory/            # Memory candidates / promotion / search — V2 prep
+│   │   │   ├── orchestra/         # Multi-agent orchestration runs — V2
+│   │   │   ├── flowmanager/       # Workflow definitions store — V2
+│   │   │   ├── guards/            # Veto / safety enforcement — V2
+│   │   │   └── ...                # capture, chantier, communications, decisions,
+│   │   │                          #   evaluation (CI), finance, meeting, planning,
+│   │   │                          #   preprocessing, scoring, webhooks, wiki
 │   │   ├── core/                  # API-specific: settings, auth, registry, logging, rate_limit
+│   │   ├── pantheon_runtime/      # Read-only context-pack endpoint
+│   │   ├── pantheon_domain/       # Domain layer repository
 │   │   ├── main.py                # Entry point (lifespan, CORS, module registry)
 │   │   └── database.py            # SQLAlchemy async engine + Base
 │   ├── ui/
 │   │   ├── openwebui/             # OpenWebUI config
 │   │   └── hermes-console/        # Next.js admin console
-│   ├── data/
-│   │   ├── db/                    # PostgreSQL init SQL
-│   │   ├── vector/                # pgvector data
-│   │   ├── runtime-state/         # Workflow state snapshots
-│   │   └── logs/                  # Application logs
+│   ├── data/                      # db init SQL, vector data, runtime state, logs
 │   ├── storage/                   # nas/, drive-sync/, notion-sync/, exports/
 │   └── infra/
 │       ├── docker/api/            # Dockerfile for API container
@@ -63,39 +82,33 @@ pantheon-os/
 │       ├── migrations/            # Alembic migration copies
 │       └── deploy/                # Deployment scripts
 │
-├── config/                        # 5 canonical files (non-secret defaults)
+├── domains/                       # Domain overlays (active: architecture_fr)
+│   ├── general/                   # Generic socle — agnostic skills
+│   └── architecture_fr/           # BTP/MOE FR overlay (skills, workflows, policies, prompts)
+│
+├── config/                        # 6 canonical YAML files
 │   ├── runtime.yaml               # Hermes mode, thresholds, MVP agent list
 │   ├── settings.yaml              # LLM, RAG, API parameters
 │   ├── sources.yaml               # Data source adapters (db, NAS, web, Notion)
 │   ├── ui.yaml                    # Console and OpenWebUI settings
-│   └── domains.yaml               # Domain overlay mapping (active_domain, overlays)
-│
-├── domains/
-│   ├── architecture/              # BTP/MOE overlays (prompts, skills, workflows, policies)
-│   ├── legal/                     # Legal domain
-│   └── medical/                   # Medical domain
-│
-├── shared/
-│   ├── tools/                     # Reusable tools (pdf_reader, web_search, db_query)
-│   ├── schemas/                   # Shared Pydantic schemas
-│   └── templates/                 # Document templates
-│
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   ├── workflow/
-│   └── regression/
+│   ├── domains.yaml               # Domain overlay mapping (active_domain, overlays)
+│   └── policies.yaml              # Veto patterns, safety, rate limits, trusted sources
 │
 ├── docs/
-│   ├── architecture/
-│   ├── agents/
-│   ├── skills/
-│   ├── workflows/
-│   └── runbooks/
+│   └── governance/                # Governance docs (AGENTS, ARCHITECTURE, MODULES,
+│                                  #   ROADMAP, STATUS, MEMORY, APPROVALS, ...)
+├── ai_logs/                       # AI session journal: README.md (rules) +
+│                                  #   YYYY-MM-DD-slug.md per intervention
+├── hermes/                        # Hermes integration: skill policy + repo references
+├── operations/                    # Operating protocols (OpenWebUI/Hermes/Pantheon)
+├── scripts/                       # install/, update/, openclaude-setup.sh
+├── legacy/                        # Archived modules and obsolete docs (not loaded)
 │
-├── alembic/                       # Alembic migrations
+├── tests/                         # Flat pytest suite (test_*.py)
+├── alembic/                       # Migrations: 0001 → 0028 → 20260426_0001
 ├── docker-compose.yml             # MVP stack
 ├── modules.yaml                   # FastAPI app module registry (enabled/disabled)
+├── plugins.yaml                   # Optional service plugins (ollama, portainer, ...)
 ├── alembic.ini                    # Alembic config
 └── .env.example                   # Environment template
 ```
@@ -118,7 +131,7 @@ pantheon-os/
 
 ---
 
-## The Pantheon — 22 agents
+## The Pantheon — 24 agents
 
 ### Naming convention
 
@@ -155,16 +168,18 @@ class Hermes(AgentBase):
 |---|---|---|
 | **@THEMIS** | meta | Process integrity guardian (veto) |
 | **@HERA** | meta | Global coherence supervisor |
+| **@CHRONOS** | meta | Scheduling and temporal coordination |
 | **@Demeter** | analysis | Data collection and ingestion |
 | **@Artemis** | analysis | Filtering and focus (signal/noise) |
 | **@Metis** | analysis | Tactical optimization |
 | **@Mnemosyne** | memory | Structured knowledge library |
 | **@Aphrodite** | output | Polish and presentation |
 | **@Hephaestus** | output | Diagrams and technical production |
+| **@Dionysos** | output | Creative variation and ideation |
 | **@Ares** | system | Fast execution / fallback mode |
 | **@Poseidon** | system | Load management and flow control |
 
-Source of truth: `modules/agents/{layer}/{myth}_{role}/manifest.yaml`
+Source of truth: `agents/{layer}/{myth}_{role}/manifest.yaml`
 
 ---
 
@@ -184,7 +199,7 @@ Source of truth: `modules/agents/{layer}/{myth}_{role}/manifest.yaml`
 
 ## Module structure
 
-### Agent module (`modules/agents/{layer}/{myth}_{role}/`)
+### Agent module (`agents/{layer}/{myth}_{role}/`)
 
 ```
 zeus_orchestrator/
@@ -240,7 +255,7 @@ auth/
 
 ---
 
-## Config files (5 canonical, source of truth)
+## Config files (6 canonical, source of truth)
 
 | File | Purpose |
 |---|---|
@@ -249,8 +264,10 @@ auth/
 | `config/sources.yaml` | Data source adapters (pgvector, NAS, web, Notion) |
 | `config/ui.yaml` | Console and OpenWebUI settings |
 | `config/domains.yaml` | Active domain, overlay paths, trusted sources |
+| `config/policies.yaml` | Veto patterns, safety, rate limits, domain trusted sources |
 
-Agent/skill/workflow enable state lives in each `modules/{type}/{name}/config.yaml`.
+Agent/skill/workflow enable state lives in each `{agents|skills|workflows}/{path}/config.yaml`.
+FastAPI app enable state lives in `modules.yaml` at the repo root.
 
 ---
 
@@ -264,7 +281,8 @@ Agent/skill/workflow enable state lives in each `modules/{type}/{name}/config.ya
 - Auth: `Depends(get_current_user)`, `Depends(require_role("admin", "moe"))`
 - **No LangGraph in MVP** — use simple async pipelines
 - **No Redis/ARQ in MVP** — use FastAPI `BackgroundTasks` if needed
-- Agent source of truth: `modules/agents/{layer}/{myth}_{role}/` — not YAML registries
+- Agent source of truth: `agents/{layer}/{myth}_{role}/` — not YAML registries
+- Archived code and obsolete docs live under `legacy/` — never imported by the runtime
 
 ---
 
@@ -328,9 +346,9 @@ EMBEDDING_PROVIDER=ollama
 OLLAMA_EMBEDDING_MODEL=nomic-embed-text
 EMBEDDING_DIM=768
 
-# Domain
-DOMAIN=architecture
-DOMAIN_LABEL="Architecture & Maîtrise d'Œuvre"
+# Domain (only architecture_fr is active in MVP; general is the shared base layer)
+DOMAIN=architecture_fr
+DOMAIN_LABEL="Architecture & Maîtrise d'Œuvre (FR)"
 
 # Runtime
 DEBUG=true
@@ -348,7 +366,8 @@ Run `alembic upgrade head` after each schema change.
 | 0002 | agent_runs |
 | 0003 | orchestra_runs |
 | 0004 | agent_memory |
-| 0005–0028 | V2 features (guards, wiki, scoring, etc.) |
+| 0005–0028 | V2 features (guards, wiki, scoring, workflow_definitions, etc.) |
+| 20260426_0001 | approval_requests (HITL approval gate) |
 
 ---
 

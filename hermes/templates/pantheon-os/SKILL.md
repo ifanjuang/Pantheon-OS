@@ -48,15 +48,15 @@ Hermes must not:
 
 # Mandatory sequence for Pantheon repository work
 
-1. Read `AI_LOG.md`.
-2. Read `STATUS.md`.
+1. Read recent entries in `ai_logs/` (and `ai_logs/README.md` for the rules).
+2. Read `docs/governance/STATUS.md`.
 3. Read relevant reference Markdown files before code:
    - `README.md`
-   - `ARCHITECTURE.md`
-   - `MODULES.md`
-   - `AGENTS.md`
-   - `MEMORY.md`
-   - `ROADMAP.md`
+   - `docs/governance/ARCHITECTURE.md`
+   - `docs/governance/MODULES.md`
+   - `docs/governance/AGENTS.md`
+   - `docs/governance/MEMORY.md`
+   - `docs/governance/ROADMAP.md`
 4. Use `GET /runtime/context-pack` when available.
 5. Treat Markdown reference files as the source of truth.
 6. If code contradicts Markdown, Markdown wins.
@@ -64,7 +64,7 @@ Hermes must not:
 8. Never push to `main`.
 9. Work on a dedicated branch.
 10. Produce candidates before active objects.
-11. Add an `AI_LOG.md` entry after a meaningful intervention.
+11. Add an `ai_logs/YYYY-MM-DD-slug.md` entry after a meaningful intervention.
 12. Do not create abstractions without a clear gain.
 
 ---
