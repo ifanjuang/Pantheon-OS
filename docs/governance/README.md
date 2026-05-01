@@ -34,6 +34,10 @@ The runtime must not treat these documents as decorative notes. They drive devel
 | `EXTERNAL_TOOLS_POLICY.md` | Governance for external integrations |
 | `KNOWLEDGE_TAXONOMY.md` | Knowledge vs Memory classification |
 | `CODE_AUDIT_POST_PIVOT.md` | Legacy/runtime code classification register |
+| `PRE_REFACTOR_ARCHITECTURE_FINDINGS.md` | Read-only audit synthesis of existing code assets to preserve or reclassify before refactor |
+| `WORKFLOW_SCHEMA.md` | Canonical workflow/task definition schema |
+| `SKILL_LIFECYCLE.md` | Skill lifecycle, XP, status and Hermes mapping policy |
+| `MEMORY_EVENT_SCHEMA.md` | Memory event and candidate schema before promotion |
 | `EXTERNAL_WATCHLIST.md` | External repo / tool watchlist |
 | `VERSIONS.md` | Tracking versions of runtimes and models |
 
@@ -44,7 +48,7 @@ The runtime must not treat these documents as decorative notes. They drive devel
 The following files stay at the repository root:
 
 - `README.md` — product entry point for Pantheon Next.
-- `CLAUDE.md` — Claude-specific repository guidance.
+- `CLAUDE.md` — Claude-specific repository guidance aligned with Pantheon Next.
 - `CHANGELOG.md` — release/change history.
 - `VERSION` — current version marker.
 
