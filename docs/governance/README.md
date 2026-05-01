@@ -1,36 +1,90 @@
-# Governance docs
+# Governance docs — Pantheon Next
 
 Source of truth for project doctrine, architecture, status and policies.
 
-These files were originally at the repository root and have been moved here
-to keep the root readable. The runtime references them by filename via
-`platform/api/pantheon_runtime/router.py` (truth_files) and a few skill
-manifests under `domains/general/skills/`.
+These files were originally split between the repository root and governance discussions. They are consolidated under `docs/governance/` to keep the root readable and to make the Markdown governance layer explicit.
+
+The active operating model is:
+
+```text
+OpenWebUI expose.
+Hermes Agent exécute.
+Pantheon Next gouverne.
+```
+
+The runtime must not treat these documents as decorative notes. They drive development decisions.
+
+---
 
 ## Inventory
 
 | File | Role |
 |---|---|
+| `STATUS.md` | Current project state and implementation status |
+| `ROADMAP.md` | Active priorities and phased trajectory |
+| `ARCHITECTURE.md` | Technical anatomy after the Hermes-backed pivot |
+| `MODULES.md` | Module and domain definition contract |
 | `AGENTS.md` | Abstract agent roster and responsibilities |
-| `APPROVALS.md` | Approval criticality policy (C1/C2/C3) |
-| `ARCHITECTURE.md` | Technical anatomy post-pivot |
-| `EVIDENCE_PACK.md` | Audit contract for consequential outputs |
-| `EXTERNAL_TOOLS_POLICY.md` | Governance for external integrations |
-| `EXTERNAL_WATCHLIST.md` | External repo / tool watchlist |
-| `HERMES_INTEGRATION.md` | Pantheon ↔ Hermes ↔ OpenWebUI boundary |
-| `KNOWLEDGE_TAXONOMY.md` | Knowledge vs Memory classification |
-| `MEMORY.md` | Memory governance (validated lessons) |
-| `MODULES.md` | Module definition contract |
-| `ROADMAP.md` | Active priorities and Memory roadmap |
-| `STATUS.md` | Project state — components delivery status |
+| `MEMORY.md` | Canonical memory governance |
+| `APPROVALS.md` | Approval criticality policy C0-C5 |
 | `TASK_CONTRACTS.md` | Hermes/Pantheon task execution contracts |
+| `EVIDENCE_PACK.md` | Audit contract for consequential outputs |
+| `HERMES_INTEGRATION.md` | Pantheon ↔ Hermes boundary and context export rules |
+| `OPENWEBUI_INTEGRATION.md` | OpenWebUI cockpit, Knowledge and validation boundary |
+| `EXTERNAL_TOOLS_POLICY.md` | Governance for external integrations |
+| `KNOWLEDGE_TAXONOMY.md` | Knowledge vs Memory classification |
+| `CODE_AUDIT_POST_PIVOT.md` | Legacy/runtime code classification register |
+| `EXTERNAL_WATCHLIST.md` | External repo / tool watchlist |
 | `VERSIONS.md` | Tracking versions of runtimes and models |
 
-Stays at the repository root (entry points / SemVer):
+---
 
-- `README.md`
-- `CLAUDE.md`
-- `CHANGELOG.md`
-- `VERSION`
+## Root entry points
 
-The AI coordination journal lives in `ai_logs/` (one file per session, plus `ai_logs/README.md` for the rules).
+The following files stay at the repository root:
+
+- `README.md` — product entry point for Pantheon Next.
+- `CLAUDE.md` — Claude-specific repository guidance.
+- `CHANGELOG.md` — release/change history.
+- `VERSION` — current version marker.
+
+The AI coordination journal lives in `ai_logs/`.
+
+Reference:
+
+```text
+ai_logs/README.md
+```
+
+---
+
+## Governance rules
+
+1. Read `ai_logs/README.md` and recent log entries before intervention.
+2. Read `docs/governance/STATUS.md` before structural changes.
+3. Read the relevant governance document before modifying code.
+4. Do not push directly to `main`.
+5. Use a dedicated branch.
+6. Add an `ai_logs/YYYY-MM-DD-slug.md` entry after significant intervention.
+7. Do not write real private project/client data into the repository.
+8. If code contradicts Markdown, Markdown is the source of truth.
+9. If code is technically better than Markdown, update Markdown first before generalizing the code path.
+
+---
+
+## Forbidden drift
+
+Pantheon Next must not silently recreate:
+
+- autonomous Pantheon runtime;
+- Execution Engine;
+- Agent Runtime;
+- Tool Runtime;
+- LLM Provider Router;
+- scheduler;
+- LangGraph central orchestrator;
+- memory auto-promotion;
+- self-evolution auto-merge;
+- uncontrolled plugin installation.
+
+Hermes Agent executes. Pantheon Next governs. OpenWebUI exposes.
