@@ -211,6 +211,7 @@ Reference:
 APPROVALS.md
 EVIDENCE_PACK.md
 TASK_CONTRACTS.md
+MEMORY_EVENT_SCHEMA.md
 ```
 
 ---
@@ -382,7 +383,49 @@ Do not promote.
 
 ---
 
-# 15. Example
+# 15. Memory event schema
+
+Reference:
+
+```text
+MEMORY_EVENT_SCHEMA.md
+```
+
+Memory events are structured candidates, not canonical memory.
+
+Useful fields include:
+
+```text
+event_type
+source_layer
+source_ref
+actor
+target
+project_id
+category
+scope_candidate
+sensitivity
+evidence_pack_id
+source_documents
+source_runs
+validation_status
+valid_from
+valid_until
+superseded_by
+```
+
+Supersession is preferred over deletion.
+
+Rule:
+
+```text
+Raw extraction is only a candidate.
+No memory event becomes project/system memory without Evidence Pack and C3+ review.
+```
+
+---
+
+# 16. Example
 
 Repeated observation:
 
@@ -418,7 +461,7 @@ PROJECT memory if tied to one project.
 
 ---
 
-# 16. Summary
+# 17. Summary
 
 ```text
 session    = temporary working context
