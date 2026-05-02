@@ -67,7 +67,8 @@ Definitions:
 | Domain Layer package | `platform/api/pantheon_domain/` | Domain API definitions | keep | Keep as read-only domain snapshot and approval classification surface | Low | Continue aligning terminology with Pantheon Next | P0 |
 | Domain contracts | `platform/api/pantheon_domain/contracts.py` | Pydantic domain definitions | keep | Keep as definition contracts for agents, skills, workflows, memory, knowledge, legacy | Needs C0-C5 alignment | Add explicit C0-C5 mapping later | P1 |
 | Domain repository | `platform/api/pantheon_domain/repository.py` | Static in-code registry | keep | Keep as bootstrap registry until file-backed registry exists | Legacy `agency_memory` / `generic` terminology fixed in PR #70 | Continue monitoring for stale terminology | P0 |
-| Runtime context package | `platform/api/pantheon_runtime/` | Static context pack endpoint | reorient | Treat as context export only, not runtime authority | Package name still suggests Pantheon runtime | No execution endpoints; consider later rename after compatibility review | P0 |
+| Context export package | `platform/api/pantheon_context/` | Read-only context pack endpoint | keep | Use for new imports and keep endpoint `/runtime/context-pack` | Must remain context-only | Do not add execution endpoints | P0 |
+| Runtime compatibility shim | `platform/api/pantheon_runtime/` | Former context-pack package name | reorient | Keep only as backward-compatible shim re-exporting `pantheon_context.router` | Package name suggests runtime | Do not add routes or logic; remove later only after import audit | P0 |
 | Manifest contracts | `platform/api/core/contracts/manifest.py` | Runtime/module manifest | reorient | Use as schema source for skills, workflows, tools and operations doctor | Could revive registry runtime | Extract schema; do not reactivate auto-runtime | P1 |
 | Task/workflow contracts | `platform/api/core/contracts/tasks.py` | Task and workflow model | reorient | Use as basis for `WORKFLOW_SCHEMA.md` and task contracts | Starts at C1, not C0 | Add C0 before active use | P1 |
 | Workflow loader | `platform/api/core/registries/workflows.py` | Loads workflow/task YAML | reorient | Keep pattern for documentation validation, not execution | May become workflow engine | Use only as validator until policy exists | P1/P2 |
@@ -94,7 +95,42 @@ Definitions:
 
 ---
 
-## 4. Deployment boundary note
+## 4. Context export boundary note
+
+New imports must use:
+
+```text
+pantheon_context.router
+```
+
+The legacy package:
+
+```text
+pantheon_runtime.router
+```
+
+is retained only as a compatibility shim.
+
+Rules:
+
+```text
+No task execution.
+No tool execution.
+No workflow execution.
+No memory promotion.
+No scheduling.
+No provider routing.
+```
+
+The public endpoint remains:
+
+```text
+/runtime/context-pack
+```
+
+---
+
+## 5. Deployment boundary note
 
 `docker-compose.yml` is explicitly legacy MVP wiring.
 
@@ -125,7 +161,7 @@ Pantheon database
 
 ---
 
-## 5. Reclassification patterns
+## 6. Reclassification patterns
 
 | Old runtime concept | Correct reclassification |
 |---|---|
@@ -145,7 +181,7 @@ Pantheon database
 
 ---
 
-## 6. Hard blockers
+## 7. Hard blockers
 
 The following must not be reactivated inside Pantheon Next:
 
@@ -167,7 +203,7 @@ public admin dashboard without auth/VPN
 
 ---
 
-## 7. Evidence required for audit decisions
+## 8. Evidence required for audit decisions
 
 Every audit decision must identify:
 
@@ -190,7 +226,7 @@ docs/governance/EVIDENCE_PACK.md
 
 ---
 
-## 8. Next action
+## 9. Next action
 
 Recommended next audit:
 
