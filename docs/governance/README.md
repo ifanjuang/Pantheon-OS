@@ -31,6 +31,7 @@ The runtime must not treat these documents as decorative notes. They drive devel
 | `EVIDENCE_PACK.md` | Audit contract for consequential outputs |
 | `HERMES_INTEGRATION.md` | Pantheon ↔ Hermes boundary and context export rules |
 | `OPENWEBUI_INTEGRATION.md` | OpenWebUI cockpit, Knowledge and validation boundary |
+| `OPENWEBUI_DOMAIN_MAPPING.md` | Mapping policy between Pantheon canonical domains and OpenWebUI Knowledge Bases, Workspace Models and operator Skills |
 | `MODEL_ROUTING_POLICY.md` | Model selection policy for OpenWebUI presets, Ollama instances, Hermes execution and Pantheon abstract agents |
 | `EXTERNAL_TOOLS_POLICY.md` | Governance for external integrations |
 | `KNOWLEDGE_TAXONOMY.md` | Knowledge vs Memory classification |
