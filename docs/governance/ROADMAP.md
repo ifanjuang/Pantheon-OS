@@ -75,6 +75,7 @@ docs/governance/MODEL_ROUTING_POLICY.md
 docs/governance/EXTERNAL_TOOLS_POLICY.md
 docs/governance/EXTERNAL_RUNTIME_OPTIONS.md
 docs/governance/EXTERNAL_AI_OPTION_REVIEWS.md
+docs/governance/EXTERNAL_MEMORY_RUNTIME_REVIEWS_OPENCONCHO_HONCHO.md
 docs/governance/KNOWLEDGE_TAXONOMY.md
 docs/governance/CODE_AUDIT_POST_PIVOT.md
 docs/governance/WORKFLOW_SCHEMA.md
@@ -145,6 +146,7 @@ Pantheon-Next/
       EXTERNAL_TOOLS_POLICY.md
       EXTERNAL_RUNTIME_OPTIONS.md
       EXTERNAL_AI_OPTION_REVIEWS.md
+      EXTERNAL_MEMORY_RUNTIME_REVIEWS_OPENCONCHO_HONCHO.md
       KNOWLEDGE_TAXONOMY.md
       CODE_AUDIT_POST_PIVOT.md
       WORKFLOW_SCHEMA.md
@@ -161,6 +163,9 @@ Pantheon-Next/
       knowledge_policy.md
       output_formats.md
       skills/
+        adaptive_orchestration/
+        project_context_resolution/
+        knowledge_selection/
       workflows/
       templates/
     architecture_fr/
@@ -256,6 +261,7 @@ MODEL_ROUTING_POLICY.md
 EXTERNAL_TOOLS_POLICY.md
 EXTERNAL_RUNTIME_OPTIONS.md
 EXTERNAL_AI_OPTION_REVIEWS.md
+EXTERNAL_MEMORY_RUNTIME_REVIEWS_OPENCONCHO_HONCHO.md
 KNOWLEDGE_TAXONOMY.md
 CODE_AUDIT_POST_PIVOT.md
 WORKFLOW_SCHEMA.md
@@ -275,6 +281,7 @@ API smoke tests under tests/test_api_smoke.py
 local Hermes pantheon-os template under hermes/templates/pantheon-os/
 candidate skill domains/general/skills/adaptive_orchestration/
 candidate skill domains/general/skills/project_context_resolution/
+candidate skill domains/general/skills/knowledge_selection/
 README Lucid diagram sources registered under docs/assets/README.md
 ```
 
@@ -296,22 +303,12 @@ Turn the documentation baseline into a verifiable, minimal operating setup witho
 
 Priority order:
 
-1. Create Knowledge Selection candidate skill:
+1. Review and merge Claude's Hermes context export PR when available.
+
+Expected files:
 
 ```text
-domains/general/skills/knowledge_selection/
-```
-
-2. Run the read-only Doctor checklist against the repository tree.
-3. Execute API smoke tests locally or in CI:
-
-```text
-pytest tests/test_api_smoke.py
-```
-
-4. Create Hermes context exports:
-
-```text
+hermes/context/README.md
 hermes/context/pantheon_context.md
 hermes/context/agents_context.md
 hermes/context/rules_context.md
@@ -322,8 +319,16 @@ hermes/context/architecture_fr_context.md
 hermes/context/software_context.md
 ```
 
-5. Verify or document `PANTHEON_CONTEXT_URL` consumption by Hermes.
-6. Validate `knowledge/registry.example.yaml` against live OpenWebUI Knowledge Base names, then decide whether to create `knowledge/registry.yaml`.
+2. Run the read-only Doctor checklist against the repository tree.
+3. Execute API smoke tests locally or in CI:
+
+```text
+pytest tests/test_api_smoke.py
+```
+
+4. Validate `knowledge/registry.example.yaml` against live OpenWebUI Knowledge Base names, then decide whether to create `knowledge/registry.yaml`.
+5. Define Hermes retrieval preflight mapping for `knowledge_selection`.
+6. Verify or document `PANTHEON_CONTEXT_URL` consumption by Hermes.
 7. Complete domain package rule files if missing:
 
 ```text
@@ -375,28 +380,25 @@ OpenWebUI Skills are operator aids, not active Pantheon skills.
 
 Tasks:
 
-1. Create OpenWebUI Router Pipe specification.
-2. Create OpenWebUI Actions specification.
-3. Add approval request and Evidence Pack summary display requirements.
-4. Add SearXNG to `EXTERNAL_TOOLS_POLICY.md` if used.
-5. Add Hermes Dashboard as local-only/test under `EXTERNAL_TOOLS_POLICY.md` if used.
-6. Add manual OpenWebUI setup verification after live configuration.
-7. Align live Knowledge names with `knowledge/registry.example.yaml` before creating a real registry.
+1. Review Hermes context exports after Claude's PR lands.
+2. Create OpenWebUI Router Pipe specification.
+3. Create OpenWebUI Actions specification.
+4. Add approval request and Evidence Pack summary display requirements.
+5. Add SearXNG to `EXTERNAL_TOOLS_POLICY.md` if used.
+6. Add Hermes Dashboard as local-only/test under `EXTERNAL_TOOLS_POLICY.md` if used.
+7. Add manual OpenWebUI setup verification after live configuration.
+8. Align live Knowledge names with `knowledge/registry.example.yaml` before creating a real registry.
 
 ---
 
 ## 7. P1 — Domain packages and first useful capabilities
 
-First general-domain target:
+Existing general-domain candidates:
 
 ```text
+adaptive_orchestration
+project_context_resolution
 knowledge_selection
-```
-
-Purpose:
-
-```text
-Select the correct Knowledge sources for a task under Pantheon domain, source-tier, privacy, project-scope and freshness constraints.
 ```
 
 First architecture_fr target:
@@ -405,10 +407,9 @@ First architecture_fr target:
 quote_vs_cctp_analysis / quote_vs_cctp_review
 ```
 
-Recommended first skills:
+Recommended next skills:
 
 ```text
-domains/general/skills/knowledge_selection/
 domains/architecture_fr/skills/quote_vs_cctp_consistency/
 domains/architecture_fr/skills/dpgf_quantity_sanity_check/
 domains/architecture_fr/skills/client_message_safety/
@@ -427,12 +428,13 @@ A Hermes skill is executable capability.
 
 ---
 
-## 8. P1 — Knowledge Registry
+## 8. P1 — Knowledge Registry and Knowledge Selection
 
 Status:
 
 ```text
 knowledge/registry.example.yaml exists.
+domains/general/skills/knowledge_selection/ exists as candidate.
 knowledge/registry.yaml is not created yet.
 ```
 
@@ -448,6 +450,21 @@ allowed use / forbidden use
 evidence requirements
 memory candidate constraints
 anonymized project collection template
+```
+
+The `knowledge_selection` candidate defines:
+
+```text
+domain filter
+privacy filter
+project-scope filter
+source-tier filter
+reliability filter
+freshness filter
+forbidden-source filter
+Evidence Pack requirement filter
+AKS-inspired provenance fields
+Six-Hats-inspired source selection lenses
 ```
 
 Minimum fields for any future live registry entry:
@@ -492,6 +509,7 @@ Knowledge is not Memory.
 OpenWebUI Knowledge is source material.
 Memory requires candidate → Evidence Pack → validation.
 Live registry must not be created until OpenWebUI names and source scopes are verified.
+Knowledge Selection does not retrieve documents; it constrains retrieval.
 ```
 
 ---
@@ -517,6 +535,16 @@ Docker socket
 remote MCP servers
 Cycles / runcycles
 Omnigraph
+RAGFlow
+Thoth
+kontext-brain-ts
+Kanwas
+AKS Reference Server
+AgentRQ
+opencode-loop
+six-hats-skill
+OpenConcho
+Honcho
 LangChain / LangGraph
 Langflow
 OpenClaw
@@ -540,6 +568,7 @@ no public dashboard without auth/VPN and approval
 no PDF source overwrite
 no Knowledge ingestion without Evidence Pack where consequential
 external runtimes may assist Pantheon but must not become Pantheon
+external memory runtimes may be studied but must not become Pantheon Memory
 ```
 
 Possible near-term external test:
@@ -583,6 +612,7 @@ limitation clarity
 approval correctness
 model fallback trace
 source tier correctness
+Knowledge Selection correctness
 ```
 
 Do not create a heavy evaluation runtime in P2.
@@ -696,6 +726,7 @@ legacy audit status
 Hermes context export status
 Knowledge collection status
 Doctor report status
+Memory candidate review status
 ```
 
 ---
@@ -726,6 +757,8 @@ Docker socket
 secrets access
 Doctor auto-fix
 Knowledge auto-sync without approval
+Honcho/OpenConcho memory backend
+memory consolidation without Evidence Pack and approval
 ```
 
 ---
