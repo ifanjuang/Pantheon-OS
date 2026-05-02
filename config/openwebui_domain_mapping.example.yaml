@@ -1,0 +1,170 @@
+# Pantheon Next OpenWebUI domain mapping example
+#
+# This file maps Pantheon canonical domains to OpenWebUI-facing assets.
+# It does not make OpenWebUI the domain authority.
+
+version: 0.1.0
+status: example
+
+authority:
+  canonical_domains: pantheon
+  user_interface: openwebui
+  execution: hermes
+
+rules:
+  pantheon_domains_are_canonical: true
+  openwebui_assets_are_mapped_surfaces: true
+  openwebui_knowledge_is_not_memory: true
+  openwebui_skills_are_not_pantheon_active_skills: true
+  openwebui_models_are_not_pantheon_agents: true
+  hermes_executes_under_task_contract: true
+
+domains:
+  general:
+    pantheon_path: domains/general
+    status: active
+    purpose: cross-domain governance, approvals, evidence, memory candidates, skill lifecycle and external tool policy
+    openwebui:
+      knowledge_bases:
+        - id: pantheon_governance
+          status: active
+          privacy_level: internal
+          source_tier: canonical_governance
+        - id: pantheon_approvals
+          status: planned
+          privacy_level: internal
+          source_tier: governance
+        - id: pantheon_task_contracts
+          status: planned
+          privacy_level: internal
+          source_tier: governance
+        - id: pantheon_evidence_pack
+          status: planned
+          privacy_level: internal
+          source_tier: governance
+        - id: pantheon_memory_policy
+          status: planned
+          privacy_level: internal
+          source_tier: governance
+      workspace_models:
+        - ATHENA Planner
+        - THEMIS Risk Check
+        - APOLLO Validator
+        - ZEUS Arbitration
+      operator_skills:
+        - source_check_playbook
+        - approval_classification_playbook
+        - evidence_pack_summary_playbook
+    forbidden:
+      - promote_memory
+      - activate_skills
+      - modify_governance_markdown
+      - send_external_messages
+      - install_plugins
+
+  architecture_fr:
+    pantheon_path: domains/architecture_fr
+    status: active
+    purpose: French architecture and maîtrise d'œuvre workflows, documents, technical risk and professional outputs
+    openwebui:
+      knowledge_bases:
+        - id: architecture_fr_cctp_models
+          status: planned
+          privacy_level: internal
+          source_tier: agency_reference
+        - id: architecture_fr_dpgf_models
+          status: planned
+          privacy_level: internal
+          source_tier: agency_reference
+        - id: architecture_fr_contract_clauses
+          status: planned
+          privacy_level: internal
+          source_tier: agency_reference
+        - id: architecture_fr_notices
+          status: planned
+          privacy_level: internal
+          source_tier: agency_reference
+        - id: architecture_fr_sdis_erp
+          status: planned
+          privacy_level: internal
+          source_tier: official_or_project_reference
+        - id: architecture_fr_plu_reference
+          status: planned
+          privacy_level: internal
+          source_tier: official_or_project_reference
+        - id: architecture_fr_site_reports
+          status: planned
+          privacy_level: project_private
+          source_tier: project_source
+      workspace_models:
+        - ATHENA Architecture Planner
+        - ARGOS Document Extractor
+        - THEMIS Contract Risk Check
+        - HEPHAESTUS Technical Review
+        - APOLLO Architecture Validator
+        - IRIS Client Communication
+      operator_skills:
+        - cctp_review_prompt
+        - dpgf_review_prompt
+        - quote_vs_cctp_review_prompt
+        - notice_architecturale_prompt
+        - client_message_safety_prompt
+    forbidden:
+      - cross_project_mixing_without_trace
+      - promote_project_facts_to_system_memory_without_review
+      - send_client_messages_without_approval
+      - contractual_conclusion_without_evidence_pack
+      - silent_use_of_obsolete_templates
+
+  software:
+    pantheon_path: domains/software
+    status: active
+    purpose: repository audit, code/docs alignment, legacy classification, API review, context export and controlled refactor planning
+    openwebui:
+      knowledge_bases:
+        - id: software_repo_docs
+          status: planned
+          privacy_level: internal
+          source_tier: repository_source
+        - id: pantheon_governance
+          status: active
+          privacy_level: internal
+          source_tier: canonical_governance
+        - id: code_audit_post_pivot
+          status: planned
+          privacy_level: internal
+          source_tier: governance
+        - id: api_contract_docs
+          status: planned
+          privacy_level: internal
+          source_tier: repository_source
+      workspace_models:
+        - ATHENA Software Planner
+        - ARGOS Repo Inspector
+        - HEPHAESTUS Code Reviewer
+        - THEMIS Change Gate
+        - APOLLO Merge Validator
+      operator_skills:
+        - repo_md_audit_prompt
+        - legacy_classification_prompt
+        - api_contract_check_prompt
+        - context_export_review_prompt
+    forbidden:
+      - push_main
+      - delete_files_without_approval
+      - install_dependencies_without_policy
+      - read_secrets
+      - create_runtime_bypass_endpoint
+      - reactivate_autonomous_runtime
+
+evidence_trace_fields:
+  - pantheon_domain
+  - openwebui_knowledge_bases_used
+  - openwebui_workspace_model_used
+  - openwebui_operator_skills_used
+  - source_status
+  - project_scope
+  - privacy_level
+  - unsupported_claims
+  - fallbacks
+  - approval_required
