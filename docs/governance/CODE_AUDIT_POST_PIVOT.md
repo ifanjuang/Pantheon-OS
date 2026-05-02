@@ -235,3 +235,105 @@ repo_md_audit → code_audit_post_pivot → targeted code cleanup branch
 ```
 
 Code cleanup should start only after the documentation changes in this register are merged.
+
+---
+
+## 10. CI / test breakage diagnostic (2026-05-02)
+
+This section records the post-pivot state of the repository CI. It classifies
+the breakage and proposes the safe next actions.
+
+### 10.1 Lint job
+
+Workflow: `.github/workflows/ci.yml` → job `Lint`.
+
+```text
+ruff check    platform/api/ tests/   → passes
+ruff format --check platform/api/ tests/ → 4 files would be reformatted
+```
+
+Affected files:
+
+```text
+platform/api/apps/approvals/router.py
+platform/api/core/contracts/manifest.py
+platform/api/pantheon_domain/repository.py
+tests/test_manifest_loader.py
+```
+
+Cause: cosmetic line-length / wrap drift. No behavior change.
+
+Classification:
+
+| Field | Value |
+|---|---|
+| Status | `keep` |
+| Approval level | C3 (file mutation, candidate patch on a branch) |
+| Risk | none beyond cosmetic |
+| Proposed action | apply `ruff format platform/api/ tests/` |
+
+### 10.2 Tests job
+
+Workflow: `.github/workflows/ci.yml` → job `Tests`.
+
+```text
+pytest tests/ -q --cov-fail-under=30 -x
+```
+
+Cause: stale `modules.*` import paths in test mocks after the recent
+top-level `modules/ → workflows/` reorganization. The pytest fixture
+context (`PYTHONPATH=platform/api`) means the active code namespace is
+now `apps.*`, not `modules.*`.
+
+Confirmed pattern in 7 test files:
+
+| Test file | Stale patch target | Current location | Notes |
+|---|---|---|---|
+| `tests/test_guards.py` | `modules.guards.service.LlmService.extract` | `apps.guards.service` (imports `LlmService` from `core.services.llm_service`) | rename `modules` → `apps` |
+| `tests/test_guards.py` | `modules.agent.memory.LlmService` | `apps.agent.memory` | rename `modules` → `apps` |
+| `tests/test_memory.py` | `modules.agent.memory.LlmService` | `apps.agent.memory` | rename `modules` → `apps` |
+| `tests/test_webhooks.py` | `modules.webhooks.router.run_agent` | `apps.webhooks.router` (imports `run_agent` from `apps.agent.service`) | rename `modules` → `apps` |
+| `tests/test_orchestra.py` | `modules.orchestra.router.run_orchestra` / `get_queue` | `apps.orchestra.router` | rename `modules` → `apps` |
+| `tests/test_meeting.py` | `modules.meeting.service._llm` | `apps.meeting.service` | rename `modules` → `apps` |
+| `tests/test_capture.py` | `modules.capture.router.StorageService.upload` / `transcribe_audio` | `apps.capture.router` | rename `modules` → `apps` |
+| `tests/test_capture.py` | `modules.capture.service.process_capture` | `apps.capture.service` | rename `modules` → `apps` |
+| `tests/test_capture.py` | `modules.capture.service.run_agent` | `apps.capture.service` imports `run_agent` **inside** `process_capture` (line 92), so the module-level attribute does not exist | architectural — patch should target `apps.agent.service.run_agent` instead |
+
+Note on `tests/conftest.py`: the reference to `modules.yaml` (line 129) is
+the YAML config file at repository root, not a Python module. It is
+unaffected by the reorganization.
+
+Classification:
+
+| Field | Value |
+|---|---|
+| Status | `to_verify` |
+| Approval level | C3 (test patches mutate test files only) |
+| Risk | mostly mechanical, but `tests/test_capture.py::run_agent` patch needs an architectural decision (rebind to `apps.agent.service.run_agent`) |
+| Proposed action | open a follow-up branch `work/<agent>/ci-tests-modules-rename`, apply per-file rename, verify each `patch()` target exists at module level after rename, run pytest collection then full suite under CI services |
+
+### 10.3 Coverage gate
+
+The `--cov-fail-under=30` threshold may compound the test breakage. Once
+the import-path issues are fixed, coverage may still fall below 30% if a
+significant fraction of tests still fails at runtime (services, fixtures,
+data). The coverage gate is **not** itself a bug; it is a quality gate
+that will need attention after the import fix.
+
+### 10.4 Security audit job
+
+`Security audit` (pip-audit) is **passing**. No action needed.
+
+### 10.5 OpenClaw regression job
+
+`OpenClaw regression` is **skipped** on non-`main`/`develop` branches by
+design (`if: github.ref == 'refs/heads/main' || ...`). No action needed.
+
+### 10.6 Summary
+
+| Job | Status on `main` HEAD | Cause | Decision |
+|---|---|---|---|
+| Lint | failure | `ruff format` drift in 4 files | apply `ruff format` (this PR) |
+| Tests | failure | stale `modules.*` import paths in 7 test files post-reorg | follow-up PR after per-symbol mapping |
+| Security audit | success | — | none |
+| OpenClaw regression | skipped | branch filter | none |

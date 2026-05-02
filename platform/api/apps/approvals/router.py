@@ -103,7 +103,9 @@ def get_router(config: dict) -> APIRouter:
             existing = await get_approval_request(db, approval_id)
             if existing is None:
                 raise HTTPException(status_code=404, detail="Approval request not found")
-            raise HTTPException(status_code=409, detail=f"Approval request cannot expire from status: {existing.status}")
+            raise HTTPException(
+                status_code=409, detail=f"Approval request cannot expire from status: {existing.status}"
+            )
 
         await db.commit()
         await db.refresh(approval)
@@ -121,7 +123,9 @@ def get_router(config: dict) -> APIRouter:
             existing = await get_approval_request(db, approval_id)
             if existing is None:
                 raise HTTPException(status_code=404, detail="Approval request not found")
-            raise HTTPException(status_code=409, detail=f"Approval request cannot escalate from status: {existing.status}")
+            raise HTTPException(
+                status_code=409, detail=f"Approval request cannot escalate from status: {existing.status}"
+            )
 
         await db.commit()
         await db.refresh(approval)

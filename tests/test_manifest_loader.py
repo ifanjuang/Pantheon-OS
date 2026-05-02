@@ -15,19 +15,14 @@ def test_manifest_loader_loads_enabled_manifests_and_skips_disabled(tmp_path: Pa
     agents_dir = tmp_path / "agents" / "meta" / "zeus_orchestrator"
     agents_dir.mkdir(parents=True)
     (agents_dir / "manifest.yaml").write_text(
-        "id: zeus\n"
-        "name: '@ZEUS'\n"
-        "type: agent\n"
-        "enabled: true\n",
+        "id: zeus\n" "name: '@ZEUS'\n" "type: agent\n" "enabled: true\n",
         encoding="utf-8",
     )
 
     disabled_dir = tmp_path / "agents" / "meta" / "disabled_agent"
     disabled_dir.mkdir(parents=True)
     (disabled_dir / "manifest.yaml").write_text(
-        "id: disabled\n"
-        "type: agent\n"
-        "enabled: false\n",
+        "id: disabled\n" "type: agent\n" "enabled: false\n",
         encoding="utf-8",
     )
 

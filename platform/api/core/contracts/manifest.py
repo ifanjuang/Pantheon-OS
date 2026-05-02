@@ -107,14 +107,10 @@ class ComponentManifest(BaseModel):
         issues: list[ManifestValidationIssue] = []
 
         if not self.description:
-            issues.append(
-                ManifestValidationIssue(field="description", message="description is recommended")
-            )
+            issues.append(ManifestValidationIssue(field="description", message="description is recommended"))
 
         if self.type == ManifestType.API_APP and not self.prefix:
-            issues.append(
-                ManifestValidationIssue(field="prefix", message="api_app manifests should declare a prefix")
-            )
+            issues.append(ManifestValidationIssue(field="prefix", message="api_app manifests should declare a prefix"))
 
         if self.type != ManifestType.API_APP and self.side_effect_profile == SideEffectProfile.NONE:
             issues.append(
@@ -125,9 +121,7 @@ class ComponentManifest(BaseModel):
             )
 
         if self.type in {ManifestType.ACTION, ManifestType.TOOL} and not self.outputs:
-            issues.append(
-                ManifestValidationIssue(field="outputs", message="actions and tools should declare outputs")
-            )
+            issues.append(ManifestValidationIssue(field="outputs", message="actions and tools should declare outputs"))
 
         return issues
 
