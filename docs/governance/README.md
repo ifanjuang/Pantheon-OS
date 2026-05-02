@@ -35,6 +35,7 @@ The runtime must not treat these documents as decorative notes. They drive devel
 | `MODEL_ROUTING_POLICY.md` | Model selection policy for OpenWebUI presets, Ollama instances, Hermes execution and Pantheon abstract agents |
 | `EXTERNAL_TOOLS_POLICY.md` | Governance for external integrations |
 | `EXTERNAL_RUNTIME_OPTIONS.md` | Classification of optional runtimes, workflow labs, context engines and graph/workspace tools |
+| `EXTERNAL_AI_OPTION_REVIEWS.md` | Focused reviews for AnimoCerebro and Caliber/ai-setup external AI options |
 | `KNOWLEDGE_TAXONOMY.md` | Knowledge vs Memory classification |
 | `CODE_AUDIT_POST_PIVOT.md` | Legacy/runtime code classification register |
 | `PRE_REFACTOR_ARCHITECTURE_FINDINGS.md` | Read-only audit synthesis of existing code assets to preserve or reclassify before refactor |
