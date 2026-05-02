@@ -41,6 +41,7 @@ external tools policy
 | `blocked_until_reviewed` | Must not be installed or connected before security/governance review |
 | `to_verify` | Insufficiently reviewed; no integration decision yet |
 | `watch` | Interesting but not actionable now |
+| `inspiration_only` | Useful as pattern source, not as dependency or runtime |
 | `rejected_for_core` | Must not become a Pantheon core component |
 
 ---
@@ -55,6 +56,9 @@ external tools policy
 | OpenAI Symphony | Issue-tracker orchestration spec / runner | `watch` / `rejected_for_core` | Strong inspiration for Task Contract lifecycle, isolated workspaces and proof-of-work | Study workspace/run/handoff patterns; adapt concepts into schemas | Become Pantheon scheduler, runner or autonomous issue executor | P2/P3 |
 | OpenClaw | Autonomous personal AI runtime | `blocked_until_reviewed` | Powerful but risky and runtime-overlapping | Future external runtime experiment in sandbox only | Replace Hermes, access secrets/repo/files, run C3-C5 actions, write memory | P3 |
 | Graphify | Repo/document graph tool | `test_read_only` | Strong fit for repo/code/docs graph audit | Read-only graphing of repo/docs, produce graph reports for Evidence Packs | Become canonical memory, auto-update graph on private data without policy | P1/P2 |
+| RAGFlow | External RAG / document understanding engine | `test_read_only` / `optional_external_knowledge_engine` | Useful for heavy corpus parsing and retrieval if OpenWebUI Knowledge becomes insufficient | Sandbox retrieval tests, document parsing evaluation, citation/retrieval benchmark | Become canonical memory, replace Pantheon Knowledge Registry, run agent workflows, bypass approvals | P2 |
+| Thoth | Local-first personal AI runtime | `inspiration_only` / `rejected_for_core` | Useful as UX/security pattern source, not as dependency | Study permission tiers, local-first privacy, health monitoring, graph provenance | Replace Hermes, connect shell/browser/email/workflows, become Pantheon memory/runtime | P2 inspiration |
+| kontext-brain-ts | Ontology / context graph retrieval | `watch` / `test_read_only` | Strong conceptual fit for `knowledge_selection` | Study ontology-first source routing, run non-sensitive read-only retrieval tests | Build canonical graph memory, use MCP connectors without policy, bypass Task Contracts | P1/P2 |
 | Layer Infinite / Layer | AI app/workflow platform | `to_verify` | Unclear fit | Watch or verify documentation before decision | Treat as Pantheon runtime without audit | P3 |
 | CTX | Context runtime engine for coding agents | `to_verify` | Relevant but overlaps context packs/Hermes memory | Study context packing, repo indexing and local retrieval ideas | Become Pantheon runtime or memory authority | P2/P3 |
 | Binderly | Document/export/workspace tool | `to_verify` | Potentially useful for packaging/export | Verify for Markdown/PDF/export workflows | Become source of truth or memory layer | P3 |
@@ -352,7 +356,256 @@ UNSUPPORTED
 
 ---
 
-## 9. Layer Infinite / Layer decision
+## 9. RAGFlow decision
+
+Classification:
+
+```text
+test_read_only
+optional_external_knowledge_engine
+rejected_for_core
+```
+
+References:
+
+```text
+https://github.com/infiniflow/ragflow
+```
+
+RAGFlow is an external RAG and document-understanding engine. It is potentially useful if OpenWebUI Knowledge becomes insufficient for heavy document parsing, advanced chunking, heterogeneous corpora, citation inspection or retrieval benchmarking.
+
+Potential Pantheon use:
+
+```text
+heavy PDF/DOCX parsing evaluation
+retrieval quality benchmark
+citation trace comparison
+RAG pipeline comparison against OpenWebUI Knowledge
+Hermes-side retrieval capability under Task Contract
+```
+
+Pantheon-compatible interpretation:
+
+```text
+RAGFlow may be a retrieval backend or benchmark target.
+It must not become canonical memory.
+It must not replace the Knowledge Registry.
+It must not become the execution runtime.
+```
+
+Allowed first test:
+
+```text
+local or sandbox deployment only
+public/sample documents only
+read-only retrieval tests
+no client/project data
+no automatic ingestion into memory
+Evidence Pack comparing source trace, chunking and retrieval quality
+```
+
+Forbidden:
+
+```text
+replace OpenWebUI Knowledge by default
+replace Hermes
+replace Pantheon Knowledge Registry
+turn RAGFlow Memory into Pantheon Memory
+run RAGFlow agent workflows as Pantheon workflows
+connect private corpora before policy approval
+use code executor or agentic workflow features without C5-level review
+```
+
+Risk:
+
+```text
+heavy infrastructure footprint
+parallel Knowledge authority
+agentic workflow drift
+memory confusion
+plugin/MCP exposure
+private document leakage if misconfigured
+```
+
+Decision:
+
+```text
+Keep RAGFlow as optional external Knowledge/RAG engine candidate for P2.
+Do not integrate now.
+Use only after a read-only external tool review and sample-corpus Evidence Pack.
+```
+
+---
+
+## 10. Thoth decision
+
+Classification:
+
+```text
+inspiration_only
+rejected_for_core
+```
+
+References:
+
+```text
+https://github.com/siddsachar/Thoth
+https://siddsachar.github.io/Thoth/
+```
+
+Thoth is a local-first personal AI runtime with autonomous agent behavior, tools, shell, browser automation, workflows, plugins and a personal knowledge graph. It is useful as an idea source but overlaps too strongly with Hermes and with capabilities Pantheon explicitly does not own.
+
+Compatible ideas to study:
+
+```text
+local-first privacy posture
+permission tiers for sensitive tools
+health/status monitoring UX
+knowledge graph provenance UX
+approval gates for workflows
+shell safety tiers as policy inspiration
+```
+
+Pantheon-compatible reclassification:
+
+| Thoth concept | Pantheon-compatible form |
+|---|---|
+| local-first assistant | deployment/security inspiration only |
+| permission tiers | `APPROVALS.md` / `EXTERNAL_TOOLS_POLICY.md` refinement |
+| knowledge graph | memory/event provenance inspiration, not canonical graph |
+| health monitor | `operations/doctor.md` inspiration |
+| workflows | Task Contract / OpenWebUI approval UX inspiration |
+| shell/browser tools | Hermes-side tools only, if ever authorized |
+
+Forbidden:
+
+```text
+replace Hermes
+become Pantheon runtime
+connect shell/browser/email/calendar to Pantheon
+import Thoth memory into Pantheon memory
+use plugin marketplace
+run private project data through Thoth
+perform C3-C5 actions without Pantheon approval
+```
+
+Risk:
+
+```text
+runtime duplication
+approval bypass
+tool sprawl
+memory drift
+plugin supply-chain risk
+shell/browser surface area
+```
+
+Decision:
+
+```text
+Study Thoth only as UX/security inspiration.
+Do not integrate it into Pantheon.
+Do not install it as part of Pantheon or Hermes Lab without a separate sandbox review.
+```
+
+---
+
+## 11. kontext-brain-ts decision
+
+Classification:
+
+```text
+watch
+test_read_only
+```
+
+References:
+
+```text
+https://github.com/hj1105/kontext-brain-ts
+https://github.com/hj1105/kontext-brain
+```
+
+Status:
+
+```text
+À vérifier: the exact repository path and current implementation details must be confirmed before any test.
+```
+
+The reported approach is ontology/graph-first source routing before full content retrieval. This fits the next Pantheon target: `knowledge_selection`.
+
+Potential Pantheon use:
+
+```text
+ontology-based Knowledge source routing
+source-tier-aware retrieval planning
+privacy/project-scope filtering before content loading
+token-budget reduction for Knowledge selection
+comparison against flat vector retrieval
+```
+
+Pantheon-compatible interpretation:
+
+```text
+Use the idea as a method for selecting sources.
+Do not make it a canonical graph memory.
+Do not let it load private connectors without policy.
+```
+
+Possible mapping:
+
+```text
+Task Contract
+→ domain
+→ source tier filter
+→ privacy/project scope filter
+→ ontology route
+→ candidate Knowledge Bases
+→ Hermes retrieves allowed sources
+→ Evidence Pack
+```
+
+Allowed first step:
+
+```text
+read documentation
+verify license and repository status
+create a small non-sensitive ontology example for `knowledge_selection`
+compare with `knowledge/registry.example.yaml`
+no MCP connectors
+no private data
+```
+
+Forbidden:
+
+```text
+build or update Pantheon memory automatically
+connect Notion/Jira/GitHub/Slack MCP tools without policy
+load project data before Task Contract approval
+replace OpenWebUI Knowledge or Pantheon Knowledge Registry
+make ontology traversal an unreviewed hidden control plane
+```
+
+Risk:
+
+```text
+young or unverified project
+MCP connector exposure
+ontology maintenance overhead
+false confidence from graph routing
+parallel context authority
+```
+
+Decision:
+
+```text
+Use as inspiration for `domains/general/skills/knowledge_selection/`.
+Do not integrate as dependency before a dedicated read-only review.
+```
+
+---
+
+## 12. Layer Infinite / Layer decision
 
 Classification:
 
@@ -373,7 +626,7 @@ Do not use as asset-generation dependency until classified.
 
 ---
 
-## 10. CTX decision
+## 13. CTX decision
 
 Classification:
 
@@ -420,7 +673,7 @@ expose MCP tools without policy
 
 ---
 
-## 11. Binderly decision
+## 14. Binderly decision
 
 Classification:
 
@@ -450,7 +703,7 @@ unreviewed external sync
 
 ---
 
-## 12. NeverWrite decision
+## 15. NeverWrite decision
 
 Classification:
 
@@ -500,7 +753,7 @@ sync private project data without policy
 
 ---
 
-## 13. Required review checklist for any option
+## 16. Required review checklist for any option
 
 Before moving a tool from `to_verify`, `watch` or `blocked_until_reviewed` to `test_read_only` or `allowed_as_library_in_hermes`, record:
 
@@ -526,7 +779,7 @@ Evidence Pack requirements
 
 ---
 
-## 14. Approval policy
+## 17. Approval policy
 
 | Action | Approval |
 |---|---|
@@ -543,7 +796,7 @@ Evidence Pack requirements
 
 ---
 
-## 15. Final rule
+## 18. Final rule
 
 ```text
 External runtimes may assist Pantheon.
