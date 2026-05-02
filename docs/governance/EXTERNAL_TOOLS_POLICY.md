@@ -44,7 +44,9 @@ This policy applies to:
 - browser automation;
 - remote bridges;
 - dashboards;
-- code-generation or patch-generation tools.
+- code-generation or patch-generation tools;
+- external automation orchestrators;
+- email-triggered automation.
 
 ---
 
@@ -69,6 +71,7 @@ qpdf
 SearXNG
 Hermes Dashboard
 remote MCP servers
+n8n
 ```
 
 Additional tools may be added only through this document or a future machine-readable registry.
@@ -181,6 +184,11 @@ Baseline mapping:
 | local service install | C3 |
 | OpenWebUI plugin install | C3 |
 | Hermes plugin install | C3 |
+| n8n local workflow draft | C3 |
+| n8n email trigger with internal-only action | C3 |
+| n8n workflow sending external message | C4 |
+| n8n workflow touching private project/client data | C4 |
+| n8n workflow with secrets or broad filesystem access | C5 |
 | MCP server install | C3/C4 |
 | memory plugin install | C4 |
 | graph memory runtime install | C4 |
@@ -653,6 +661,91 @@ Potential Pantheon reuse:
 - define lineage queries for claim → source → tool → role → task contract → Evidence Pack;
 - inform future `MEMORY_EVENT_SCHEMA.md` and graph memory work;
 - keep hybrid search / RRF as P2/P3 inspiration only.
+
+## 10.10 n8n
+
+```yaml
+tool_name: n8n
+repository: n8n-io/n8n
+license: to_verify
+license_status: not_checked
+type: external_automation_orchestrator
+status: test
+maturity: production_candidate
+data_classification: internal_or_project_sensitive_if_connected_to_email
+local_only: true
+network_exposure: LAN_only_by_default
+auth_required: true
+sandbox_required: true
+file_access: none_by_default
+network_access: limited_to_declared_connectors
+memory_access: none
+secrets_access: required_for_connectors_but_forbidden_in_repo
+shell_access: none
+side_effects:
+  - may read incoming emails
+  - may create files or records
+  - may call webhooks
+  - may send notifications
+  - may send emails if configured
+  - may trigger Hermes or OpenWebUI handoff endpoints in future
+approval_level: C3_for_local_test_C4_for_external_messages_or_project_data_C5_for_secrets_broad_access_or_public_exposure
+allowed_usage:
+  - local_email_trigger_test
+  - classify_incoming_email_metadata
+  - save_attachment_to_controlled_folder
+  - notify_operator_of_new_candidate_task
+  - create_task_contract_candidate_without_execution
+  - trigger_Hermes_only_through_approved_Task_Contract_in_future
+  - route_to_OpenWebUI_for_human_validation
+forbidden_usage:
+  - become_pantheon_scheduler
+  - become_pantheon_runtime
+  - become_pantheon_approval_authority
+  - become_pantheon_memory
+  - auto_promote_email_content_to_memory
+  - auto_send_external_reply_without_C4_approval
+  - execute_C3_C4_C5_actions_without_approval
+  - expose_editor_publicly_without_auth_VPN_and_review
+  - store_connector_secrets_in_repository
+  - broad_filesystem_access
+  - Docker_socket_access
+  - direct_mutation_of_governance_Markdown
+rollback_plan: disable_workflow_revoke_connector_credentials_stop_container_remove_webhook_routes
+review_frequency: before_first_install_then_quarterly_if_retained
+last_reviewed: 2026-05-02
+default_decision: local_sandbox_test_only
+```
+
+Pantheon interpretation:
+
+```text
+n8n is useful as an external automation layer for events, webhooks, email triggers and notifications.
+It is not Pantheon runtime, memory, scheduler, approval engine or source of truth.
+```
+
+Recommended first use cases:
+
+```text
+email_received -> classify metadata -> notify operator
+email_received_with_attachment -> save copy to controlled folder -> create candidate task note
+client_or_admin_email -> draft internal summary -> request OpenWebUI/Human validation
+approved_trigger -> call Hermes only through Task Contract in future
+```
+
+Minimum safety rules:
+
+```text
+local-only first
+strong authentication
+no public editor exposure
+no secrets in repo
+no automatic external reply
+no memory promotion
+no project/client data in examples
+one workflow = one narrow purpose
+workflow disabled by default until reviewed
+```
 
 ---
 
