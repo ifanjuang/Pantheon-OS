@@ -1,0 +1,454 @@
+# Pantheon Next Knowledge Registry example
+#
+# Purpose:
+#   Map OpenWebUI Knowledge Bases to Pantheon domains, source tiers,
+#   privacy constraints and Evidence Pack requirements.
+#
+# Doctrine:
+#   Knowledge is source material.
+#   Memory requires candidate -> Evidence Pack -> validation.
+#   OpenWebUI Knowledge is not Pantheon Memory.
+#   Hermes may query Knowledge only under Task Contract.
+#
+# This file is an example only.
+# Do not put real client, project, address, person or private data here.
+
+version: 1
+status: example
+updated_at: "2026-05-02"
+owner: pantheon-governance
+
+rules:
+  default_status: planned
+  default_source_tier: T5
+  default_reliability_level: R0
+  default_privacy_level: internal
+  default_project_scope: none
+  unknown_sources: blocked_until_reviewed
+  cross_project_use: forbidden_without_explicit_trace
+  memory_promotion: candidate_only
+  memory_promotion_requires:
+    - evidence_pack
+    - approval_C3_minimum
+    - source_trace
+    - conflict_check
+  forbidden:
+    - treating_knowledge_as_canonical_memory
+    - using_private_project_data_in_generic_collections
+    - mixing_project_collections_without_trace
+    - promoting_openwebui_history_to_memory_directly
+    - using_stale_regulatory_sources_without_warning
+
+source_tiers:
+  T0:
+    label: pantheon_source_of_truth
+    description: Pantheon governance Markdown or validated Pantheon memory.
+    evidence_weight: canonical
+  T1:
+    label: signed_or_official_project_documents
+    description: Signed contracts, official project documents or validated project references.
+    evidence_weight: project_specific_high
+  T2:
+    label: working_project_documents
+    description: Drafts, working documents, quotes, reports or extracts that must be checked for version and status.
+    evidence_weight: project_specific_conditional
+  T3:
+    label: generic_official_references
+    description: Public regulatory or official professional references.
+    evidence_weight: reference_high_if_current
+  T4:
+    label: templates_and_examples
+    description: Internal or external models used as drafting aids only.
+    evidence_weight: drafting_aid
+  T5:
+    label: external_unverified_sources
+    description: Unverified external references or exploratory material.
+    evidence_weight: inspiration_only
+
+reliability_levels:
+  R0: draft_or_unknown
+  R1: useful_example_not_validated
+  R2: validated_internal_model
+  R3: official_or_normative_reference
+  R4: validated_pantheon_rule
+  R5: pantheon_source_of_truth
+
+privacy_levels:
+  public:
+    allowed_in_repo_examples: true
+    description: Public and non-sensitive material.
+  internal:
+    allowed_in_repo_examples: true
+    description: Internal methods, governance and non-client examples.
+  private:
+    allowed_in_repo_examples: false
+    description: Project, client, contract, quote, site or correspondence data.
+  sensitive:
+    allowed_in_repo_examples: false
+    description: Secrets, credentials, personal data, legal exposure or high-risk confidential data.
+
+freshness_policies:
+  static:
+    description: Stable source; review when governance changes.
+    check_required_after_days: null
+  periodic_6_months:
+    description: Review every six months.
+    check_required_after_days: 180
+  periodic_12_months:
+    description: Review yearly.
+    check_required_after_days: 365
+  regulatory_current:
+    description: Must be checked before consequential regulatory, contractual or compliance use.
+    check_required_after_days: 90
+  project_versioned:
+    description: Must verify document date, version, status and superseded state before use.
+    check_required_after_days: null
+
+collections:
+  - id: pantheon_governance
+    label: Pantheon governance
+    domain: general
+    status: active
+    openwebui_knowledge_base: pantheon_governance
+    source_tier: T0
+    reliability_level: R5
+    privacy_level: internal
+    project_scope: none
+    freshness_policy: static
+    allowed_use:
+      - answer_governance_questions
+      - build_context_packs
+      - check_task_contracts
+      - check_approvals
+      - check_evidence_policy
+    forbidden_use:
+      - override_governance_markdown
+      - promote_memory_without_C3_review
+      - execute_tools_directly
+    evidence_required: true
+    memory_candidate_allowed: false
+    notes: Governance Markdown is source of truth; this Knowledge Base may mirror it but does not replace it.
+
+  - id: pantheon_approvals
+    label: Pantheon approvals policy
+    domain: general
+    status: planned
+    openwebui_knowledge_base: pantheon_approvals
+    source_tier: T0
+    reliability_level: R5
+    privacy_level: internal
+    project_scope: none
+    freshness_policy: static
+    allowed_use:
+      - classify_actions_C0_C5
+      - prepare_approval_requests
+      - detect_veto_conditions
+    forbidden_use:
+      - approve_actions_automatically
+      - bypass_human_validation
+    evidence_required: true
+    memory_candidate_allowed: false
+
+  - id: pantheon_task_contracts
+    label: Pantheon task contracts
+    domain: general
+    status: planned
+    openwebui_knowledge_base: pantheon_task_contracts
+    source_tier: T0
+    reliability_level: R5
+    privacy_level: internal
+    project_scope: none
+    freshness_policy: static
+    allowed_use:
+      - prepare_hermes_handoff
+      - check_allowed_tools
+      - check_expected_outputs
+      - check_stop_conditions
+    forbidden_use:
+      - run_tasks_inside_pantheon
+      - mutate_contracts_without_approval
+    evidence_required: true
+    memory_candidate_allowed: false
+
+  - id: pantheon_evidence_pack
+    label: Pantheon Evidence Pack policy
+    domain: general
+    status: planned
+    openwebui_knowledge_base: pantheon_evidence_pack
+    source_tier: T0
+    reliability_level: R5
+    privacy_level: internal
+    project_scope: none
+    freshness_policy: static
+    allowed_use:
+      - build_evidence_pack_summaries
+      - check_sources_used
+      - check_assumptions_and_limitations
+      - flag_unsupported_claims
+    forbidden_use:
+      - treat_model_output_as_evidence
+      - hide_limitations
+    evidence_required: true
+    memory_candidate_allowed: false
+
+  - id: architecture_fr_cctp_models
+    label: French architecture CCTP models
+    domain: architecture_fr
+    status: planned
+    openwebui_knowledge_base: architecture_fr_cctp_models
+    source_tier: T4
+    reliability_level: R2
+    privacy_level: internal
+    project_scope: generic
+    freshness_policy: periodic_12_months
+    allowed_use:
+      - drafting_aid
+      - structure_cctp_sections
+      - compare_expected_lot_structure
+      - identify_missing_scope_candidates
+    forbidden_use:
+      - treat_template_as_project_contract
+      - use_as_normative_source_without_check
+      - inject_private_project_data
+    evidence_required: true
+    memory_candidate_allowed: true
+    memory_candidate_target: system
+    promotion_condition: reusable_method_only_after_review
+
+  - id: architecture_fr_dpgf_models
+    label: French architecture DPGF models
+    domain: architecture_fr
+    status: planned
+    openwebui_knowledge_base: architecture_fr_dpgf_models
+    source_tier: T4
+    reliability_level: R2
+    privacy_level: internal
+    project_scope: generic
+    freshness_policy: periodic_12_months
+    allowed_use:
+      - drafting_aid
+      - check_lot_breakdown
+      - check_quantity_structure
+      - support_dpgf_review
+    forbidden_use:
+      - validate_quantities_without_project_evidence
+      - treat_template_prices_as_current_market_prices
+      - mix_project_specific_quantities
+    evidence_required: true
+    memory_candidate_allowed: true
+    memory_candidate_target: system
+    promotion_condition: reusable_quantity_check_pattern_only_after_review
+
+  - id: architecture_fr_contract_clauses
+    label: French architecture contract clauses
+    domain: architecture_fr
+    status: planned
+    openwebui_knowledge_base: architecture_fr_contract_clauses
+    source_tier: T4
+    reliability_level: R2
+    privacy_level: internal
+    project_scope: generic
+    freshness_policy: periodic_12_months
+    allowed_use:
+      - drafting_aid
+      - risk_review
+      - compare_private_market_clauses
+      - prepare_client_safe_explanations
+    forbidden_use:
+      - issue_legal_conclusion_without_review
+      - send_external_message_without_C4_approval
+      - treat_clause_model_as_signed_contract
+    evidence_required: true
+    memory_candidate_allowed: true
+    memory_candidate_target: system
+    promotion_condition: reusable_contractual_pattern_only_after_review
+
+  - id: architecture_fr_notices
+    label: French architecture notices
+    domain: architecture_fr
+    status: planned
+    openwebui_knowledge_base: architecture_fr_notices
+    source_tier: T4
+    reliability_level: R2
+    privacy_level: internal
+    project_scope: generic
+    freshness_policy: periodic_12_months
+    allowed_use:
+      - drafting_aid
+      - notice_architecturale_structure
+      - wording_quality_review
+      - check_missing_context
+    forbidden_use:
+      - reuse_real_project_identity
+      - assert_site_specific_fact_without_source
+      - treat_example_as_current_project_context
+    evidence_required: true
+    memory_candidate_allowed: true
+    memory_candidate_target: system
+    promotion_condition: anonymized_reusable_method_only
+
+  - id: architecture_fr_sdis_erp
+    label: French ERP and SDIS references
+    domain: architecture_fr
+    status: planned
+    openwebui_knowledge_base: architecture_fr_sdis_erp
+    source_tier: T3
+    reliability_level: R3
+    privacy_level: internal
+    project_scope: generic
+    freshness_policy: regulatory_current
+    allowed_use:
+      - identify_regulatory_questions
+      - support_erp_sdis_file_review
+      - flag_missing_evidence
+      - prepare_non_final_risk_analysis
+    forbidden_use:
+      - issue_final_regulatory_position_without_current_check
+      - substitute_authority_or_control_office_review
+      - use_stale_reference_without_warning
+    evidence_required: true
+    memory_candidate_allowed: true
+    memory_candidate_target: system
+    promotion_condition: validated_regulatory_method_only_after_review
+
+  - id: architecture_fr_plu_reference
+    label: French PLU and urban planning references
+    domain: architecture_fr
+    status: planned
+    openwebui_knowledge_base: architecture_fr_plu_reference
+    source_tier: T3
+    reliability_level: R3
+    privacy_level: internal
+    project_scope: generic
+    freshness_policy: regulatory_current
+    allowed_use:
+      - identify_urban_planning_constraints
+      - prepare_questions_for_source_check
+      - support_permit_file_review
+    forbidden_use:
+      - assert_current_plu_rule_without_latest_source
+      - mix_communes_or_zones_without_trace
+      - treat_generic_reference_as_project_specific_rule
+    evidence_required: true
+    memory_candidate_allowed: true
+    memory_candidate_target: system
+    promotion_condition: reusable_review_method_only_after_source_check
+
+  - id: architecture_fr_site_reports
+    label: French architecture site report models
+    domain: architecture_fr
+    status: planned
+    openwebui_knowledge_base: architecture_fr_site_reports
+    source_tier: T4
+    reliability_level: R2
+    privacy_level: internal
+    project_scope: generic
+    freshness_policy: periodic_12_months
+    allowed_use:
+      - drafting_aid
+      - chantier_report_structure
+      - reserve_report_structure
+      - observation_wording_review
+    forbidden_use:
+      - include_real_project_data_in_generic_collection
+      - treat_model_report_as_site_observation
+      - issue_external_instruction_without_approval
+    evidence_required: true
+    memory_candidate_allowed: true
+    memory_candidate_target: system
+    promotion_condition: anonymized_reusable_reporting_pattern_only
+
+  - id: software_repo_docs
+    label: Pantheon software repository docs
+    domain: software
+    status: planned
+    openwebui_knowledge_base: software_repo_docs
+    source_tier: T0
+    reliability_level: R5
+    privacy_level: internal
+    project_scope: pantheon_repo
+    freshness_policy: project_versioned
+    allowed_use:
+      - repo_markdown_audit
+      - code_docs_alignment
+      - context_pack_review
+      - architecture_drift_detection
+    forbidden_use:
+      - assume_code_state_without_tree_check
+      - modify_files_without_branch_and_approval
+      - push_to_main
+    evidence_required: true
+    memory_candidate_allowed: true
+    memory_candidate_target: system
+    promotion_condition: governance_pattern_only_after_review
+
+  - id: code_audit_post_pivot
+    label: Code audit post pivot register
+    domain: software
+    status: active
+    openwebui_knowledge_base: code_audit_post_pivot
+    source_tier: T0
+    reliability_level: R5
+    privacy_level: internal
+    project_scope: pantheon_repo
+    freshness_policy: project_versioned
+    allowed_use:
+      - classify_legacy_components
+      - prevent_runtime_drift
+      - prepare_refactor_recommendations
+    forbidden_use:
+      - delete_legacy_without_diagnosis
+      - reactivate_autonomous_runtime_path
+      - treat_unverified_component_as_active
+    evidence_required: true
+    memory_candidate_allowed: true
+    memory_candidate_target: system
+    promotion_condition: validated_legacy_decision_only
+
+  - id: api_contract_docs
+    label: Pantheon API contract docs
+    domain: software
+    status: planned
+    openwebui_knowledge_base: api_contract_docs
+    source_tier: T0
+    reliability_level: R5
+    privacy_level: internal
+    project_scope: pantheon_repo
+    freshness_policy: project_versioned
+    allowed_use:
+      - api_surface_review
+      - domain_api_contract_check
+      - smoke_test_planning
+      - prevent_runtime_endpoint_drift
+    forbidden_use:
+      - add_execution_endpoint_without_governance_update
+      - treat_pantheon_api_as_openai_backend
+      - bypass_task_contracts
+    evidence_required: true
+    memory_candidate_allowed: true
+    memory_candidate_target: system
+    promotion_condition: validated_api_governance_pattern_only
+
+future_project_collection_template:
+  id: project_YYYY_NNN_safe_label
+  label: Example project-scoped Knowledge Base
+  domain: architecture_fr
+  status: example_template
+  openwebui_knowledge_base: project_YYYY_NNN_safe_label
+  source_tier: T1
+  reliability_level: R2
+  privacy_level: private
+  project_scope: project_YYYY_NNN
+  freshness_policy: project_versioned
+  allowed_use:
+    - answer_only_within_same_project_scope
+    - extract_memory_candidates
+    - prepare_evidence_pack
+  forbidden_use:
+    - use_for_other_projects_without_explicit_trace
+    - promote_to_system_memory_without_anonymization
+    - commit_private_project_data_to_repository
+  evidence_required: true
+  memory_candidate_allowed: true
+  memory_candidate_target: project
+  promotion_condition: project_memory_only_after_C3_review
