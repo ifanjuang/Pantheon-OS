@@ -63,11 +63,11 @@ Definitions:
 
 | Component | Path | Former role | Status | Proposed decision | Risk | Next action | Priority |
 |---|---|---|---|---|---|---|---|
-| FastAPI entrypoint | `platform/api/main.py` | API entrypoint | keep | Keep as lightweight Domain Layer API entrypoint | May drift into runtime if execution endpoints are added | Do not add agent/tool execution endpoints | P0 |
-| Domain Layer package | `platform/api/pantheon_domain/` | Domain API definitions | keep | Keep as read-only domain snapshot and approval classification surface | Low | Align terminology with Pantheon Next | P0 |
+| FastAPI entrypoint | `platform/api/main.py` | API entrypoint | keep | Keep as lightweight Pantheon Next Domain Layer API entrypoint | May drift into runtime if execution endpoints are added | Do not add agent/tool execution endpoints | P0 |
+| Domain Layer package | `platform/api/pantheon_domain/` | Domain API definitions | keep | Keep as read-only domain snapshot and approval classification surface | Low | Continue aligning terminology with Pantheon Next | P0 |
 | Domain contracts | `platform/api/pantheon_domain/contracts.py` | Pydantic domain definitions | keep | Keep as definition contracts for agents, skills, workflows, memory, knowledge, legacy | Needs C0-C5 alignment | Add explicit C0-C5 mapping later | P1 |
-| Domain repository | `platform/api/pantheon_domain/repository.py` | Static in-code registry | keep | Keep as bootstrap registry until file-backed registry exists | Contains `agency_memory` / `generic` terminology | Rename conceptually to `system_memory` and `general` | P0 |
-| Runtime context package | `platform/api/pantheon_runtime/` | Static context pack endpoint | reorient | Treat as context export only, not runtime authority | Name suggests Pantheon runtime | Avoid execution endpoints; consider later rename | P0 |
+| Domain repository | `platform/api/pantheon_domain/repository.py` | Static in-code registry | keep | Keep as bootstrap registry until file-backed registry exists | Legacy `agency_memory` / `generic` terminology fixed in PR #70 | Continue monitoring for stale terminology | P0 |
+| Runtime context package | `platform/api/pantheon_runtime/` | Static context pack endpoint | reorient | Treat as context export only, not runtime authority | Package name still suggests Pantheon runtime | No execution endpoints; consider later rename after compatibility review | P0 |
 | Manifest contracts | `platform/api/core/contracts/manifest.py` | Runtime/module manifest | reorient | Use as schema source for skills, workflows, tools and operations doctor | Could revive registry runtime | Extract schema; do not reactivate auto-runtime | P1 |
 | Task/workflow contracts | `platform/api/core/contracts/tasks.py` | Task and workflow model | reorient | Use as basis for `WORKFLOW_SCHEMA.md` and task contracts | Starts at C1, not C0 | Add C0 before active use | P1 |
 | Workflow loader | `platform/api/core/registries/workflows.py` | Loads workflow/task YAML | reorient | Keep pattern for documentation validation, not execution | May become workflow engine | Use only as validator until policy exists | P1/P2 |
@@ -86,15 +86,46 @@ Definitions:
 | Hermes Console | `platform/api/apps/hermes_console/` | Runtime console and toggles | reorient | Future operations view; display first, mutations C3+ | Writes config without full approval path | Keep mutations inactive until approval wiring | P2/P3 |
 | Alembic migrations | `platform/api/alembic/`, `alembic/` | Database migrations | to_verify | Keep only if supporting active Domain API or audited legacy data | Encodes old runtime assumptions | Audit migration chain before DB refactor | P1 |
 | `modules.yaml` | `modules.yaml` | App/module enable registry | legacy | Do not extend as canonical registry | Reactivates old modules | Treat as legacy MVP stack control | P1 |
-| Docker Compose | `docker-compose.yml` | Previous MVP stack | legacy | Keep until split OpenWebUI/Hermes/Pantheon compose exists | OpenWebUI points to Pantheon `/v1` | Document as legacy deployment | P1 |
-| `.env.example` | `.env.example` | Environment template | keep | Keep after domain correction | Was `DOMAIN=architecture` | Set `DOMAIN=architecture_fr` | P0 |
-| `CLAUDE.md` | `CLAUDE.md` | Claude guidance | keep after rewrite | Previously described autonomous runtime | Align with Pantheon Next doctrine | P0 |
+| Docker Compose | `docker-compose.yml` | Previous MVP stack | legacy | Keep as documented legacy MVP wiring until split OpenWebUI/Hermes/Pantheon compose exists | OpenWebUI still points to Pantheon `/v1` in legacy compose; shared DB remains legacy | Do not use as final target deployment model | P1 |
+| `.env.example` | `.env.example` | Environment template | keep | Keep after domain correction | `DOMAIN=architecture_fr` fixed | Monitor future env templates | P0 |
+| `CLAUDE.md` | `CLAUDE.md` | Claude guidance | keep after rewrite | Previously described autonomous runtime | Aligned with Pantheon Next doctrine | P0 |
 | Installer UI | `scripts/install/ui/` | Installation interface | legacy | Archive or reorient after audit | Heavy UI before governance stabilized | Inspect before reuse | P2 |
 | Legacy folder | `legacy/` | Archived components | archive | Keep non-imported | Accidental import | Add doctor check later | P2 |
 
 ---
 
-## 4. Reclassification patterns
+## 4. Deployment boundary note
+
+`docker-compose.yml` is explicitly legacy MVP wiring.
+
+It currently preserves:
+
+```text
+OpenWebUI → Pantheon API /v1
+shared PostgreSQL database
+local Ollama
+legacy FastAPI apps
+```
+
+Target deployment remains:
+
+```text
+OpenWebUI → Hermes Agent Gateway → Pantheon Context Pack / Domain API
+```
+
+Future split should create separate stacks or services for:
+
+```text
+Pantheon Domain API
+Hermes Lab / Gateway
+OpenWebUI bridge
+OpenWebUI database
+Pantheon database
+```
+
+---
+
+## 5. Reclassification patterns
 
 | Old runtime concept | Correct reclassification |
 |---|---|
@@ -114,7 +145,7 @@ Definitions:
 
 ---
 
-## 5. Hard blockers
+## 6. Hard blockers
 
 The following must not be reactivated inside Pantheon Next:
 
@@ -136,7 +167,7 @@ public admin dashboard without auth/VPN
 
 ---
 
-## 6. Evidence required for audit decisions
+## 7. Evidence required for audit decisions
 
 Every audit decision must identify:
 
@@ -159,7 +190,7 @@ docs/governance/EVIDENCE_PACK.md
 
 ---
 
-## 7. Next action
+## 8. Next action
 
 Recommended next audit:
 
