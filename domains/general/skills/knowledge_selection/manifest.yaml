@@ -1,0 +1,155 @@
+id: knowledge_selection
+name: Knowledge Selection
+domain: general
+status: candidate
+version: 0.1.0
+language: en
+
+summary: >
+  Selects allowed Knowledge sources for a Task Contract before Hermes retrieval or execution,
+  using domain, source tier, reliability, privacy, project scope, freshness and evidence rules.
+
+owners:
+  - Pantheon OS
+
+lifecycle:
+  state: candidate
+  level: 0
+  xp:
+    validated: 0
+    pending: 0
+  last_review: null
+  review_required: true
+  probation_reason: null
+
+capabilities:
+  - domain_source_filtering
+  - source_tier_filtering
+  - reliability_filtering
+  - privacy_filtering
+  - project_scope_filtering
+  - freshness_filtering
+  - forbidden_source_filtering
+  - evidence_requirement_mapping
+  - registry_validation_request
+  - source_selection_report
+  - rejected_source_report
+  - registry_candidate_update_proposal
+  - memory_candidate_proposal
+
+allowed_actions:
+  - select_sources
+  - select_sources_with_warnings
+  - request_registry_validation
+  - request_user_scope_clarification
+  - block_sources
+  - fallback_to_governance_only
+  - propose_registry_candidate_update
+  - propose_memory_candidate
+
+forbidden_actions:
+  - retrieve_documents_directly
+  - run_vector_search_directly
+  - ingest_files_into_openwebui
+  - create_live_registry_automatically
+  - update_live_registry_automatically
+  - promote_knowledge_to_memory
+  - treat_openwebui_knowledge_as_memory
+  - use_cross_project_sources_without_trace
+  - use_sensitive_sources_without_approval
+  - call_external_rag_without_policy
+  - expose_raw_chain_of_thought
+  - bypass_themis
+  - bypass_apollo
+
+filter_order:
+  - domain
+  - privacy
+  - project_scope
+  - source_tier
+  - reliability
+  - freshness
+  - forbidden_sources
+  - evidence_requirements
+
+source_tier_policy:
+  T0: pantheon_source_of_truth
+  T1: signed_or_official_project_documents
+  T2: working_project_documents
+  T3: generic_official_references
+  T4: templates_and_examples
+  T5: external_unverified_sources
+
+provenance_fields:
+  - source_id
+  - source_tier
+  - reliability_level
+  - privacy_level
+  - project_scope
+  - last_checked
+  - last_corroborated
+  - confidence
+  - contributing_documents
+  - traversal_path
+  - limitations
+
+selection_lenses:
+  - lens: white
+    pantheon_role: ARGOS
+    purpose: facts_sources_extraction
+  - lens: black
+    pantheon_role: THEMIS_HEPHAISTOS
+    purpose: risk_stale_private_out_of_scope
+  - lens: yellow
+    pantheon_role: ATHENA
+    purpose: useful_source_set
+  - lens: green
+    pantheon_role: PROMETHEUS
+    purpose: alternative_source_path
+  - lens: red
+    pantheon_role: IRIS_HECATE
+    purpose: intent_ambiguity
+  - lens: blue
+    pantheon_role: ZEUS_APOLLO
+    purpose: final_source_set_quality
+
+approval_required_if:
+  - private_or_sensitive_source
+  - cross_project_reuse
+  - stale_regulatory_source_for_consequential_output
+  - external_rag_or_retrieval_engine
+  - live_registry_update
+  - memory_candidate_promotion
+  - c3_c4_c5_output_impact
+
+hermes_mapping:
+  type: none_found
+  checked: true
+  expected_future_mapping: retrieval_preflight_or_context_filter
+
+privacy:
+  real_project_data_allowed: false
+  real_client_data_allowed: false
+  examples_must_be_fictional: true
+  generic_examples_only: true
+
+outputs:
+  - knowledge_selection_report
+  - selected_sources
+  - rejected_sources
+  - source_warnings
+  - required_checks
+  - evidence_pack_source_fields
+  - registry_candidate_update
+  - memory_candidate_proposal
+
+review:
+  required_before_activation: true
+  required_documents:
+    - docs/governance/SKILL_LIFECYCLE.md
+    - docs/governance/KNOWLEDGE_TAXONOMY.md
+    - docs/governance/OPENWEBUI_INTEGRATION.md
+    - docs/governance/OPENWEBUI_DOMAIN_MAPPING.md
+    - docs/governance/EVIDENCE_PACK.md
+    - docs/governance/APPROVALS.md
+    - knowledge/registry.example.yaml
