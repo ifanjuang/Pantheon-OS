@@ -52,6 +52,7 @@ external tools policy
 | Hermes Agent | Execution runtime | canonical external runtime | Primary execution runtime | Execute Task Contracts, return Evidence Packs, apply policies | Canonize memory or mutate governance without approval | P0 |
 | LangChain / LangGraph | Agent/workflow library | `allowed_as_library_in_hermes` | Useful implementation library for Hermes skills | Retrieval, structured output, tools, controlled workflows inside Hermes | Become Pantheon runtime, provider router or hidden autonomy layer | P2 |
 | Langflow | Visual AI workflow lab | `test_lab_only` | Useful for visual prototyping | Prototype flows, visualize chains, export lessons to `WORKFLOW_SCHEMA.md` | Define canonical workflows, execute sensitive tasks, bypass approvals | P2/P3 |
+| OpenAI Symphony | Issue-tracker orchestration spec / runner | `watch` / `rejected_for_core` | Strong inspiration for Task Contract lifecycle, isolated workspaces and proof-of-work | Study workspace/run/handoff patterns; adapt concepts into schemas | Become Pantheon scheduler, runner or autonomous issue executor | P2/P3 |
 | OpenClaw | Autonomous personal AI runtime | `blocked_until_reviewed` | Powerful but risky and runtime-overlapping | Future external runtime experiment in sandbox only | Replace Hermes, access secrets/repo/files, run C3-C5 actions, write memory | P3 |
 | Graphify | Repo/document graph tool | `test_read_only` | Strong fit for repo/code/docs graph audit | Read-only graphing of repo/docs, produce graph reports for Evidence Packs | Become canonical memory, auto-update graph on private data without policy | P1/P2 |
 | Layer Infinite / Layer | AI app/workflow platform | `to_verify` | Unclear fit | Watch or verify documentation before decision | Treat as Pantheon runtime without audit | P3 |
@@ -142,7 +143,107 @@ A Langflow flow is a prototype artifact, not Pantheon governance.
 
 ---
 
-## 6. OpenClaw decision
+## 6. OpenAI Symphony decision
+
+Classification:
+
+```text
+watch
+rejected_for_core
+```
+
+References:
+
+```text
+https://github.com/openai/symphony
+https://github.com/openai/symphony/blob/main/SPEC.md
+https://openai.com/index/open-source-codex-orchestration-symphony/
+```
+
+Symphony is useful to Pantheon as an orchestration reference because it describes a long-running service that reads work from an issue tracker, creates isolated per-issue workspaces, launches coding-agent sessions, manages bounded concurrency, retries, reconciliation and observability, and loads workflow behavior from a repository-owned `WORKFLOW.md`.
+
+Compatible ideas to study:
+
+```text
+one task / ticket = one isolated workspace
+repo-owned workflow contract
+bounded concurrency
+run reconciliation
+retry and backoff policy
+human handoff state
+proof-of-work output
+structured run logs
+workspace lifecycle hooks
+tracker state awareness
+```
+
+Pantheon-compatible reclassification:
+
+| Symphony concept | Pantheon-compatible form |
+|---|---|
+| `WORKFLOW.md` | `WORKFLOW_SCHEMA.md` / Task Contract template |
+| issue tracker candidate | Task Contract candidate |
+| isolated issue workspace | Hermes sandbox workspace |
+| agent run attempt | Hermes execution attempt |
+| run logs | Evidence Pack + Run Graph events |
+| Human Review state | approval interrupt / C3-C4-C5 validation |
+| retry queue | remediation / rerun policy |
+| workspace cleanup | operations / doctor / cleanup policy |
+
+Allowed now:
+
+```text
+study SPEC.md
+extract schema ideas
+compare with TASK_CONTRACTS.md
+compare with WORKFLOW_SCHEMA.md
+compare with EVIDENCE_PACK.md
+compare with HERMES_INTEGRATION.md
+```
+
+Allowed later, after review:
+
+```text
+read-only local prototype on sample/non-sensitive issue data
+sandboxed workspace model experiment
+manual comparison with Hermes execution contract
+```
+
+Forbidden:
+
+```text
+replace Hermes
+become Pantheon scheduler
+become Pantheon Execution Engine
+poll real project trackers without policy
+run agents against Pantheon repo automatically
+mutate tickets, PRs or files without approval
+execute C3-C5 actions without explicit validation
+store run state as canonical Pantheon memory
+```
+
+Risk:
+
+```text
+scheduler drift
+runtime duplication
+approval bypass
+issue tracker becomes hidden control plane
+background automation complexity
+workspace cleanup hazards
+```
+
+Decision:
+
+```text
+Use Symphony as inspiration for lifecycle, workspace and proof-of-work patterns.
+Do not integrate it as a Pantheon runtime.
+Do not install before a dedicated external runtime review.
+```
+
+---
+
+## 7. OpenClaw decision
 
 Classification:
 
@@ -199,7 +300,7 @@ execute shell/filesystem actions
 
 ---
 
-## 7. Graphify decision
+## 8. Graphify decision
 
 Classification:
 
@@ -251,7 +352,7 @@ UNSUPPORTED
 
 ---
 
-## 8. Layer Infinite / Layer decision
+## 9. Layer Infinite / Layer decision
 
 Classification:
 
@@ -272,7 +373,7 @@ Do not use as asset-generation dependency until classified.
 
 ---
 
-## 9. CTX decision
+## 10. CTX decision
 
 Classification:
 
@@ -319,7 +420,7 @@ expose MCP tools without policy
 
 ---
 
-## 10. Binderly decision
+## 11. Binderly decision
 
 Classification:
 
@@ -349,7 +450,7 @@ unreviewed external sync
 
 ---
 
-## 11. NeverWrite decision
+## 12. NeverWrite decision
 
 Classification:
 
@@ -399,7 +500,7 @@ sync private project data without policy
 
 ---
 
-## 12. Required review checklist for any option
+## 13. Required review checklist for any option
 
 Before moving a tool from `to_verify`, `watch` or `blocked_until_reviewed` to `test_read_only` or `allowed_as_library_in_hermes`, record:
 
@@ -425,7 +526,7 @@ Evidence Pack requirements
 
 ---
 
-## 13. Approval policy
+## 14. Approval policy
 
 | Action | Approval |
 |---|---|
@@ -442,7 +543,7 @@ Evidence Pack requirements
 
 ---
 
-## 14. Final rule
+## 15. Final rule
 
 ```text
 External runtimes may assist Pantheon.
