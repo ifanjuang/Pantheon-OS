@@ -3,7 +3,7 @@
 > Post-pivot roadmap.
 > Pantheon Next is a Hermes-backed Domain Operating Layer: OpenWebUI exposes, Hermes Agent executes, Pantheon Next governs.
 
-Last update: 2026-05-02
+Last update: 2026-05-03
 
 ---
 
@@ -20,13 +20,14 @@ Pantheon Next must not become a full autonomous agent runtime.
 Its value is to define:
 
 - governance;
-- abstract agents;
+- abstract roles / agents;
+- adaptive workflow doctrine;
 - task contracts;
 - approval levels;
 - evidence requirements;
 - domain packages;
 - skills as governance contracts;
-- workflows as structured definitions;
+- workflows as governed dependency graphs;
 - memory policy;
 - Knowledge taxonomy;
 - model routing policy;
@@ -38,6 +39,8 @@ Its value is to define:
 Hermes executes inside that frame.
 
 OpenWebUI exposes the cockpit, Knowledge Bases and human validation surface.
+
+n8n may later detect and notify under policy, but it is not Pantheon runtime, scheduler, memory or approval authority.
 
 ---
 
@@ -79,6 +82,7 @@ docs/governance/EXTERNAL_MEMORY_RUNTIME_REVIEWS_OPENCONCHO_HONCHO.md
 docs/governance/KNOWLEDGE_TAXONOMY.md
 docs/governance/CODE_AUDIT_POST_PIVOT.md
 docs/governance/WORKFLOW_SCHEMA.md
+docs/governance/WORKFLOW_ADAPTATION.md
 docs/governance/SKILL_LIFECYCLE.md
 docs/governance/MEMORY_EVENT_SCHEMA.md
 docs/governance/VERSIONS.md
@@ -90,6 +94,8 @@ Operational and asset docs:
 operations/openwebui_hermes_pantheon.md
 operations/openwebui_manual_setup.md
 operations/doctor.md
+operations/n8n_email_automation.md
+operations/n8n_workflows/email_received_operator_notification.md
 docs/assets/README.md
 ```
 
@@ -104,7 +110,9 @@ Rules:
 - use `domains/general`, not `skills/generic` or `workflows/generic`;
 - use `domains/architecture_fr`, not `domains/architecture`;
 - unknown external tools are `blocked until reviewed`;
-- Doctor observes and reports only.
+- Doctor observes and reports only;
+- workflow templates are examples/patterns, not fixed rails;
+- adaptive session workflows require trace, Evidence Pack and approvals when consequential.
 
 ---
 
@@ -150,6 +158,7 @@ Pantheon-Next/
       KNOWLEDGE_TAXONOMY.md
       CODE_AUDIT_POST_PIVOT.md
       WORKFLOW_SCHEMA.md
+      WORKFLOW_ADAPTATION.md
       SKILL_LIFECYCLE.md
       MEMORY_EVENT_SCHEMA.md
       VERSIONS.md
@@ -210,6 +219,8 @@ Pantheon-Next/
     openwebui_hermes_pantheon.md
     openwebui_manual_setup.md
     doctor.md
+    n8n_email_automation.md
+    n8n_workflows/
     install.md
     update.md
     backup.md
@@ -265,12 +276,16 @@ EXTERNAL_MEMORY_RUNTIME_REVIEWS_OPENCONCHO_HONCHO.md
 KNOWLEDGE_TAXONOMY.md
 CODE_AUDIT_POST_PIVOT.md
 WORKFLOW_SCHEMA.md
+WORKFLOW_ADAPTATION.md
 SKILL_LIFECYCLE.md
 MEMORY_EVENT_SCHEMA.md
 operations/openwebui_hermes_pantheon.md
 operations/openwebui_manual_setup.md
 operations/doctor.md
+operations/n8n_email_automation.md
+operations/n8n_workflows/email_received_operator_notification.md
 knowledge/registry.example.yaml
+hermes/context/
 ```
 
 Also completed or started:
@@ -303,22 +318,7 @@ Turn the documentation baseline into a verifiable, minimal operating setup witho
 
 Priority order:
 
-1. Review and merge Claude's Hermes context export PR when available.
-
-Expected files:
-
-```text
-hermes/context/README.md
-hermes/context/pantheon_context.md
-hermes/context/agents_context.md
-hermes/context/rules_context.md
-hermes/context/memory_context.md
-hermes/context/tools_policy.md
-hermes/context/openwebui_context.md
-hermes/context/architecture_fr_context.md
-hermes/context/software_context.md
-```
-
+1. Review Claude PR #97 for `domains/architecture_fr/` and merge or request changes.
 2. Run the read-only Doctor checklist against the repository tree.
 3. Execute API smoke tests locally or in CI:
 
@@ -326,10 +326,11 @@ hermes/context/software_context.md
 pytest tests/test_api_smoke.py
 ```
 
-4. Validate `knowledge/registry.example.yaml` against live OpenWebUI Knowledge Base names, then decide whether to create `knowledge/registry.yaml`.
-5. Define Hermes retrieval preflight mapping for `knowledge_selection`.
-6. Verify or document `PANTHEON_CONTEXT_URL` consumption by Hermes.
-7. Complete domain package rule files if missing:
+4. Decide whether to merge or revise PR #93 for CI lint/test diagnostic work.
+5. Validate `knowledge/registry.example.yaml` against live OpenWebUI Knowledge Base names, then decide whether to create `knowledge/registry.yaml`.
+6. Define Hermes retrieval preflight mapping for `knowledge_selection`.
+7. Verify or document `PANTHEON_CONTEXT_URL` consumption by Hermes.
+8. Complete domain package rule files if missing:
 
 ```text
 domains/general/rules.md
@@ -345,21 +346,77 @@ domains/software/knowledge_policy.md
 domains/software/output_formats.md
 ```
 
-8. Create first `architecture_fr` capability:
+9. Create first `architecture_fr` capability:
 
 ```text
 domains/architecture_fr/skills/quote_vs_cctp_consistency/
 domains/architecture_fr/workflows/quote_vs_cctp_review.yaml
 ```
 
-9. Complete `CODE_AUDIT_POST_PIVOT.md` after real tree audit.
-10. Define OpenWebUI Router Pipe specification.
-11. Define OpenWebUI Actions specification.
-12. Export clean colored README diagrams from Lucid, commit them under `docs/assets/`, then embed them in `README.md`.
+10. Complete `CODE_AUDIT_POST_PIVOT.md` after real tree audit.
+11. Define OpenWebUI Router Pipe specification.
+12. Define OpenWebUI Actions specification.
+13. Export clean colored README diagrams from Lucid, commit them under `docs/assets/`, then embed them in `README.md`.
 
 ---
 
-## 6. P1 — Hermes and OpenWebUI integration
+## 6. P1 — Workflow adaptation and Hermes execution contract
+
+Purpose:
+
+```text
+Turn adaptive workflow doctrine into a safe execution model without creating a Pantheon runtime.
+```
+
+Reference:
+
+```text
+docs/governance/WORKFLOW_ADAPTATION.md
+```
+
+Rules:
+
+```text
+Workflow templates are examples/patterns.
+Session workflows may be adapted or generated.
+Hermes executes only the resulting Task Contract.
+Durable workflow changes remain candidates until reviewed.
+```
+
+Role split:
+
+```text
+ATHENA agence les workflows.
+HEPHAISTOS forge les skills.
+CHRONOS règle les dépendances.
+ZEUS arbitre les options.
+THEMIS bloque.
+APOLLO valide.
+Hermes exécute.
+```
+
+Near-term tasks:
+
+1. Add concise cross-reference blocks to `AGENTS.md`, `WORKFLOW_SCHEMA.md`, `TASK_CONTRACTS.md` and `adaptive_orchestration`.
+2. Define a neutral `workflow_execution_plan` example for Hermes.
+3. Define `workflow_revision_signal`, `zeus_arbitration`, `workflow_patch`, `task_contract_revision` and `resume_policy` schemas in operational examples.
+4. Keep LangGraph as optional Hermes-side execution library only.
+5. Keep Langflow as optional lab/visual editing surface only.
+
+Do not implement now:
+
+```text
+workflow runtime inside Pantheon
+hidden graph execution
+automatic workflow canonization
+automatic skill activation
+LangGraph central Pantheon orchestrator
+Langflow canonical workflow editor
+```
+
+---
+
+## 7. P1 — Hermes and OpenWebUI integration
 
 Purpose:
 
@@ -380,18 +437,16 @@ OpenWebUI Skills are operator aids, not active Pantheon skills.
 
 Tasks:
 
-1. Review Hermes context exports after Claude's PR lands.
+1. Verify Hermes context exports against real Hermes consumption.
 2. Create OpenWebUI Router Pipe specification.
 3. Create OpenWebUI Actions specification.
 4. Add approval request and Evidence Pack summary display requirements.
-5. Add SearXNG to `EXTERNAL_TOOLS_POLICY.md` if used.
-6. Add Hermes Dashboard as local-only/test under `EXTERNAL_TOOLS_POLICY.md` if used.
-7. Add manual OpenWebUI setup verification after live configuration.
-8. Align live Knowledge names with `knowledge/registry.example.yaml` before creating a real registry.
+5. Add manual OpenWebUI setup verification after live configuration.
+6. Align live Knowledge names with `knowledge/registry.example.yaml` before creating a real registry.
 
 ---
 
-## 7. P1 — Domain packages and first useful capabilities
+## 8. P1 — Domain packages and first useful capabilities
 
 Existing general-domain candidates:
 
@@ -424,11 +479,12 @@ Rule:
 ```text
 A Pantheon skill is a governance contract.
 A Hermes skill is executable capability.
+HEPHAISTOS may forge skill candidates, but cannot activate or promote them.
 ```
 
 ---
 
-## 8. P1 — Knowledge Registry and Knowledge Selection
+## 9. P1 — Knowledge Registry and Knowledge Selection
 
 Status:
 
@@ -467,41 +523,6 @@ AKS-inspired provenance fields
 Six-Hats-inspired source selection lenses
 ```
 
-Minimum fields for any future live registry entry:
-
-```text
-id
-domain
-source_tier
-privacy_level
-project_scope
-freshness_policy
-openwebui_knowledge_base
-allowed_use
-forbidden_use
-evidence_required
-memory_candidate_allowed
-```
-
-Initial mapped Knowledge Bases:
-
-```text
-pantheon_governance
-pantheon_approvals
-pantheon_task_contracts
-pantheon_evidence_pack
-architecture_fr_cctp_models
-architecture_fr_dpgf_models
-architecture_fr_contract_clauses
-architecture_fr_notices
-architecture_fr_sdis_erp
-architecture_fr_plu_reference
-architecture_fr_site_reports
-software_repo_docs
-code_audit_post_pivot
-api_contract_docs
-```
-
 Rules:
 
 ```text
@@ -514,7 +535,7 @@ Knowledge Selection does not retrieve documents; it constrains retrieval.
 
 ---
 
-## 9. P1/P2 — External services under policy
+## 10. P1/P2 — External services under policy
 
 External services are capabilities, not authorities.
 
@@ -523,6 +544,7 @@ Initial services and options already classified or to keep classified:
 ```text
 Stirling-PDF
 SearXNG
+n8n
 OpenWebUI extensions
 Hermes plugins
 Hermes community skills
@@ -569,31 +591,18 @@ no PDF source overwrite
 no Knowledge ingestion without Evidence Pack where consequential
 external runtimes may assist Pantheon but must not become Pantheon
 external memory runtimes may be studied but must not become Pantheon Memory
-```
-
-Possible near-term external test:
-
-```text
-Graphify read-only sandbox on non-sensitive repo snapshot
-```
-
-Only after:
-
-```text
-external runtime review template
-C2/C3 approval
-Evidence Pack
-no automatic memory promotion
+n8n may detect and notify only; it does not decide, execute, remember or reply
 ```
 
 ---
 
-## 10. P2 — Workflow schema and evaluation
+## 11. P2 — Workflow schema and evaluation
 
 Existing:
 
 ```text
 WORKFLOW_SCHEMA.md
+WORKFLOW_ADAPTATION.md
 ```
 
 Still to create or complete:
@@ -613,13 +622,15 @@ approval correctness
 model fallback trace
 source tier correctness
 Knowledge Selection correctness
+workflow adaptation trace correctness
+parallel branch join correctness
 ```
 
 Do not create a heavy evaluation runtime in P2.
 
 ---
 
-## 11. P2 — Code audit post pivot
+## 12. P2 — Code audit post pivot
 
 Use:
 
@@ -664,7 +675,7 @@ Do not reactivate the autonomous runtime path by accident.
 
 ---
 
-## 12. P2 — Operations documentation
+## 13. P2 — Operations documentation
 
 Existing:
 
@@ -672,6 +683,8 @@ Existing:
 operations/openwebui_hermes_pantheon.md
 operations/openwebui_manual_setup.md
 operations/doctor.md
+operations/n8n_email_automation.md
+operations/n8n_workflows/email_received_operator_notification.md
 ```
 
 Create or complete:
@@ -683,6 +696,7 @@ operations/backup.md
 operations/hermes_lab.md
 operations/openwebui_knowledge.md
 operations/domain_api.md
+operations/n8n_portainer_sandbox.md
 ```
 
 `operations/hermes_lab.md` must state:
@@ -698,9 +712,23 @@ skill tests
 authorized tool tests
 ```
 
+`operations/n8n_portainer_sandbox.md` must state:
+
+```text
+local-only
+no public exposure
+no secrets in repo
+no external reply
+no Hermes execution
+no memory promotion
+no Knowledge ingestion
+one workflow per purpose
+workflow disabled by default until reviewed
+```
+
 ---
 
-## 13. P3 — Lightweight operations view
+## 14. P3 — Lightweight operations view
 
 Do not create a heavy React dashboard now.
 
@@ -721,6 +749,7 @@ Later only:
 ```text
 skill candidates
 workflow candidates
+workflow adaptation report
 approval queue
 legacy audit status
 Hermes context export status
@@ -731,7 +760,7 @@ Memory candidate review status
 
 ---
 
-## 14. Do not implement now
+## 15. Do not implement now
 
 Do not implement now:
 
@@ -759,11 +788,16 @@ Doctor auto-fix
 Knowledge auto-sync without approval
 Honcho/OpenConcho memory backend
 memory consolidation without Evidence Pack and approval
+n8n public automation editor
+n8n email reply automation
+Langflow as canonical workflow source
+LangGraph as central Pantheon orchestrator
+workflow graph runtime hidden in Pantheon
 ```
 
 ---
 
-## 15. Target result
+## 16. Target result
 
 Pantheon Next becomes a governed professional domain layer.
 
@@ -774,7 +808,7 @@ Its value is to define:
 ```text
 rules
 roles
-workflows
+adaptive workflows
 skills as governance contracts
 sources
 memory
