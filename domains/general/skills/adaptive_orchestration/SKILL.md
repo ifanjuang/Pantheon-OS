@@ -12,6 +12,8 @@
 
 Before a workflow starts, it checks whether the selected workflow fits the user request and the available context.
 
+It may also decide that no workflow is needed and that a single Pantheon Role is sufficient.
+
 During execution, it checks whether the workflow still fits the evolving role outputs, evidence, dependency graph and risk level.
 
 After execution, it may propose candidate improvements when a reusable pattern appears.
@@ -23,7 +25,7 @@ This skill governs **session workflow adaptation**, not canonical workflow mutat
 # 2. Core rule
 
 ```text
-Before execution: select, adapt, compose or generate.
+Before execution: choose single-role, select, adapt, compose or generate.
 During execution: reevaluate, pause, revise or resume.
 After execution: propose candidate improvement when useful.
 ```
@@ -46,6 +48,7 @@ Hermes exécute.
 
 This skill may propose to:
 
+- use a single-role path without workflow orchestration;
 - use an existing workflow as-is;
 - adapt an existing workflow;
 - compose a workflow from several patterns;
@@ -73,6 +76,8 @@ This skill may propose to:
 
 This skill must not:
 
+- force a workflow when a single role is enough;
+- hide a multi-role or high-risk task behind a single-role path;
 - create a canonical workflow automatically;
 - permanently modify a workflow without validation;
 - promote memory automatically;
@@ -101,6 +106,7 @@ context_match
 risk_level
 missing_information
 available_workflow_templates
+single_role_sufficient
 required_roles
 unnecessary_roles
 memory_need
@@ -112,6 +118,7 @@ external_tool_need
 Possible decisions:
 
 ```text
+single_role_path
 use_as_is
 adapt_existing
 compose_from_patterns
@@ -126,7 +133,37 @@ propose_candidate_workflow
 
 ---
 
-# 6. Role consultation phase
+# 6. Single-role decision
+
+Use `single_role_path` when the request is simple, bounded and low-risk.
+
+Allowed examples:
+
+```text
+IRIS rewrites a short message without sending it.
+ARGOS extracts one fact from a provided document.
+ATHENA structures a simple plan.
+THEMIS classifies a likely approval level.
+APOLLO checks a short answer for unsupported claims.
+```
+
+Escalate to workflow when:
+
+```text
+multiple roles are required
+multiple sources must be reconciled
+external communication is requested
+approval level rises
+memory could be affected
+file mutation is requested
+technical, contractual, financial or regulatory exposure appears
+```
+
+A single-role path is still governed. It may require a Task Contract or Evidence Pack depending on approval level and consequence.
+
+---
+
+# 7. Role consultation phase
 
 ZEUS may consult roles before execution or after a revision signal.
 
@@ -157,7 +194,7 @@ No raw chain-of-thought is emitted.
 
 ---
 
-# 7. Dependency graph phase
+# 8. Dependency graph phase
 
 Pantheon workflows are dependency graphs, not necessarily linear chains.
 
@@ -192,7 +229,7 @@ C4/C5 actions
 
 ---
 
-# 8. Runtime adaptation phase
+# 9. Runtime adaptation phase
 
 After each significant role output, ZEUS checks whether the current workflow is still appropriate.
 
@@ -200,6 +237,7 @@ Runtime checks:
 
 ```text
 workflow_still_relevant
+single_role_still_sufficient
 new_signal_detected
 role_needed
 role_no_longer_needed
@@ -219,6 +257,7 @@ Allowed runtime actions:
 
 ```text
 continue
+escalate_single_role_to_workflow
 add_role
 remove_role
 add_step
@@ -234,7 +273,7 @@ propose_candidate_update
 
 ---
 
-# 9. Confidence-driven adaptation
+# 10. Confidence-driven adaptation
 
 ZEUS may adapt directly only when:
 
@@ -267,7 +306,7 @@ If uncertainty remains, ZEUS asks the user.
 
 ---
 
-# 10. Signals
+# 11. Signals
 
 Agents/roles must not emit raw reasoning.
 
@@ -300,11 +339,12 @@ candidate_pattern
 dependency_conflict
 source_conflict
 approval_escalation
+single_role_insufficient
 ```
 
 ---
 
-# 11. Adaptation report
+# 12. Adaptation report
 
 Every workflow adaptation must be visible in OpenWebUI through a concise report.
 
@@ -335,11 +375,21 @@ resume_policy
 next_action
 ```
 
+For `single_role_path`, the report may be minimal:
+
+```text
+role_selected
+reason_workflow_not_needed
+approval_level
+evidence_required
+escalation_conditions
+```
+
 No raw chain-of-thought is displayed.
 
 ---
 
-# 12. User validation
+# 13. User validation
 
 User validation is required when the adaptation is:
 
@@ -363,7 +413,7 @@ The workflow needs a trajectory change. Do you want me to proceed with the propo
 
 ---
 
-# 13. Candidate updates
+# 14. Candidate updates
 
 After a workflow completes, this skill may propose:
 
@@ -388,7 +438,7 @@ session_workflow
 
 ---
 
-# 14. Output discipline
+# 15. Output discipline
 
 Adaptive orchestration should reduce unnecessary complexity.
 
@@ -397,6 +447,7 @@ It may add structure when required, but it must also remove or skip unnecessary 
 Rule:
 
 ```text
+Use one role when one role is enough.
 Add when needed.
 Remove when unnecessary.
 Switch when misaligned.
@@ -408,7 +459,7 @@ Reset when the generated path becomes weaker than the baseline.
 
 ---
 
-# 15. Status
+# 16. Status
 
 Current status: `candidate`.
 
