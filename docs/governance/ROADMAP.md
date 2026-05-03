@@ -21,6 +21,7 @@ Its value is to define:
 
 - governance;
 - abstract roles / agents;
+- execution discipline;
 - adaptive workflow doctrine;
 - task contracts;
 - approval levels;
@@ -78,6 +79,7 @@ docs/governance/MODEL_ROUTING_POLICY.md
 docs/governance/EXTERNAL_TOOLS_POLICY.md
 docs/governance/EXTERNAL_RUNTIME_OPTIONS.md
 docs/governance/EXTERNAL_AI_OPTION_REVIEWS.md
+docs/governance/EXECUTION_DISCIPLINE.md
 docs/governance/EXTERNAL_MEMORY_RUNTIME_REVIEWS_OPENCONCHO_HONCHO.md
 docs/governance/KNOWLEDGE_TAXONOMY.md
 docs/governance/CODE_AUDIT_POST_PIVOT.md
@@ -111,6 +113,8 @@ Rules:
 - use `domains/architecture_fr`, not `domains/architecture`;
 - unknown external tools are `blocked until reviewed`;
 - Doctor observes and reports only;
+- prefer the smallest safe path;
+- single-role path before workflow;
 - workflow templates are examples/patterns, not fixed rails;
 - adaptive session workflows require trace, Evidence Pack and approvals when consequential.
 
@@ -154,6 +158,7 @@ Pantheon-Next/
       EXTERNAL_TOOLS_POLICY.md
       EXTERNAL_RUNTIME_OPTIONS.md
       EXTERNAL_AI_OPTION_REVIEWS.md
+      EXECUTION_DISCIPLINE.md
       EXTERNAL_MEMORY_RUNTIME_REVIEWS_OPENCONCHO_HONCHO.md
       KNOWLEDGE_TAXONOMY.md
       CODE_AUDIT_POST_PIVOT.md
@@ -272,6 +277,7 @@ MODEL_ROUTING_POLICY.md
 EXTERNAL_TOOLS_POLICY.md
 EXTERNAL_RUNTIME_OPTIONS.md
 EXTERNAL_AI_OPTION_REVIEWS.md
+EXECUTION_DISCIPLINE.md
 EXTERNAL_MEMORY_RUNTIME_REVIEWS_OPENCONCHO_HONCHO.md
 KNOWLEDGE_TAXONOMY.md
 CODE_AUDIT_POST_PIVOT.md
@@ -377,10 +383,11 @@ docs/governance/WORKFLOW_ADAPTATION.md
 Rules:
 
 ```text
-Workflow templates are examples/patterns.
-Session workflows may be adapted or generated.
-Hermes executes only the resulting Task Contract.
-Durable workflow changes remain candidates until reviewed.
+single-role path before workflow
+workflow templates are examples/patterns
+session workflows may be adapted or generated
+Hermes executes only the resulting Task Contract
+Durable workflow changes remain candidates until reviewed
 ```
 
 Role split:
@@ -397,7 +404,7 @@ Hermes exécute.
 
 Near-term tasks:
 
-1. Add concise cross-reference blocks to `AGENTS.md`, `WORKFLOW_SCHEMA.md`, `TASK_CONTRACTS.md` and `adaptive_orchestration`.
+1. Add a targeted `TASK_CONTRACTS.md` section for `task_contract_revision`, `resume_policy` and single-role escalation.
 2. Define a neutral `workflow_execution_plan` example for Hermes.
 3. Define `workflow_revision_signal`, `zeus_arbitration`, `workflow_patch`, `task_contract_revision` and `resume_policy` schemas in operational examples.
 4. Keep LangGraph as optional Hermes-side execution library only.
@@ -416,7 +423,58 @@ Langflow canonical workflow editor
 
 ---
 
-## 7. P1 — Hermes and OpenWebUI integration
+## 7. P1 — Execution discipline and evaluation tooling
+
+Purpose:
+
+```text
+Make outputs measurable, structured and minimal without turning evaluation or structured-output libraries into authority.
+```
+
+References:
+
+```text
+docs/governance/EXECUTION_DISCIPLINE.md
+docs/governance/EXTERNAL_AI_OPTION_REVIEWS.md
+```
+
+External options classified:
+
+```text
+Andrej Karpathy Skills = inspiration_only / execution discipline
+Promptfoo = candidate_eval_tool
+Instructor = candidate_adapter_library / Hermes-side typed outputs
+Outlines = candidate_structured_generation / Hermes-side constraints
+Guidance = lab_only
+DSPy = lab_only
+Recursive-Language-Models = watch_test_only / sandbox_only
+Warp = developer_tool_optional / blocked_for_core
+Brainlid LangChain = watch_only / not_relevant_now
+```
+
+Near-term tasks:
+
+1. Create `docs/governance/EVALUATION.md` only when evaluation work starts.
+2. Define fictive, non-sensitive test cases before Promptfoo use.
+3. Compare Instructor and Outlines for Hermes-side structured outputs after runtime boundary is stable.
+4. Keep Guidance and DSPy as lab-only until baselines exist.
+5. Keep Recursive-Language-Models as watch/test-only for long-context exploration, not runtime.
+6. Treat Warp as optional developer terminal only; Warp/Oz must not become Pantheon runtime.
+
+Do not implement now:
+
+```text
+Promptfoo CI blocker
+Instructor/Outlines dependency in Pantheon core
+DSPy optimization loop
+Guidance DSL in production
+Recursive-Language-Models runtime
+Warp/Oz cloud-agent integration
+```
+
+---
+
+## 8. P1 — Hermes and OpenWebUI integration
 
 Purpose:
 
@@ -446,7 +504,7 @@ Tasks:
 
 ---
 
-## 8. P1 — Domain packages and first useful capabilities
+## 9. P1 — Domain packages and first useful capabilities
 
 Existing general-domain candidates:
 
@@ -484,7 +542,7 @@ HEPHAISTOS may forge skill candidates, but cannot activate or promote them.
 
 ---
 
-## 9. P1 — Knowledge Registry and Knowledge Selection
+## 10. P1 — Knowledge Registry and Knowledge Selection
 
 Status:
 
@@ -535,7 +593,7 @@ Knowledge Selection does not retrieve documents; it constrains retrieval.
 
 ---
 
-## 10. P1/P2 — External services under policy
+## 11. P1/P2 — External services under policy
 
 External services are capabilities, not authorities.
 
@@ -578,6 +636,15 @@ Binderly
 NeverWrite
 AnimoCerebro
 Caliber / ai-setup
+Andrej Karpathy Skills
+Promptfoo
+Instructor
+Outlines
+Guidance
+DSPy
+Brainlid LangChain
+Recursive-Language-Models
+Warp / Oz
 ```
 
 Rules:
@@ -591,18 +658,22 @@ no PDF source overwrite
 no Knowledge ingestion without Evidence Pack where consequential
 external runtimes may assist Pantheon but must not become Pantheon
 external memory runtimes may be studied but must not become Pantheon Memory
+evaluation tools may measure but not govern
+structured-output tools may constrain but not approve
+developer tools may assist but not become runtime
 n8n may detect and notify only; it does not decide, execute, remember or reply
 ```
 
 ---
 
-## 11. P2 — Workflow schema and evaluation
+## 12. P2 — Workflow schema and evaluation
 
 Existing:
 
 ```text
 WORKFLOW_SCHEMA.md
 WORKFLOW_ADAPTATION.md
+EXECUTION_DISCIPLINE.md
 ```
 
 Still to create or complete:
@@ -624,13 +695,15 @@ source tier correctness
 Knowledge Selection correctness
 workflow adaptation trace correctness
 parallel branch join correctness
+single-role escalation correctness
+structured output validation correctness
 ```
 
 Do not create a heavy evaluation runtime in P2.
 
 ---
 
-## 12. P2 — Code audit post pivot
+## 13. P2 — Code audit post pivot
 
 Use:
 
@@ -675,7 +748,7 @@ Do not reactivate the autonomous runtime path by accident.
 
 ---
 
-## 13. P2 — Operations documentation
+## 14. P2 — Operations documentation
 
 Existing:
 
@@ -728,7 +801,7 @@ workflow disabled by default until reviewed
 
 ---
 
-## 14. P3 — Lightweight operations view
+## 15. P3 — Lightweight operations view
 
 Do not create a heavy React dashboard now.
 
@@ -760,7 +833,7 @@ Memory candidate review status
 
 ---
 
-## 15. Do not implement now
+## 16. Do not implement now
 
 Do not implement now:
 
@@ -793,11 +866,17 @@ n8n email reply automation
 Langflow as canonical workflow source
 LangGraph as central Pantheon orchestrator
 workflow graph runtime hidden in Pantheon
+Promptfoo CI blocker
+Instructor/Outlines dependency in Pantheon core
+DSPy optimization loop
+Guidance DSL in production
+Recursive-Language-Models runtime
+Warp/Oz cloud-agent integration
 ```
 
 ---
 
-## 16. Target result
+## 17. Target result
 
 Pantheon Next becomes a governed professional domain layer.
 
@@ -808,6 +887,7 @@ Its value is to define:
 ```text
 rules
 roles
+execution discipline
 adaptive workflows
 skills as governance contracts
 sources

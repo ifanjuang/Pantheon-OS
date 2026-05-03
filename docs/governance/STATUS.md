@@ -69,13 +69,14 @@ workflow runtime hidden inside Pantheon
 | `OPENWEBUI_DOMAIN_MAPPING.md` | ✅ Added | Maps Pantheon domains to OpenWebUI Knowledge, Models and operator Skills |
 | `MODEL_ROUTING_POLICY.md` | ✅ Added | Defines Ollama/OpenWebUI/Hermes model routing policy without a Pantheon router |
 | `EXTERNAL_TOOLS_POLICY.md` | ✅ Done | Defines external tool classification and allowlist policy, now including n8n as external automation orchestrator |
-| `EXTERNAL_RUNTIME_OPTIONS.md` | ✅ Added | Classifies external runtime/framework options without authorizing integration |
-| `EXTERNAL_AI_OPTION_REVIEWS.md` | ✅ Added | Classifies AnimoCerebro and Caliber/ai-setup |
+| `EXTERNAL_RUNTIME_OPTIONS.md` | ✅ Added | Classifies optional runtimes, workflow labs, context engines and graph/workspace tools |
+| `EXTERNAL_AI_OPTION_REVIEWS.md` | ✅ Updated | Classifies AnimoCerebro, Caliber, Andrej Karpathy Skills, Promptfoo, Instructor, Outlines, Guidance, DSPy, Brainlid LangChain, Recursive-Language-Models and Warp |
+| `EXECUTION_DISCIPLINE.md` | ✅ Added | Defines smallest-safe-path discipline, single-role before workflow, surgical changes and evidence before assertion |
 | `EXTERNAL_MEMORY_RUNTIME_REVIEWS_OPENCONCHO_HONCHO.md` | ✅ Added | Classifies OpenConcho/Honcho as watch/test-only memory options, rejected for core |
 | `KNOWLEDGE_TAXONOMY.md` | ✅ Done | Defines Knowledge layers, reliability levels and source tiers |
 | `knowledge/registry.example.yaml` | ✅ Added | Example registry maps OpenWebUI Knowledge Bases to domains, tiers, privacy, freshness and evidence rules |
 | `CODE_AUDIT_POST_PIVOT.md` | ✅ Added | Initial register for legacy/runtime component classification |
-| `WORKFLOW_SCHEMA.md` | ✅ Added | Canonical workflow/task definition schema exists |
+| `WORKFLOW_SCHEMA.md` | ✅ Added | Canonical workflow/task definition schema exists, including `solo` / `single_role_task` path |
 | `WORKFLOW_ADAPTATION.md` | ✅ Added | Defines adaptive workflows as governed dependency graphs with role consultation, ZEUS arbitration, reset and candidate rules |
 | `SKILL_LIFECYCLE.md` | ✅ Added | Skill lifecycle, XP/status and Hermes mapping policy exists |
 | `MEMORY_EVENT_SCHEMA.md` | ✅ Added | Memory event/candidate schema exists |
@@ -139,6 +140,7 @@ Documented components:
 | Evidence Pack | ✅ Documented | `EVIDENCE_PACK.md` |
 | Approval policy | ✅ Documented | `APPROVALS.md` |
 | Workflow adaptation doctrine | ✅ Documented | `WORKFLOW_ADAPTATION.md` |
+| Execution discipline | ✅ Documented | `EXECUTION_DISCIPLINE.md` |
 | Operations Doctor | ✅ Documented | `operations/doctor.md` |
 | n8n email automation guardrails | ✅ Documented | `operations/n8n_email_automation.md` + first workflow spec |
 
@@ -204,6 +206,7 @@ docs/governance/MODEL_ROUTING_POLICY.md
 docs/governance/EXTERNAL_TOOLS_POLICY.md
 docs/governance/EXTERNAL_RUNTIME_OPTIONS.md
 docs/governance/EXTERNAL_AI_OPTION_REVIEWS.md
+docs/governance/EXECUTION_DISCIPLINE.md
 docs/governance/EXTERNAL_MEMORY_RUNTIME_REVIEWS_OPENCONCHO_HONCHO.md
 docs/governance/KNOWLEDGE_TAXONOMY.md
 docs/governance/CODE_AUDIT_POST_PIVOT.md
@@ -293,23 +296,26 @@ Tests still need to be executed locally or in CI.
 
 ---
 
-## 5. Workflow adaptation model
+## 5. Workflow adaptation and execution discipline
 
 Status: ✅ Doctrine documented, runtime not implemented.
 
-Reference:
+References:
 
 ```text
 docs/governance/WORKFLOW_ADAPTATION.md
+docs/governance/WORKFLOW_SCHEMA.md
+docs/governance/EXECUTION_DISCIPLINE.md
 ```
 
 Current rule:
 
 ```text
-Pantheon workflows are adaptive governance graphs.
-Workflow templates are reusable examples, not fixed rails.
-Session workflows may be selected, adapted, composed or generated.
-Hermes executes only the resulting Task Contract.
+single_role_path before workflow
+solo before dependency_graph
+workflow templates are reusable examples, not fixed rails
+session workflows may be selected, adapted, composed or generated
+Hermes executes only the resulting Task Contract
 ```
 
 Role split:
@@ -327,6 +333,7 @@ Hermes exécute.
 Documented concepts:
 
 ```text
+single_role_task
 workflow_template
 session_workflow
 workflow_override
@@ -439,6 +446,7 @@ Important interpretation:
 adaptive_orchestration is now governed by WORKFLOW_ADAPTATION.md.
 It may propose session adaptations and candidates.
 It must not canonize workflows, activate skills or bypass approvals.
+It may decide that no workflow is needed and that a single role is sufficient.
 ```
 
 First business-domain target:
@@ -503,6 +511,15 @@ Binderly
 NeverWrite
 AnimoCerebro
 Caliber / ai-setup
+Andrej Karpathy Skills
+Promptfoo
+Instructor
+Outlines
+Guidance
+DSPy
+Brainlid LangChain
+Recursive-Language-Models
+Warp
 ```
 
 Rules:
@@ -511,10 +528,14 @@ Rules:
 Unknown external tools are blocked until classified.
 External runtimes may assist Pantheon but must not become Pantheon.
 External memory runtimes may be studied but must not become Pantheon Memory.
+Evaluation tools may measure but not govern.
+Structured-output tools may constrain but not approve.
+Developer tools may assist but not become runtime.
 n8n may detect and notify, but must not govern, remember, execute Hermes or send externally without approval.
 LangChain/LangGraph are only allowed as Hermes-side library options later.
 Langflow is lab-only and may not become workflow authority.
 OpenClaw is not Pantheon core and would require runtime-contract abstraction before any future switch.
+Warp/Oz must not become a parallel cloud-agent runtime for Pantheon.
 ```
 
 ---
@@ -570,7 +591,7 @@ Do not reactivate the autonomous runtime path by accident.
 12. ✅ `OPENWEBUI_DOMAIN_MAPPING.md` added.
 13. ✅ `MODEL_ROUTING_POLICY.md` added.
 14. ✅ `EXTERNAL_RUNTIME_OPTIONS.md` added.
-15. ✅ `EXTERNAL_AI_OPTION_REVIEWS.md` added.
+15. ✅ `EXTERNAL_AI_OPTION_REVIEWS.md` added and expanded.
 16. ✅ `CODE_AUDIT_POST_PIVOT.md` initial register added.
 17. ✅ README rewritten around Pantheon Next.
 18. ✅ README diagram asset registry added.
@@ -583,6 +604,7 @@ Do not reactivate the autonomous runtime path by accident.
 25. ✅ Hermes context exports added under `hermes/context/`.
 26. ✅ n8n classified and first email notification workflow spec added.
 27. ✅ `WORKFLOW_ADAPTATION.md` added.
+28. ✅ `EXECUTION_DISCIPLINE.md` added.
 
 ### P1 — next documentation/contracts
 
@@ -598,6 +620,7 @@ Do not reactivate the autonomous runtime path by accident.
 10. Define OpenWebUI Router Pipe specification.
 11. Define OpenWebUI Actions specification.
 12. Define a neutral execution runtime contract only if runtime-switch work becomes a real priority.
+13. Draft `EVALUATION.md` around Promptfoo, Instructor and Outlines if evaluation work is prioritized.
 
 ### P2 — later implementation
 
@@ -611,6 +634,7 @@ Do not reactivate the autonomous runtime path by accident.
 8. Consider a read-only `operations/doctor.py` only after C3 approval.
 9. Implement live Knowledge Registry sync only after policy and approval flow are stable.
 10. Consider Memory Candidate Review UX only after memory doctrine and approvals are stable.
+11. Compare Instructor vs Outlines for Hermes-side structured outputs after runtime boundary is stable.
 
 ---
 
@@ -622,11 +646,12 @@ Do not reactivate the autonomous runtime path by accident.
 | OpenWebUI becomes business engine | Active risk | OpenWebUI remains cockpit only |
 | Pantheon duplicates Hermes runtime | Active risk | Pantheon governs, Hermes executes |
 | Adaptive workflows become hidden runtime | Active risk | `WORKFLOW_ADAPTATION.md`: session changes require trace, approval and Task Contract revision |
+| Workflow overuse | Active risk | `EXECUTION_DISCIPLINE.md`: single-role path before workflow |
 | Skill duplication | Active risk | Pantheon skill lifecycle + Hermes skill mapping |
 | Memory pollution | Active risk | Candidate memory + validation only |
 | Cross-project RAG contamination | Active risk | Knowledge Selection + source tiers |
 | Legacy runtime confusion | Active risk | Legacy audit before reuse or deletion |
-| Over-abstraction | Active risk | Documented gain required before new modules |
+| Over-abstraction | Active risk | Smallest safe path, documented gain required before new modules |
 | Approval bypass | Active risk | C0-C5 policy in `APPROVALS.md` |
 | Unsupported conclusions | Active risk | Evidence Pack required for consequential outputs |
 | OpenWebUI misrouting | Active risk | OpenWebUI must point to Hermes Gateway, not Pantheon API |
@@ -637,6 +662,10 @@ Do not reactivate the autonomous runtime path by accident.
 | Doctor used as auto-fixer | Active risk | `operations/doctor.md` is read-only and report-only |
 | Knowledge Registry treated as live config too early | Active risk | Current file is example-only until live OpenWebUI validation |
 | n8n becomes scheduler/runtime | Active risk | n8n may detect and notify only under policy; no execution or external send by default |
+| Structured-output tools become authority | Active risk | Instructor/Outlines may constrain outputs but not approve or govern |
+| Evaluation tool becomes authority | Active risk | Promptfoo may measure but not canonize skills or workflows automatically |
+| Warp/Oz becomes parallel runtime | Active risk | Warp is optional developer terminal only; Oz is blocked for core |
+| Recursive-Language-Models becomes runtime | Active risk | Watch/test-only; sandbox only on non-sensitive data |
 
 ---
 
@@ -662,6 +691,7 @@ Knowledge taxonomy
 Knowledge Registry example
 Knowledge Selection candidate skill
 Workflow adaptation doctrine
+Execution discipline doctrine
 README diagram asset registry
 adaptive_orchestration candidate skill
 project_context_resolution candidate skill
@@ -688,6 +718,7 @@ software domain verification
 workflow pause/resume runtime
 Task Contract revision runtime
 Run Graph runtime
+Evaluation plan around Promptfoo / Instructor / Outlines
 ```
 
 Not implemented yet:
@@ -706,6 +737,8 @@ Hermes retrieval preflight using knowledge_selection
 completed post-pivot code audit
 Doctor automation
 n8n install/runtime/email connector
+Promptfoo evaluation suite
+Instructor/Outlines Hermes adapter
 ```
 
 Next logical step:

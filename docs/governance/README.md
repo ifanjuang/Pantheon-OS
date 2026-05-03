@@ -35,13 +35,14 @@ The runtime must not treat these documents as decorative notes. They drive devel
 | `MODEL_ROUTING_POLICY.md` | Model selection policy for OpenWebUI presets, Ollama instances, Hermes execution and Pantheon abstract agents |
 | `EXTERNAL_TOOLS_POLICY.md` | Governance for external integrations |
 | `EXTERNAL_RUNTIME_OPTIONS.md` | Classification of optional runtimes, workflow labs, context engines and graph/workspace tools |
-| `EXTERNAL_AI_OPTION_REVIEWS.md` | Focused reviews for AnimoCerebro and Caliber/ai-setup external AI options |
+| `EXTERNAL_AI_OPTION_REVIEWS.md` | Focused reviews for external AI options, structured-output tools, evaluation tools and agent-execution discipline references |
+| `EXECUTION_DISCIPLINE.md` | Minimal execution discipline: smallest safe path, single-role before workflow, surgical changes and evidence before assertion |
 | `KNOWLEDGE_TAXONOMY.md` | Knowledge vs Memory classification |
 | `CODE_AUDIT_POST_PIVOT.md` | Legacy/runtime code classification register |
 | `PRE_REFACTOR_ARCHITECTURE_FINDINGS.md` | Read-only audit synthesis of existing code assets to preserve or reclassify before refactor |
 | `WORKFLOW_SCHEMA.md` | Canonical workflow/task definition schema |
 | `WORKFLOW_ADAPTATION.md` | Adaptive workflow doctrine: session workflows, dependency graphs, role consultation, ZEUS arbitration and reset/candidate rules |
-| `SKILL_LIFECYCLE.md` | Skill lifecycle, XP, status and Hermes mapping policy |
+| `SKILL_LIFECYCLE.md` | Skill lifecycle, XP/status and Hermes mapping policy |
 | `MEMORY_EVENT_SCHEMA.md` | Memory event and candidate schema before promotion |
 | `EXTERNAL_WATCHLIST.md` | External repo / tool watchlist |
 | `VERSIONS.md` | Tracking versions of runtimes and models |
@@ -78,6 +79,7 @@ ai_logs/README.md
 7. Do not write real private project/client data into the repository.
 8. If code contradicts Markdown, Markdown is the source of truth.
 9. If code is technically better than Markdown, update Markdown first before generalizing the code path.
+10. Prefer the smallest safe path: single-role path before workflow, workflow template before new abstraction.
 
 ---
 
