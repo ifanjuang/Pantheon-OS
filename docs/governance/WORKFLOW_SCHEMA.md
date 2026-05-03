@@ -2,6 +2,8 @@
 
 > Reference schema for workflow definitions.
 > Workflows are governed definitions. Hermes executes them when a task contract authorizes execution.
+>
+> Adaptive/session workflow behavior is governed by `WORKFLOW_ADAPTATION.md`.
 
 ---
 
@@ -10,12 +12,21 @@
 A workflow is a structured method, not a long prompt.
 
 ```text
-Pantheon defines the workflow.
+Pantheon defines the workflow frame.
+Pantheon may select, adapt, compose or generate a session workflow under governance.
 Hermes executes bounded tasks.
 OpenWebUI displays state, evidence and approvals.
 ```
 
 A workflow must stay readable, testable and auditable.
+
+Workflow templates are reusable governed patterns, not fixed rails.
+
+Reference:
+
+```text
+WORKFLOW_ADAPTATION.md
+```
 
 ---
 
@@ -119,7 +130,52 @@ tasks:
 
 ---
 
-## 5. Workflow patterns
+## 5. Dependency graph fields
+
+For adaptive or dependency-aware workflows, task definitions may also include:
+
+```yaml
+tasks:
+  - id: argos_document_search
+    role: ARGOS
+    requires: []
+    optional_requires: []
+    produces:
+      - document_findings
+    can_start_when:
+      - uploaded_document_available
+    pause_conditions:
+      - source_unreadable
+      - missing_required_document
+    join_policy: null
+    evidence_required: true
+```
+
+Allowed dependency fields:
+
+| Field | Purpose |
+|---|---|
+| `requires` | Mandatory upstream outputs or conditions |
+| `optional_requires` | Inputs to include if ready, without blocking unless ZEUS/ATHENA marks them required |
+| `produces` | Declared outputs made available to later tasks |
+| `can_start_when` | Start condition separate from strict dependency |
+| `pause_conditions` | Conditions that pause execution and may emit a revision signal |
+| `join_policy` | How parallel branches are consolidated |
+
+Rules:
+
+```text
+Hermes may execute all unblocked bounded steps in parallel.
+ATHENA arranges workflow steps.
+CHRONOS defines dependencies, joins and waits.
+ZEUS arbitrates changes.
+THEMIS blocks unsafe transitions.
+APOLLO validates final evidence and quality.
+```
+
+---
+
+## 6. Workflow patterns
 
 Allowed initial patterns:
 
@@ -129,6 +185,7 @@ Allowed initial patterns:
 | `cascade` | sequential steps with dependencies |
 | `parallel` | independent branches merged at review |
 | `arena` | competing or contradictory analyses before synthesis |
+| `dependency_graph` | steps start when required inputs are available |
 
 Later patterns:
 
@@ -146,11 +203,12 @@ hidden agent loop
 scheduler-owned workflow execution
 automatic workflow mutation
 automatic workflow activation
+automatic workflow canonization
 ```
 
 ---
 
-## 6. Criticality
+## 7. Criticality
 
 Workflow tasks use C0-C5.
 
@@ -167,7 +225,7 @@ A legacy schema that starts at C1 must be corrected before activation.
 
 ---
 
-## 7. Validation rules
+## 8. Validation rules
 
 A workflow is invalid if:
 
@@ -178,11 +236,13 @@ A workflow is invalid if:
 - C3+ tasks have no approval path;
 - consequential outputs have no Evidence Pack requirement;
 - memory impact is undefined;
-- external tools are not allowlisted.
+- external tools are not allowlisted;
+- adaptive changes bypass `WORKFLOW_ADAPTATION.md`;
+- dependency graph steps have undeclared outputs or unresolved required inputs.
 
 ---
 
-## 8. Adaptive orchestration
+## 9. Adaptive orchestration
 
 `adaptive_orchestration` may propose workflow changes only as candidate updates unless the change is:
 
@@ -198,9 +258,15 @@ not a skill level-up
 
 Durable workflow changes require review.
 
+Reference:
+
+```text
+WORKFLOW_ADAPTATION.md
+```
+
 ---
 
-## 9. Evidence
+## 10. Evidence
 
 Every consequential workflow must record:
 
@@ -211,6 +277,9 @@ knowledge_bases_consulted
 tools_used
 commands_run
 steps_executed
+parallel_groups_executed
+join_policies_used
+workflow_adaptations
 fallbacks_used
 failed_attempts
 unsupported_claims
@@ -223,14 +292,16 @@ Reference:
 
 ```text
 EVIDENCE_PACK.md
+WORKFLOW_ADAPTATION.md
 ```
 
 ---
 
-## 10. Final rule
+## 11. Final rule
 
 ```text
 Workflows define method.
+Workflow adaptation defines governed session changes.
 Task contracts frame execution.
 Hermes executes.
 Pantheon validates and canonizes.
