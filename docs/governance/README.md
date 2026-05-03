@@ -28,6 +28,7 @@ The runtime must not treat these documents as decorative notes. They drive devel
 | `MEMORY.md` | Canonical memory governance |
 | `APPROVALS.md` | Approval criticality policy C0-C5 |
 | `TASK_CONTRACTS.md` | Hermes/Pantheon task execution contracts |
+| `TASK_CONTRACT_REVISIONS.md` | Addendum for single-role task contracts, workflow revision signals, task contract revisions, resume policy and reset-to-baseline |
 | `EVIDENCE_PACK.md` | Audit contract for consequential outputs |
 | `HERMES_INTEGRATION.md` | Pantheon ↔ Hermes boundary and context export rules |
 | `OPENWEBUI_INTEGRATION.md` | OpenWebUI cockpit, Knowledge and validation boundary |
