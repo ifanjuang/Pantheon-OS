@@ -3,7 +3,7 @@
 > Source of truth for the current project state after the Hermes-backed pivot.
 > Governance Markdown files drive development under `docs/governance/`.
 
-Last update: 2026-05-03
+Last update: 2026-05-04
 
 ---
 
@@ -55,20 +55,21 @@ workflow runtime hidden inside Pantheon
 | `docs/governance/` | ✅ Canonical | Governance documents live under `docs/governance/` |
 | `ai_logs/` | ✅ Canonical | AI intervention logs use one file per session |
 | README | ✅ Updated | Product entry point rewritten for Pantheon Next |
-| README diagram asset registry | ✅ Added | `docs/assets/README.md` tracks Lucid sources and target export paths |
+| README diagram asset registry | ✅ Added | `docs/assets/README.md` tracks Lucid sources and target export paths; PNG exports still missing on `main` |
 | `docs/governance/README.md` | ✅ Updated | Index includes current governance docs |
 | `ARCHITECTURE.md` | ✅ Updated | References the OpenWebUI / Hermes / Pantheon operating protocol |
-| `MODULES.md` | ✅ Present | Must still be verified against actual domain folders before refactor |
-| `AGENTS.md` | ✅ Present | Must stay non-runtime and approval/evidence-aware |
+| `MODULES.md` | ✅ Present | Still needs verification against actual domain folders after each domain package merge |
+| `AGENTS.md` | ✅ Present | Must stay non-runtime and approval/evidence-aware; HEPHAISTOS/HEPHAESTUS spelling reconciliation remains open |
 | `MEMORY.md` | ✅ Present | Canonical memory doctrine clarified; runtime incomplete |
 | `APPROVALS.md` | ✅ Done | Defines C0-C5 criticality and approval levels |
 | `TASK_CONTRACTS.md` | ✅ Done | Defines task contract schema and first contracts |
+| `TASK_CONTRACT_REVISIONS.md` | ✅ Added | Addendum for single-role task contracts, revision signals, contract revisions, resume policy and reset-to-baseline |
 | `EVIDENCE_PACK.md` | ✅ Done | Defines evidence schema and mandatory use cases |
 | `HERMES_INTEGRATION.md` | ✅ Done | Defines Hermes/Pantheon boundary and context export rules |
 | `OPENWEBUI_INTEGRATION.md` | ✅ Added | Defines OpenWebUI cockpit, Knowledge and validation boundary |
 | `OPENWEBUI_DOMAIN_MAPPING.md` | ✅ Added | Maps Pantheon domains to OpenWebUI Knowledge, Models and operator Skills |
 | `MODEL_ROUTING_POLICY.md` | ✅ Added | Defines Ollama/OpenWebUI/Hermes model routing policy without a Pantheon router |
-| `EXTERNAL_TOOLS_POLICY.md` | ✅ Done | Defines external tool classification and allowlist policy, now including n8n as external automation orchestrator |
+| `EXTERNAL_TOOLS_POLICY.md` | ✅ Done | Defines external tool classification and allowlist policy, including n8n as external automation orchestrator |
 | `EXTERNAL_RUNTIME_OPTIONS.md` | ✅ Added | Classifies optional runtimes, workflow labs, context engines and graph/workspace tools |
 | `EXTERNAL_AI_OPTION_REVIEWS.md` | ✅ Updated | Classifies AnimoCerebro, Caliber, Andrej Karpathy Skills, Promptfoo, Instructor, Outlines, Guidance, DSPy, Brainlid LangChain, Recursive-Language-Models and Warp |
 | `EXECUTION_DISCIPLINE.md` | ✅ Added | Defines smallest-safe-path discipline, single-role before workflow, surgical changes and evidence before assertion |
@@ -83,7 +84,7 @@ workflow runtime hidden inside Pantheon
 | `VERSIONS.md` | ✅ Added | Runtime/model version tracking exists |
 | `operations/openwebui_hermes_pantheon.md` | ✅ Done | Defines authority model, flows, Context Pack, Evidence Pack, Run Graph, anti-loop |
 | `operations/openwebui_manual_setup.md` | ✅ Added | Manual OpenWebUI setup checklist exists |
-| `operations/doctor.md` | ✅ Added | Read-only operations doctor checklist exists |
+| `operations/doctor.md` | ✅ Strengthened | Read-only Doctor checklist now covers doctrine, single-role/workflow, contract revision, assets, external tools, n8n, Knowledge, Memory and PR hygiene |
 | `operations/n8n_email_automation.md` | ✅ Added | n8n email automation guardrails exist; no install or workflow created |
 | `operations/n8n_workflows/email_received_operator_notification.md` | ✅ Added | Candidate spec only; no runtime integration |
 | Runtime Context Pack endpoint | ✅ First static implementation | `GET /runtime/context-pack` exists, read-only/static |
@@ -91,7 +92,9 @@ workflow runtime hidden inside Pantheon
 | Hermes `pantheon-os` local skill | ✅ Template added | Template exists under `hermes/templates/pantheon-os/`; not installed locally |
 | Hermes context exports | ✅ Added | `hermes/context/*` orientation exports merged; runtime consumption still to verify |
 | `domains/general` | ✅ Started | First invariant domain created |
-| `domains/architecture_fr` | 🔄 In review | Claude PR #97 scaffolds the domain package; not reflected as merged yet |
+| `domains/architecture_fr` | ✅ Materialized | PR #97 merged: domain package, first candidate skill and first candidate workflow template |
+| `quote_vs_cctp_consistency` skill | ✅ Candidate | First post-pivot `architecture_fr` candidate skill exists; no runtime binding |
+| `quote_vs_cctp_review` workflow | ✅ Candidate | First post-pivot `architecture_fr` workflow template exists; dependency-graph/adaptive, not active runtime |
 | `domains/software` | 🔄 Targeted | Audit/governance domain to verify in repo |
 | `adaptive_orchestration` skill | ✅ Candidate | Created under `domains/general/skills/adaptive_orchestration/` |
 | `project_context_resolution` skill | ✅ Candidate | Created under `domains/general/skills/project_context_resolution/` |
@@ -99,7 +102,7 @@ workflow runtime hidden inside Pantheon
 | OpenWebUI Knowledge Strategy | 🔄 Example + candidate skill added | Registry example and Knowledge Selection candidate exist; live OpenWebUI validation still pending |
 | Validated Pantheon memory | 🔄 Model clarified | Levels: session, candidates, project, system; runtime incomplete |
 | Legacy FastAPI runtime | ⚠️ Legacy to audit | Existing autonomous runtime components must not be deleted without audit |
-| Tests | ⚠️ Not executed here | Local/CI execution still required; PR #93 diagnoses broader CI breakage |
+| CI / tests | ⚠️ Failing for inherited code drift | PR #97 failures are inherited from `platform/api` and `tests`, not from its Markdown/YAML scope |
 
 ---
 
@@ -137,11 +140,13 @@ Documented components:
 | Hermes context orientation exports | ✅ Added | `hermes/context/*` |
 | Pantheon Context Pack | ✅ First static implementation | `GET /runtime/context-pack` |
 | Task Contract | ✅ Documented | `TASK_CONTRACTS.md` |
+| Task Contract revision | ✅ Documented | `TASK_CONTRACT_REVISIONS.md` |
 | Evidence Pack | ✅ Documented | `EVIDENCE_PACK.md` |
 | Approval policy | ✅ Documented | `APPROVALS.md` |
 | Workflow adaptation doctrine | ✅ Documented | `WORKFLOW_ADAPTATION.md` |
 | Execution discipline | ✅ Documented | `EXECUTION_DISCIPLINE.md` |
 | Operations Doctor | ✅ Documented | `operations/doctor.md` |
+| architecture_fr first workflow | ✅ Candidate | `domains/architecture_fr/workflows/quote_vs_cctp_review/` |
 | n8n email automation guardrails | ✅ Documented | `operations/n8n_email_automation.md` + first workflow spec |
 
 Planned or incomplete:
@@ -152,7 +157,7 @@ Planned or incomplete:
 | OpenWebUI Actions | ⬜ Planned | View Evidence, approve, reject, request rerun or clarification |
 | OpenWebUI Evidence display | ⬜ Planned | Display Evidence Pack summaries and approval requests |
 | ConsultationRequest / ConsultationResult | ⬜ Planned | Govern Pantheon ↔ Hermes delegation |
-| Task Contract revision / resume flow | ⬜ Planned | Implement the `WORKFLOW_ADAPTATION.md` pause/revision/resume model later |
+| Task Contract revision / resume flow | ⬜ Planned | Runtime support later; doctrine only today |
 | Run Graph | ⬜ Planned | Display roles, dependencies, consultations, warnings, vetoes and approvals |
 | Hermes Result Scorecard | ⬜ Planned | Source, execution, scope, governance and reuse confidence |
 | Live Knowledge Registry | ⬜ Planned | Validate the example registry against live OpenWebUI Knowledge names and metadata |
@@ -198,6 +203,7 @@ docs/governance/AGENTS.md
 docs/governance/MEMORY.md
 docs/governance/APPROVALS.md
 docs/governance/TASK_CONTRACTS.md
+docs/governance/TASK_CONTRACT_REVISIONS.md
 docs/governance/EVIDENCE_PACK.md
 docs/governance/HERMES_INTEGRATION.md
 docs/governance/OPENWEBUI_INTEGRATION.md
@@ -219,6 +225,12 @@ hermes/context/
 domains/general/skills/adaptive_orchestration/
 domains/general/skills/project_context_resolution/
 domains/general/skills/knowledge_selection/
+domains/architecture_fr/domain.md
+domains/architecture_fr/rules.md
+domains/architecture_fr/knowledge_policy.md
+domains/architecture_fr/output_formats.md
+domains/architecture_fr/skills/quote_vs_cctp_consistency/
+domains/architecture_fr/workflows/quote_vs_cctp_review/
 operations/openwebui_hermes_pantheon.md
 operations/openwebui_manual_setup.md
 operations/doctor.md
@@ -230,15 +242,15 @@ Still to align or verify:
 
 ```text
 ROADMAP.md must stay synchronized after each governance addition.
-AGENTS.md must keep the Pantheon Roles / not runtime workers boundary explicit.
-WORKFLOW_SCHEMA.md and TASK_CONTRACTS.md must keep dependency-graph and adaptation terms aligned with WORKFLOW_ADAPTATION.md.
+AGENTS.md should reconcile HEPHAISTOS / HEPHAESTUS spelling across governance docs.
+WORKFLOW_SCHEMA.md, TASK_CONTRACTS.md and TASK_CONTRACT_REVISIONS.md must remain aligned with `quote_vs_cctp_review`.
 MEMORY.md must keep C3 + Evidence Pack promotion as non-negotiable.
 CODE_AUDIT_POST_PIVOT.md must be completed by real tree audit.
-Domain folder contents must be verified against MODULES.md.
-Claude PR #97 for architecture_fr must be reviewed and merged or adjusted.
+Legacy architecture_fr manifests and flat workflows still need classification/migration.
 OpenWebUI/Hermes live wiring remains to verify outside the repo docs.
 Knowledge Registry example must be validated against live OpenWebUI Knowledge Base names.
 Hermes context exports must be tested against actual Hermes consumption.
+README diagram PNG exports are still missing from docs/assets/.
 ```
 
 ### 4.2 Code
@@ -286,13 +298,13 @@ Known endpoints:
 /domain/approval/classify
 ```
 
-Smoke tests added:
+CI status:
 
 ```text
-tests/test_api_smoke.py
+Lint currently fails on ruff format checks in existing platform/api and tests files.
+Tests currently fail on existing core.services.storage_service import drift and coverage baseline.
+PR #97 did not introduce those failures; it added Markdown/YAML only under domains/architecture_fr and ai_logs.
 ```
-
-Tests still need to be executed locally or in CI.
 
 ---
 
@@ -306,6 +318,7 @@ References:
 docs/governance/WORKFLOW_ADAPTATION.md
 docs/governance/WORKFLOW_SCHEMA.md
 docs/governance/EXECUTION_DISCIPLINE.md
+docs/governance/TASK_CONTRACT_REVISIONS.md
 ```
 
 Current rule:
@@ -322,7 +335,7 @@ Role split:
 
 ```text
 ATHENA agence les workflows.
-HEPHAISTOS forge les skills.
+HEPHAISTOS / HEPHAESTUS naming must be reconciled.
 CHRONOS règle les dépendances.
 ZEUS arbitre les options.
 THEMIS bloque.
@@ -334,6 +347,7 @@ Documented concepts:
 
 ```text
 single_role_task
+single_role_task_contract
 workflow_template
 session_workflow
 workflow_override
@@ -358,7 +372,51 @@ LangGraph Hermes-side execution adapter
 
 ---
 
-## 6. Memory model
+## 6. architecture_fr domain package
+
+Status: ✅ Materialized as documentation/candidate package.
+
+Merged PR:
+
+```text
+#97 — docs(architecture_fr): scaffold domain + first candidate skill + first canonical workflow
+```
+
+Files now present:
+
+```text
+domains/architecture_fr/domain.md
+domains/architecture_fr/rules.md
+domains/architecture_fr/knowledge_policy.md
+domains/architecture_fr/output_formats.md
+domains/architecture_fr/templates/README.md
+domains/architecture_fr/skills/quote_vs_cctp_consistency/
+domains/architecture_fr/workflows/quote_vs_cctp_review/
+```
+
+Interpretation:
+
+```text
+The domain package is documentation-only.
+The skill is candidate-only.
+The workflow is candidate/template-only.
+No runtime, endpoint, script or automation was added.
+No client/project/address/person/chantier data was added.
+```
+
+Open items:
+
+```text
+Fix stale `domain: architecture` field in legacy domains/architecture_fr/manifest.yaml.
+Classify/migrate legacy flat workflows.
+Decide HEPHAISTOS vs HEPHAESTUS spelling in governance.
+Add first concrete fictional templates only after review.
+Validate OpenWebUI Knowledge names against live setup.
+```
+
+---
+
+## 7. Memory model
 
 Status: ✅ Doctrine clarified, runtime incomplete.
 
@@ -385,11 +443,12 @@ OpenWebUI Knowledge is not Pantheon memory.
 Hermes local memory is not Pantheon memory.
 OpenConcho/Honcho conclusions are not Pantheon memory.
 Workflow candidates are not canonical workflows.
+architecture_fr skill/workflow outputs remain candidate-only unless separately reviewed.
 ```
 
 ---
 
-## 7. Knowledge / document strategy
+## 8. Knowledge / document strategy
 
 Status: 🔄 Example registry and candidate selection skill added, live wiring incomplete.
 
@@ -414,6 +473,7 @@ OPENWEBUI_DOMAIN_MAPPING.md
 operations/openwebui_manual_setup.md
 knowledge/registry.example.yaml
 domains/general/skills/knowledge_selection/
+domains/architecture_fr/knowledge_policy.md
 ```
 
 Current status:
@@ -421,6 +481,7 @@ Current status:
 ```text
 knowledge/registry.example.yaml exists.
 domains/general/skills/knowledge_selection/ exists as candidate.
+architecture_fr declares source tiers and regulatory freshness policy.
 live knowledge/registry.yaml is not created yet.
 live OpenWebUI Knowledge Base validation is not done yet.
 Hermes retrieval preflight mapping is not implemented yet.
@@ -428,7 +489,7 @@ Hermes retrieval preflight mapping is not implemented yet.
 
 ---
 
-## 8. Candidate skills and workflows
+## 9. Candidate skills and workflows
 
 Existing candidate skills:
 
@@ -436,6 +497,13 @@ Existing candidate skills:
 domains/general/skills/adaptive_orchestration/
 domains/general/skills/project_context_resolution/
 domains/general/skills/knowledge_selection/
+domains/architecture_fr/skills/quote_vs_cctp_consistency/
+```
+
+Existing candidate workflows:
+
+```text
+domains/architecture_fr/workflows/quote_vs_cctp_review/
 ```
 
 Status: ✅ Candidate.
@@ -443,31 +511,15 @@ Status: ✅ Candidate.
 Important interpretation:
 
 ```text
-adaptive_orchestration is now governed by WORKFLOW_ADAPTATION.md.
-It may propose session adaptations and candidates.
-It must not canonize workflows, activate skills or bypass approvals.
-It may decide that no workflow is needed and that a single role is sufficient.
+adaptive_orchestration is governed by WORKFLOW_ADAPTATION.md.
+quote_vs_cctp_consistency is review-mode only, never final contractual validation.
+quote_vs_cctp_review is a template, not an active runtime workflow.
+No skill activation, no memory promotion, no workflow canonization happened.
 ```
-
-First business-domain target:
-
-```text
-quote_vs_cctp_analysis / quote_vs_cctp_review
-```
-
-Status: ⬜ Not created yet.
-
-Target domain:
-
-```text
-domains/architecture_fr/
-```
-
-Claude PR #97 currently proposes the first `architecture_fr` domain package scaffold.
 
 ---
 
-## 9. External options and tool governance
+## 10. External options and tool governance
 
 Status: ✅ Strongly documented; no integration performed.
 
@@ -540,7 +592,7 @@ Warp/Oz must not become a parallel cloud-agent runtime for Pantheon.
 
 ---
 
-## 10. Legacy components
+## 11. Legacy components
 
 Status: ⚠️ Present, not deleted.
 
@@ -562,6 +614,8 @@ Alembic approval migration
 Installer UI
 old tests tied to autonomous runtime assumptions
 naming and purpose of platform/api/pantheon_runtime/
+legacy architecture_fr manifests
+legacy architecture_fr flat workflows
 ```
 
 Rule:
@@ -573,7 +627,7 @@ Do not reactivate the autonomous runtime path by accident.
 
 ---
 
-## 11. Immediate action list
+## 12. Immediate action list
 
 ### P0 — completed governance base
 
@@ -583,44 +637,47 @@ Do not reactivate the autonomous runtime path by accident.
 4. ✅ Hermes `pantheon-os` local skill template created.
 5. ✅ `APPROVALS.md` added.
 6. ✅ `TASK_CONTRACTS.md` added.
-7. ✅ `EVIDENCE_PACK.md` added.
-8. ✅ `HERMES_INTEGRATION.md` added.
-9. ✅ `KNOWLEDGE_TAXONOMY.md` added.
-10. ✅ `EXTERNAL_TOOLS_POLICY.md` added.
-11. ✅ `OPENWEBUI_INTEGRATION.md` added.
-12. ✅ `OPENWEBUI_DOMAIN_MAPPING.md` added.
-13. ✅ `MODEL_ROUTING_POLICY.md` added.
-14. ✅ `EXTERNAL_RUNTIME_OPTIONS.md` added.
-15. ✅ `EXTERNAL_AI_OPTION_REVIEWS.md` added and expanded.
-16. ✅ `CODE_AUDIT_POST_PIVOT.md` initial register added.
-17. ✅ README rewritten around Pantheon Next.
-18. ✅ README diagram asset registry added.
-19. ✅ API smoke tests added.
-20. ✅ `operations/openwebui_manual_setup.md` added.
-21. ✅ `operations/doctor.md` added.
-22. ✅ `knowledge/registry.example.yaml` added.
-23. ✅ `domains/general/skills/knowledge_selection/` added as candidate.
-24. ✅ `EXTERNAL_MEMORY_RUNTIME_REVIEWS_OPENCONCHO_HONCHO.md` added.
-25. ✅ Hermes context exports added under `hermes/context/`.
-26. ✅ n8n classified and first email notification workflow spec added.
-27. ✅ `WORKFLOW_ADAPTATION.md` added.
-28. ✅ `EXECUTION_DISCIPLINE.md` added.
+7. ✅ `TASK_CONTRACT_REVISIONS.md` added.
+8. ✅ `EVIDENCE_PACK.md` added.
+9. ✅ `HERMES_INTEGRATION.md` added.
+10. ✅ `KNOWLEDGE_TAXONOMY.md` added.
+11. ✅ `EXTERNAL_TOOLS_POLICY.md` added.
+12. ✅ `OPENWEBUI_INTEGRATION.md` added.
+13. ✅ `OPENWEBUI_DOMAIN_MAPPING.md` added.
+14. ✅ `MODEL_ROUTING_POLICY.md` added.
+15. ✅ `EXTERNAL_RUNTIME_OPTIONS.md` added.
+16. ✅ `EXTERNAL_AI_OPTION_REVIEWS.md` added and expanded.
+17. ✅ `CODE_AUDIT_POST_PIVOT.md` initial register added.
+18. ✅ README rewritten around Pantheon Next.
+19. ✅ README diagram asset registry added.
+20. ✅ API smoke tests added.
+21. ✅ `operations/openwebui_manual_setup.md` added.
+22. ✅ `operations/doctor.md` strengthened.
+23. ✅ `knowledge/registry.example.yaml` added.
+24. ✅ `domains/general/skills/knowledge_selection/` added as candidate.
+25. ✅ `EXTERNAL_MEMORY_RUNTIME_REVIEWS_OPENCONCHO_HONCHO.md` added.
+26. ✅ Hermes context exports added under `hermes/context/`.
+27. ✅ n8n classified and first email notification workflow spec added.
+28. ✅ `WORKFLOW_ADAPTATION.md` added.
+29. ✅ `EXECUTION_DISCIPLINE.md` added.
+30. ✅ `domains/architecture_fr` materialized with first candidate skill/workflow.
 
 ### P1 — next documentation/contracts
 
-1. Review Claude PR #97 for `domains/architecture_fr/` and merge or request changes.
-2. Run the Doctor checklist manually against the current tree.
-3. Run `pytest tests/test_api_smoke.py` locally or in CI.
-4. Resolve broader CI/test drift documented by PR #93 if approved.
-5. Validate `knowledge/registry.example.yaml` against live OpenWebUI Knowledge Base names, then decide whether to create `knowledge/registry.yaml`.
-6. Define Hermes retrieval preflight mapping for `knowledge_selection`.
-7. Verify or document `PANTHEON_CONTEXT_URL` consumption by Hermes.
-8. Create first `architecture_fr` skill/workflow: `quote_vs_cctp_review`.
-9. Complete `CODE_AUDIT_POST_PIVOT.md` from a real tree audit.
-10. Define OpenWebUI Router Pipe specification.
-11. Define OpenWebUI Actions specification.
-12. Define a neutral execution runtime contract only if runtime-switch work becomes a real priority.
+1. Run the read-only Doctor checklist against the repository tree.
+2. Resolve CI/test drift documented by PR #93 and current CI logs.
+3. Run `pytest tests/test_api_smoke.py` locally or in CI after CI baseline is repaired.
+4. Validate `knowledge/registry.example.yaml` against live OpenWebUI Knowledge Base names, then decide whether to create `knowledge/registry.yaml`.
+5. Define Hermes retrieval preflight mapping for `knowledge_selection`.
+6. Verify or document `PANTHEON_CONTEXT_URL` consumption by Hermes.
+7. Reconcile `HEPHAISTOS` / `HEPHAESTUS` spelling in governance docs.
+8. Fix stale `domains/architecture_fr/manifest.yaml` field if confirmed.
+9. Classify or migrate legacy `architecture_fr` flat workflows.
+10. Complete `CODE_AUDIT_POST_PIVOT.md` from a real tree audit.
+11. Define OpenWebUI Router Pipe specification.
+12. Define OpenWebUI Actions specification.
 13. Draft `EVALUATION.md` around Promptfoo, Instructor and Outlines if evaluation work is prioritized.
+14. Export clean colored README diagrams from Lucid, commit them under `docs/assets/`, then embed them in `README.md`.
 
 ### P2 — later implementation
 
@@ -638,7 +695,7 @@ Do not reactivate the autonomous runtime path by accident.
 
 ---
 
-## 12. Risks
+## 13. Risks
 
 | Risk | Status | Guardrail |
 |---|---|---|
@@ -648,6 +705,8 @@ Do not reactivate the autonomous runtime path by accident.
 | Adaptive workflows become hidden runtime | Active risk | `WORKFLOW_ADAPTATION.md`: session changes require trace, approval and Task Contract revision |
 | Workflow overuse | Active risk | `EXECUTION_DISCIPLINE.md`: single-role path before workflow |
 | Skill duplication | Active risk | Pantheon skill lifecycle + Hermes skill mapping |
+| architecture_fr candidate treated as active runtime | Active risk | Skill/workflow are candidate/template only |
+| HEPHAISTOS / HEPHAESTUS naming split | Active risk | Dedicated governance reconciliation needed |
 | Memory pollution | Active risk | Candidate memory + validation only |
 | Cross-project RAG contamination | Active risk | Knowledge Selection + source tiers |
 | Legacy runtime confusion | Active risk | Legacy audit before reuse or deletion |
@@ -666,10 +725,11 @@ Do not reactivate the autonomous runtime path by accident.
 | Evaluation tool becomes authority | Active risk | Promptfoo may measure but not canonize skills or workflows automatically |
 | Warp/Oz becomes parallel runtime | Active risk | Warp is optional developer terminal only; Oz is blocked for core |
 | Recursive-Language-Models becomes runtime | Active risk | Watch/test-only; sandbox only on non-sensitive data |
+| README diagram links break | Active risk | Do not embed images until local PNG exports exist |
 
 ---
 
-## 13. Final summary
+## 14. Final summary
 
 Reliable now:
 
@@ -678,7 +738,7 @@ Pantheon Next product direction
 Hermes-backed direction
 OpenWebUI / Hermes / Pantheon operating protocol
 approval criticality policy
-initial task contracts
+initial task contracts and revision addendum
 Evidence Pack doctrine
 Hermes integration doctrine
 OpenWebUI integration doctrine
@@ -693,6 +753,9 @@ Knowledge Selection candidate skill
 Workflow adaptation doctrine
 Execution discipline doctrine
 README diagram asset registry
+architecture_fr domain package
+architecture_fr quote_vs_cctp_consistency candidate skill
+architecture_fr quote_vs_cctp_review candidate workflow template
 adaptive_orchestration candidate skill
 project_context_resolution candidate skill
 skill lifecycle / XP doctrine
@@ -712,8 +775,7 @@ Knowledge strategy live wiring
 Hermes pantheon-os skill installation
 OpenWebUI router/actions
 legacy runtime classification
-architecture_fr domain package
-architecture_fr workflows
+legacy architecture_fr manifest/workflows cleanup
 software domain verification
 workflow pause/resume runtime
 Task Contract revision runtime
@@ -739,10 +801,11 @@ Doctor automation
 n8n install/runtime/email connector
 Promptfoo evaluation suite
 Instructor/Outlines Hermes adapter
+README local diagram exports
 ```
 
 Next logical step:
 
 ```text
-Review Claude PR #97 for architecture_fr, then run the read-only Doctor checklist.
+Run a read-only Doctor report on main, then resolve inherited CI drift.
 ```
