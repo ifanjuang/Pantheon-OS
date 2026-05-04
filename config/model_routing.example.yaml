@@ -4,47 +4,96 @@
 # It does not make Pantheon a model router.
 # OpenWebUI exposes available providers and presets.
 # Hermes executes model calls while respecting this policy.
+# Ollama nodes serve models.
 
-version: 0.1.0
-mode: single_ollama_instance
+version: 0.2.0
+status: example_only
+mode: multi_compute_node
 
 # Supported modes:
 # - single_ollama_instance
 # - multi_ollama_instance
+# - multi_compute_node
 
-instances:
-  default:
-    provider: ollama
-    base_url: http://ollama:11434
-    openwebui_prefix: ""
-    local_only: true
-    data_policy: private_data_allowed
-    notes: "Default single Ollama instance used by OpenWebUI."
+references:
+  policy: docs/governance/MODEL_ROUTING_POLICY.md
+  compute_nodes: config/compute_nodes.example.yaml
+  local_compute_nodes: config/compute_nodes.local.yaml
+  local_model_routing: config/model_routing.local.yaml
 
-  # Example multi-instance setup. Keep disabled until actually configured in OpenWebUI.
-  nas:
-    enabled: false
-    provider: ollama
-    base_url: http://ollama-nas:11434
-    openwebui_prefix: "nas/"
-    local_only: true
-    data_policy: private_data_allowed
+rules:
+  pantheon_is_not_model_router: true
+  hermes_applies_runtime_selection: true
+  no_silent_fallback_for_C4_C5: true
+  no_private_data_to_remote_nodes_without_policy: true
+  local_files_should_not_be_committed: true
 
-  gpu:
-    enabled: false
+model_registry:
+  qwen25_7b_general:
     provider: ollama
-    base_url: http://ollama-gpu:11434
-    openwebui_prefix: "gpu/"
-    local_only: true
-    data_policy: private_data_allowed
+    compute_node_id: pc00
+    model: qwen2.5:7b
+    type: chat
+    context_length: 32768
+    capabilities:
+      - general
+      - extraction
+      - summarization
+      - low_latency
+      - local_only
+      - private_data_allowed
 
-  remote:
-    enabled: false
+  qwen25_14b_strong:
     provider: ollama
-    base_url: http://ollama-remote:11434
-    openwebui_prefix: "remote/"
-    local_only: false
-    data_policy: public_data_only
+    compute_node_id: pc01
+    model: qwen2.5:14b
+    type: chat
+    context_length: 65536
+    capabilities:
+      - reasoning
+      - planning
+      - validation
+      - contradiction_check
+      - structured_output
+      - local_only
+      - private_data_allowed
+
+  qwen25_coder_7b:
+    provider: ollama
+    compute_node_id: pc02
+    model: qwen2.5-coder:7b
+    type: chat
+    context_length: 32768
+    capabilities:
+      - coding
+      - technical_review
+      - repo_audit
+      - local_only
+      - private_data_allowed
+
+  mistral_7b_communication:
+    provider: ollama
+    compute_node_id: pc00
+    model: mistral:7b
+    type: chat
+    context_length: 32768
+    capabilities:
+      - style_control
+      - summarization
+      - low_latency
+      - local_only
+      - private_data_allowed
+
+  nomic_embed:
+    provider: ollama
+    compute_node_id: pc00
+    model: nomic-embed-text
+    type: embedding
+    embedding_dim: 768
+    capabilities:
+      - embedding
+      - local_only
+      - private_data_allowed
 
 fallback_defaults:
   C0: use_fallback_with_warning
@@ -54,28 +103,33 @@ fallback_defaults:
   C4: stop_and_request_manual_review
   C5: block
 
-agents:
-  athena:
+roles:
+  default:
+    model_id: qwen25_7b_general
+    fallback_model_ids:
+      - qwen25_14b_strong
+    if_unavailable: use_fallback_with_warning
+    max_criticality_without_manual_review: C2
+
+  ATHENA:
     role: planning
-    openwebui_preset_name: "ATHENA Planner"
-    preferred_model: qwen3:14b
-    fallback_models:
-      - llama3.1:8b
-      - mistral:7b
+    openwebui_preset_name: ATHENA Planner
+    model_id: qwen25_14b_strong
+    fallback_model_ids:
+      - qwen25_7b_general
     required_capabilities:
       - reasoning
       - planning
       - structured_output
-    if_unavailable: use_fallback_with_warning
+    if_unavailable: degrade_to_draft_only
     max_criticality_without_manual_review: C3
 
-  argos:
+  ARGOS:
     role: extraction
-    openwebui_preset_name: "ARGOS Extractor"
-    preferred_model: llama3.1:8b
-    fallback_models:
-      - mistral:7b
-      - qwen3:14b
+    openwebui_preset_name: ARGOS Extractor
+    model_id: qwen25_7b_general
+    fallback_model_ids:
+      - qwen25_14b_strong
     required_capabilities:
       - extraction
       - source_discipline
@@ -83,12 +137,11 @@ agents:
     if_unavailable: use_fallback_with_warning
     max_criticality_without_manual_review: C3
 
-  themis:
+  THEMIS:
     role: risk_policy
-    openwebui_preset_name: "THEMIS Risk Check"
-    preferred_model: qwen3:14b
-    fallback_models:
-      - llama3.1:8b
+    openwebui_preset_name: THEMIS Risk Check
+    model_id: qwen25_14b_strong
+    fallback_model_ids: []
     required_capabilities:
       - reasoning
       - policy_review
@@ -96,13 +149,11 @@ agents:
     if_unavailable: stop_and_request_manual_review
     max_criticality_without_manual_review: C3
 
-  apollo:
+  APOLLO:
     role: validation
-    openwebui_preset_name: "APOLLO Validator"
-    preferred_model: deepseek-r1:14b
-    fallback_models:
-      - qwen3:14b
-      - llama3.1:8b
+    openwebui_preset_name: APOLLO Validator
+    model_id: qwen25_14b_strong
+    fallback_model_ids: []
     required_capabilities:
       - validation
       - contradiction_check
@@ -110,25 +161,24 @@ agents:
     if_unavailable: stop_and_request_manual_review
     max_criticality_without_manual_review: C3
 
-  iris:
+  IRIS:
     role: communication
-    openwebui_preset_name: "IRIS Communication"
-    preferred_model: mistral:7b
-    fallback_models:
-      - llama3.1:8b
-      - qwen3:14b
+    openwebui_preset_name: IRIS Communication
+    model_id: mistral_7b_communication
+    fallback_model_ids:
+      - qwen25_7b_general
     required_capabilities:
       - style_control
       - summarization
     if_unavailable: use_fallback_with_warning
     max_criticality_without_manual_review: C3
 
-  hestia:
+  HESTIA:
     role: project_memory_context
-    openwebui_preset_name: "HESTIA Project Memory"
-    preferred_model: llama3.1:8b
-    fallback_models:
-      - qwen3:14b
+    openwebui_preset_name: HESTIA Project Memory
+    model_id: qwen25_7b_general
+    fallback_model_ids:
+      - qwen25_14b_strong
     required_capabilities:
       - extraction
       - source_discipline
@@ -136,12 +186,11 @@ agents:
     if_unavailable: degrade_to_diagnostic_only
     max_criticality_without_manual_review: C3
 
-  mnemosyne:
+  MNEMOSYNE:
     role: system_memory_patterns
-    openwebui_preset_name: "MNEMOSYNE System Memory"
-    preferred_model: qwen3:14b
-    fallback_models:
-      - llama3.1:8b
+    openwebui_preset_name: MNEMOSYNE System Memory
+    model_id: qwen25_14b_strong
+    fallback_model_ids: []
     required_capabilities:
       - reasoning
       - structured_output
@@ -149,12 +198,12 @@ agents:
     if_unavailable: stop_and_request_manual_review
     max_criticality_without_manual_review: C3
 
-  hephaestus:
+  HEPHAESTUS:
     role: technical_review
-    openwebui_preset_name: "HEPHAESTUS Technical Review"
-    preferred_model: qwen3:14b
-    fallback_models:
-      - llama3.1:8b
+    openwebui_preset_name: HEPHAESTUS Technical Review
+    model_id: qwen25_coder_7b
+    fallback_model_ids:
+      - qwen25_14b_strong
     required_capabilities:
       - reasoning
       - coding
@@ -162,26 +211,22 @@ agents:
     if_unavailable: use_fallback_with_warning
     max_criticality_without_manual_review: C3
 
-  prometheus:
+  PROMETHEUS:
     role: adversarial_challenge
-    openwebui_preset_name: "PROMETHEUS Challenge"
-    preferred_model: qwen3:14b
-    fallback_models:
-      - deepseek-r1:14b
-      - llama3.1:8b
+    openwebui_preset_name: PROMETHEUS Challenge
+    model_id: qwen25_14b_strong
+    fallback_model_ids: []
     required_capabilities:
       - contradiction_check
       - reasoning
     if_unavailable: stop_and_request_manual_review
     max_criticality_without_manual_review: C3
 
-  zeus:
+  ZEUS:
     role: arbitration
-    openwebui_preset_name: "ZEUS Arbitration"
-    preferred_model: qwen3:14b
-    fallback_models:
-      - deepseek-r1:14b
-      - llama3.1:8b
+    openwebui_preset_name: ZEUS Arbitration
+    model_id: qwen25_14b_strong
+    fallback_model_ids: []
     required_capabilities:
       - reasoning
       - planning
@@ -217,6 +262,8 @@ evidence_trace_fields:
   - requested_agent
   - preferred_model
   - actual_model
+  - model_id
+  - compute_node_id
   - instance_id
   - fallback_used
   - fallback_reason
