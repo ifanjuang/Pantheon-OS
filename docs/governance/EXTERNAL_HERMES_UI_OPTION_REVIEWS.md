@@ -48,7 +48,7 @@ Pantheon Memory as canonical memory
 | ComfyUI Skills OpenClaw | `HuangYuChuh/ComfyUI_Skills_OpenClaw` | ComfyUI workflow skill bridge | `creative_skill_lab_candidate` | sandbox image-generation workflows | uncontrolled model/workflow execution |
 | drawio-skill | `Agents365-ai/drawio-skill` | diagram generation skill | `diagram_skill_candidate` | local diagram export candidate | generated diagrams becoming source of truth |
 | SkillClaw | `AMAP-ML/SkillClaw` | collective skill evolution | `blocked_for_core` | research only | self-evolving skills / continual learning |
-| Hermes Web Search Plus | `robbyczgw-cla/hermes-web-search-plus` | Hermes search/extraction plugin | `search_plugin_candidate` | sandbox search with allowlist | paid APIs, web leakage, search authority drift |
+| Web Search Plus | `robbyczgw-cla/web-search-plus-plugin` / OpenClaw skill `web-search-plus` | web search plugin / skill | `search_plugin_candidate` | sandbox search with allowlist | paid APIs, web leakage, search authority drift |
 
 ---
 
@@ -474,7 +474,7 @@ Potential value:
 
 ```text
 turn ComfyUI API workflows into callable agent skills
-support OpenClaw, Hermes, Codex and Claude Code style skill directories
+support OpenClaw, Codex and Claude Code style skill directories
 multi-server ComfyUI management
 workflow schema mapping
 local visual generation lab
@@ -619,7 +619,7 @@ repo/skill mutation: C5
 
 ---
 
-## 14. Hermes Web Search Plus
+## 14. Web Search Plus
 
 Classification:
 
@@ -628,19 +628,25 @@ search_plugin_candidate
 sandbox_only_until_policy
 ```
 
-Repository:
+Repository / source:
 
 ```text
-https://github.com/robbyczgw-cla/hermes-web-search-plus
+https://github.com/robbyczgw-cla/web-search-plus-plugin
+https://openclaw.army/skills/robbyczgw-cla/web-search-plus
+```
+
+Note:
+
+```text
+The originally supplied `robbyczgw-cla/hermes-web-search-plus` path should be treated as an alias/to-verify reference. The reviewed upstream target is `web-search-plus-plugin` / OpenClaw skill `web-search-plus`.
 ```
 
 Potential value:
 
 ```text
-multi-provider Hermes web search
-URL extraction
-quality reports
-research mode
+multi-provider web search
+intelligent provider routing
+SearXNG-compatible self-hosted option
 local caching
 provider diagnostics
 ```
@@ -660,7 +666,7 @@ Allowed:
 ```text
 read documentation
 sandbox search on public queries
-evaluate quality report fields
+evaluate routing/diagnostic fields
 map provider outputs to Evidence Pack fields
 ```
 
@@ -671,7 +677,7 @@ send private project/client context to web providers without approval
 enable all providers without allowlist
 treat search output as canonical source
 store provider secrets in repo
-use research mode on sensitive data
+use search mode on sensitive data
 ```
 
 Approval:
