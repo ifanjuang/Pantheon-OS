@@ -3,7 +3,7 @@
 > Post-pivot roadmap.
 > Pantheon Next is a Hermes-backed Domain Operating Layer: OpenWebUI exposes, Hermes Agent executes, Pantheon Next governs.
 
-Last update: 2026-05-03
+Last update: 2026-05-04
 
 ---
 
@@ -71,6 +71,7 @@ docs/governance/AGENTS.md
 docs/governance/MEMORY.md
 docs/governance/APPROVALS.md
 docs/governance/TASK_CONTRACTS.md
+docs/governance/TASK_CONTRACT_REVISIONS.md
 docs/governance/EVIDENCE_PACK.md
 docs/governance/HERMES_INTEGRATION.md
 docs/governance/OPENWEBUI_INTEGRATION.md
@@ -150,6 +151,7 @@ Pantheon-Next/
       MEMORY.md
       APPROVALS.md
       TASK_CONTRACTS.md
+      TASK_CONTRACT_REVISIONS.md
       EVIDENCE_PACK.md
       HERMES_INTEGRATION.md
       OPENWEBUI_INTEGRATION.md
@@ -188,7 +190,9 @@ Pantheon-Next/
       knowledge_policy.md
       output_formats.md
       skills/
+        quote_vs_cctp_consistency/
       workflows/
+        quote_vs_cctp_review/
       templates/
     software/
       domain.md
@@ -269,6 +273,7 @@ ROADMAP.md
 ARCHITECTURE.md
 APPROVALS.md
 TASK_CONTRACTS.md
+TASK_CONTRACT_REVISIONS.md
 EVIDENCE_PACK.md
 HERMES_INTEGRATION.md
 OPENWEBUI_INTEGRATION.md
@@ -292,6 +297,9 @@ operations/n8n_email_automation.md
 operations/n8n_workflows/email_received_operator_notification.md
 knowledge/registry.example.yaml
 hermes/context/
+domains/architecture_fr/ domain package
+domains/architecture_fr/skills/quote_vs_cctp_consistency/
+domains/architecture_fr/workflows/quote_vs_cctp_review/
 ```
 
 Also completed or started:
@@ -324,41 +332,26 @@ Turn the documentation baseline into a verifiable, minimal operating setup witho
 
 Priority order:
 
-1. Review Claude PR #97 for `domains/architecture_fr/` and merge or request changes.
-2. Run the read-only Doctor checklist against the repository tree.
-3. Execute API smoke tests locally or in CI:
+1. Run the read-only Doctor checklist against the repository tree.
+2. Resolve inherited CI drift:
+
+```text
+ruff format --check currently fails on existing platform/api and tests files.
+pytest currently fails on an existing core.services.storage_service import drift and coverage baseline.
+```
+
+3. Execute API smoke tests locally or in CI after the CI baseline is repaired:
 
 ```text
 pytest tests/test_api_smoke.py
 ```
 
-4. Decide whether to merge or revise PR #93 for CI lint/test diagnostic work.
-5. Validate `knowledge/registry.example.yaml` against live OpenWebUI Knowledge Base names, then decide whether to create `knowledge/registry.yaml`.
-6. Define Hermes retrieval preflight mapping for `knowledge_selection`.
-7. Verify or document `PANTHEON_CONTEXT_URL` consumption by Hermes.
-8. Complete domain package rule files if missing:
-
-```text
-domains/general/rules.md
-domains/general/knowledge_policy.md
-domains/general/output_formats.md
-
-domains/architecture_fr/rules.md
-domains/architecture_fr/knowledge_policy.md
-domains/architecture_fr/output_formats.md
-
-domains/software/rules.md
-domains/software/knowledge_policy.md
-domains/software/output_formats.md
-```
-
-9. Create first `architecture_fr` capability:
-
-```text
-domains/architecture_fr/skills/quote_vs_cctp_consistency/
-domains/architecture_fr/workflows/quote_vs_cctp_review.yaml
-```
-
+4. Validate `knowledge/registry.example.yaml` against live OpenWebUI Knowledge Base names, then decide whether to create `knowledge/registry.yaml`.
+5. Define Hermes retrieval preflight mapping for `knowledge_selection`.
+6. Verify or document `PANTHEON_CONTEXT_URL` consumption by Hermes.
+7. Reconcile `HEPHAISTOS` / `HEPHAESTUS` naming across governance docs.
+8. Fix stale `domains/architecture_fr/manifest.yaml` field if confirmed.
+9. Classify or migrate legacy `architecture_fr` flat workflows.
 10. Complete `CODE_AUDIT_POST_PIVOT.md` after real tree audit.
 11. Define OpenWebUI Router Pipe specification.
 12. Define OpenWebUI Actions specification.
@@ -374,10 +367,12 @@ Purpose:
 Turn adaptive workflow doctrine into a safe execution model without creating a Pantheon runtime.
 ```
 
-Reference:
+References:
 
 ```text
 docs/governance/WORKFLOW_ADAPTATION.md
+docs/governance/TASK_CONTRACT_REVISIONS.md
+domains/architecture_fr/workflows/quote_vs_cctp_review/
 ```
 
 Rules:
@@ -394,7 +389,7 @@ Role split:
 
 ```text
 ATHENA agence les workflows.
-HEPHAISTOS forge les skills.
+HEPHAISTOS / HEPHAESTUS naming must be reconciled.
 CHRONOS règle les dépendances.
 ZEUS arbitre les options.
 THEMIS bloque.
@@ -404,11 +399,12 @@ Hermes exécute.
 
 Near-term tasks:
 
-1. Add a targeted `TASK_CONTRACTS.md` section for `task_contract_revision`, `resume_policy` and single-role escalation.
+1. Keep `TASK_CONTRACT_REVISIONS.md` aligned with future runtime contract work.
 2. Define a neutral `workflow_execution_plan` example for Hermes.
-3. Define `workflow_revision_signal`, `zeus_arbitration`, `workflow_patch`, `task_contract_revision` and `resume_policy` schemas in operational examples.
+3. Define operational examples for `workflow_revision_signal`, `zeus_arbitration`, `workflow_patch`, `task_contract_revision` and `resume_policy` if implementation work starts.
 4. Keep LangGraph as optional Hermes-side execution library only.
 5. Keep Langflow as optional lab/visual editing surface only.
+6. Keep `quote_vs_cctp_review` as candidate/template-only until review and activation criteria exist.
 
 Do not implement now:
 
@@ -501,6 +497,7 @@ Tasks:
 4. Add approval request and Evidence Pack summary display requirements.
 5. Add manual OpenWebUI setup verification after live configuration.
 6. Align live Knowledge names with `knowledge/registry.example.yaml` before creating a real registry.
+7. Prepare how OpenWebUI should display `quote_vs_cctp_review` Evidence Packs and C4 handoffs without becoming authority.
 
 ---
 
@@ -514,18 +511,21 @@ project_context_resolution
 knowledge_selection
 ```
 
-First architecture_fr target:
+Existing architecture_fr candidates:
 
 ```text
-quote_vs_cctp_analysis / quote_vs_cctp_review
+quote_vs_cctp_consistency
+quote_vs_cctp_review
 ```
 
 Recommended next skills:
 
 ```text
-domains/architecture_fr/skills/quote_vs_cctp_consistency/
 domains/architecture_fr/skills/dpgf_quantity_sanity_check/
 domains/architecture_fr/skills/client_message_safety/
+domains/architecture_fr/skills/cctp_review/
+domains/architecture_fr/skills/plu_constraint_check/
+domains/architecture_fr/skills/erp_sdis_check/
 domains/software/skills/repo_md_audit/
 domains/software/skills/code_audit_post_pivot/
 domains/general/skills/markdown_quality_check/
@@ -537,7 +537,7 @@ Rule:
 ```text
 A Pantheon skill is a governance contract.
 A Hermes skill is executable capability.
-HEPHAISTOS may forge skill candidates, but cannot activate or promote them.
+HEPHAISTOS/HEPHAESTUS may forge skill candidates, but cannot activate or promote them.
 ```
 
 ---
@@ -549,6 +549,7 @@ Status:
 ```text
 knowledge/registry.example.yaml exists.
 domains/general/skills/knowledge_selection/ exists as candidate.
+domains/architecture_fr/knowledge_policy.md exists and declares source tiers / freshness logic.
 knowledge/registry.yaml is not created yet.
 ```
 
@@ -674,6 +675,8 @@ Existing:
 WORKFLOW_SCHEMA.md
 WORKFLOW_ADAPTATION.md
 EXECUTION_DISCIPLINE.md
+TASK_CONTRACT_REVISIONS.md
+quote_vs_cctp_review candidate workflow
 ```
 
 Still to create or complete:
@@ -697,6 +700,7 @@ workflow adaptation trace correctness
 parallel branch join correctness
 single-role escalation correctness
 structured output validation correctness
+quote_vs_cctp_review documentation test correctness
 ```
 
 Do not create a heavy evaluation runtime in P2.
@@ -726,6 +730,8 @@ scripts/install/ui/
 platform/data/db/init.sql
 platform/api/pantheon_runtime/
 legacy/
+domains/architecture_fr/manifest.yaml
+legacy architecture_fr flat workflows
 ```
 
 Allowed decisions:
@@ -866,6 +872,8 @@ n8n email reply automation
 Langflow as canonical workflow source
 LangGraph as central Pantheon orchestrator
 workflow graph runtime hidden in Pantheon
+quote_vs_cctp_review as active runtime workflow before review
+quote_vs_cctp_consistency as active executable skill before review
 Promptfoo CI blocker
 Instructor/Outlines dependency in Pantheon core
 DSPy optimization loop
