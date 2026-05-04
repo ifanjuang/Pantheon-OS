@@ -27,6 +27,7 @@ Pantheon must support both deployment situations:
 ```text
 single_ollama_instance
 multi_ollama_instance
+multi_compute_node
 ```
 
 ### 2.1 Single Ollama instance mode
@@ -77,6 +78,28 @@ APOLLO Validator     → gpu/deepseek-r1:14b
 IRIS Communication   → nas/mistral:7b
 ```
 
+### 2.3 Multi compute node mode
+
+Several machines or containers may expose Ollama.
+
+Pantheon may define a compute node registry, but it must not perform live model routing itself.
+
+Reference configuration:
+
+```text
+config/compute_nodes.example.yaml
+config/model_routing.example.yaml
+```
+
+Local private configuration may use:
+
+```text
+config/compute_nodes.local.yaml
+config/model_routing.local.yaml
+```
+
+Local files may contain LAN IPs or operator-specific node names and should not be committed unless explicitly sanitized.
+
 ---
 
 ## 3. Separation of authority
@@ -85,6 +108,7 @@ IRIS Communication   → nas/mistral:7b
 |---|---|
 | OpenWebUI | exposes available models, connections and Workspace Model presets |
 | Hermes | executes model calls and applies fallback at runtime |
+| Ollama nodes | serve local or LAN models |
 | Pantheon Next | defines allowed model policy, fallback rules and risk constraints |
 
 Pantheon must not:
@@ -95,11 +119,55 @@ select models opaquely without trace
 fallback silently on high-risk outputs
 store secrets for model providers without policy
 mutate OpenWebUI settings directly
+mutate Hermes runtime settings directly without approval
+install models automatically
+probe the LAN automatically for model servers without approval
 ```
 
 ---
 
-## 4. Abstract agent model classes
+## 4. Compute node registry
+
+A compute node is a machine or container that exposes model-serving capacity.
+
+Typical fields:
+
+```yaml
+compute_node:
+  id: pc01
+  label: Workstation GPU strong
+  provider: ollama
+  base_url: http://192.168.50.11:11434/v1
+  health_url: http://192.168.50.11:11434/api/tags
+  locality: local_lan
+  local_only: true
+  data_policy: private_data_allowed
+  tags:
+    - gpu
+    - strong
+    - validation
+  allowed_criticality:
+    - C0
+    - C1
+    - C2
+    - C3
+    - C4
+```
+
+Rules:
+
+```text
+Node ids must be stable.
+Node health checks are read-only.
+Secrets must not be stored in compute_nodes.example.yaml.
+Private LAN IPs should live in local config, not committed examples, unless sanitized.
+Remote nodes are public-data-only unless explicit policy says otherwise.
+C4-C5 must not rely on unreviewed remote nodes.
+```
+
+---
+
+## 5. Abstract agent model classes
 
 | Agent | Typical model needs |
 |---|---|
@@ -116,7 +184,7 @@ mutate OpenWebUI settings directly
 
 ---
 
-## 5. Model capability labels
+## 6. Model capability labels
 
 Allowed capability labels:
 
@@ -143,7 +211,7 @@ Capability labels are governance hints. They do not prove model quality.
 
 ---
 
-## 6. Fallback behavior
+## 7. Fallback behavior
 
 Allowed fallback strategies:
 
@@ -165,7 +233,7 @@ C4-C5 must stop or request manual review unless policy explicitly allows fallbac
 
 ---
 
-## 7. Criticality constraints
+## 8. Criticality constraints
 
 | Criticality | Model routing rule |
 |---|---|
@@ -178,7 +246,7 @@ C4-C5 must stop or request manual review unless policy explicitly allows fallbac
 
 ---
 
-## 8. OpenWebUI Workspace Model presets
+## 9. OpenWebUI Workspace Model presets
 
 OpenWebUI may expose role presets such as:
 
@@ -197,13 +265,53 @@ The Pantheon policy remains in:
 ```text
 docs/governance/MODEL_ROUTING_POLICY.md
 config/model_routing.example.yaml
+config/compute_nodes.example.yaml
 ```
 
 If OpenWebUI presets differ from Pantheon policy, Pantheon policy wins.
 
 ---
 
-## 9. Required trace in Evidence Pack
+## 10. Model routing UI boundary
+
+A future UI may help the operator manage compute nodes and role/model mappings.
+
+Allowed purpose:
+
+```text
+list compute nodes
+run read-only health checks
+list available models
+map Pantheon roles to model ids
+set fallback policies
+export candidate YAML
+show drift between local config and governance policy
+```
+
+Forbidden purpose:
+
+```text
+execute tasks directly
+become the model router
+install models automatically
+mutate Hermes runtime config without approval
+mutate OpenWebUI settings without approval
+auto-discover LAN nodes without approval
+store or display secrets
+allow silent fallback for C4-C5
+```
+
+Reference:
+
+```text
+operations/model_routing_ui.md
+```
+
+Initial implementation, if ever built, must be local/admin only and candidate-config based.
+
+---
+
+## 11. Required trace in Evidence Pack
 
 When model routing affects a consequential output, record:
 
@@ -211,6 +319,8 @@ When model routing affects a consequential output, record:
 requested_agent
 preferred_model
 actual_model
+model_id
+compute_node_id
 instance_id
 fallback_used
 fallback_reason
@@ -229,7 +339,7 @@ APPROVALS.md
 
 ---
 
-## 10. Single instance policy
+## 12. Single instance policy
 
 If OpenWebUI has only one Ollama instance, this is valid.
 
@@ -243,7 +353,7 @@ Rules:
 
 ---
 
-## 11. Multi instance policy
+## 13. Multi instance policy
 
 If several Ollama instances are configured:
 
@@ -251,11 +361,11 @@ If several Ollama instances are configured:
 - distinguish local/NAS/GPU/remote capacity;
 - avoid routing private project data to remote models unless policy allows it;
 - record the selected instance in Evidence Packs for consequential outputs;
-- do not rely on automatic balancing for C4/C5 outputs unless explicitly reviewed.
+- do not rely on automatic balancing for C4-C5 outputs unless explicitly reviewed.
 
 ---
 
-## 12. Security and privacy
+## 14. Security and privacy
 
 Private project data should use:
 
@@ -270,12 +380,13 @@ Sensitive data, secrets, credentials and private client data must not be sent to
 
 ---
 
-## 13. Future API surface
+## 15. Future API surface
 
 A future read-only endpoint may expose this policy:
 
 ```text
 GET /domain/model-routing
+GET /domain/compute-nodes
 ```
 
 It must be read-only at first.
@@ -285,16 +396,19 @@ Forbidden until C3 approval flow exists:
 ```text
 POST /domain/model-routing
 PATCH /domain/model-routing
+POST /domain/compute-nodes
+PATCH /domain/compute-nodes
 POST /models/install
 POST /providers/update
 ```
 
 ---
 
-## 14. Final rule
+## 16. Final rule
 
 ```text
 Pantheon defines model policy.
 OpenWebUI exposes presets.
 Hermes executes with trace.
+Ollama serves models.
 ```
