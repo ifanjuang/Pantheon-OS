@@ -1,0 +1,121 @@
+# Pantheon Next compute nodes example
+#
+# This file defines available compute/model-serving nodes.
+# It is an example policy configuration, not a runtime router.
+#
+# Pantheon defines policy.
+# Hermes applies routing.
+# Ollama executes models.
+# OpenWebUI exposes user-facing presets.
+
+version: 0.1.0
+status: example_only
+
+rules:
+  source_of_truth: docs/governance/MODEL_ROUTING_POLICY.md
+  local_file_pattern: config/compute_nodes.local.yaml
+  commit_local_file: false
+  no_secrets: true
+  no_auto_discovery_without_approval: true
+  no_direct_pantheon_routing: true
+
+compute_nodes:
+  - id: pc00
+    label: NAS Ollama default
+    provider: ollama
+    base_url: http://192.168.50.10:11434/v1
+    health_url: http://192.168.50.10:11434/api/tags
+    locality: local_lan
+    local_only: true
+    data_policy: private_data_allowed
+    tags:
+      - default
+      - local
+      - general
+      - low_power
+    allowed_criticality:
+      - C0
+      - C1
+      - C2
+      - C3
+    notes: "Default local Ollama node. Replace IP in local config."
+
+  - id: pc01
+    label: Workstation GPU strong
+    provider: ollama
+    base_url: http://192.168.50.11:11434/v1
+    health_url: http://192.168.50.11:11434/api/tags
+    locality: local_lan
+    local_only: true
+    data_policy: private_data_allowed
+    tags:
+      - gpu
+      - strong
+      - reasoning
+      - validation
+    allowed_criticality:
+      - C0
+      - C1
+      - C2
+      - C3
+      - C4
+    notes: "Preferred node for ZEUS, THEMIS, APOLLO and heavier ATHENA tasks."
+
+  - id: pc02
+    label: Coder node
+    provider: ollama
+    base_url: http://192.168.50.12:11434/v1
+    health_url: http://192.168.50.12:11434/api/tags
+    locality: local_lan
+    local_only: true
+    data_policy: private_data_allowed
+    tags:
+      - coder
+      - technical_review
+      - repo_audit
+    allowed_criticality:
+      - C0
+      - C1
+      - C2
+      - C3
+    notes: "Preferred node for HEPHAESTUS / technical and code-facing work."
+
+  - id: remote01
+    label: Remote public-data node
+    provider: ollama
+    base_url: http://ollama-remote.example.invalid:11434/v1
+    health_url: http://ollama-remote.example.invalid:11434/api/tags
+    locality: remote
+    local_only: false
+    data_policy: public_data_only
+    tags:
+      - remote
+      - public_data_only
+    allowed_criticality:
+      - C0
+      - C1
+    notes: "Disabled placeholder. Do not use for private project data."
+    enabled: false
+
+healthcheck_policy:
+  method: GET
+  expected_content: ollama_tags_json
+  timeout_seconds: 5
+  failure_behavior:
+    C0: warn_and_continue_if_fallback_exists
+    C1: warn_and_continue_if_fallback_exists
+    C2: warn_and_continue_if_fallback_exists
+    C3: degrade_to_draft_or_candidate_only
+    C4: stop_and_request_manual_review
+    C5: block
+
+evidence_trace_fields:
+  - compute_node_id
+  - compute_node_label
+  - base_url_redacted
+  - healthcheck_status
+  - selected_model_id
+  - requested_role
+  - criticality
+  - fallback_used
+  - fallback_reason
