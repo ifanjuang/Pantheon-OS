@@ -30,7 +30,7 @@ Document compute-node/model-routing policy for a future local admin UI and class
 - `HuangYuChuh/ComfyUI_Skills_OpenClaw`: `creative_skill_lab_candidate`.
 - `Agents365-ai/drawio-skill`: `diagram_skill_candidate`.
 - `AMAP-ML/SkillClaw`: `blocked_for_core`.
-- `robbyczgw-cla/hermes-web-search-plus`: `search_plugin_candidate`.
+- `robbyczgw-cla/web-search-plus-plugin` / OpenClaw skill `web-search-plus`: `search_plugin_candidate`.
 
 ## Files Touched
 
@@ -75,6 +75,7 @@ Document compute-node/model-routing policy for a future local admin UI and class
 - If Hermes WebUI or Hermes Workspace is tested, use a separate lab stack with read-only repo mount first.
 - Mnemosyne may be tested only as Hermes local memory sandbox; it must not become Pantheon Memory.
 - Self-evolution tools remain blocked for core.
+- The user-supplied `robbyczgw-cla/hermes-web-search-plus` path should be treated as alias/to-verify; reviewed upstream target is `web-search-plus-plugin` / OpenClaw skill `web-search-plus`.
 
 ## Next action
 
