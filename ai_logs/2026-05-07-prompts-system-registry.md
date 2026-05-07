@@ -12,10 +12,11 @@ Add a governed system prompt registry and verify it against recent post-pivot go
 
 - Added a prompt registry under `prompts/`.
 - Added `prompts/system/manifest.yaml` for governed prompt routing metadata.
-- Added prompt files for general, governance, Hermes, OpenWebUI, architecture_fr, software repo audit, client communication, Evidence Pack trace and memory governance use cases.
+- Added prompt files for general, governance, Hermes, OpenWebUI, architecture_fr, software repo audit, client communication, Evidence Pack and memory governance use cases.
 - Added `prompts/system/prompt_router.md` for safe prompt selection.
 - Rebased the branch onto current `main` after detecting that the initial branch point was behind recent governance commits.
 - Aligned prompt wording with `docs/governance/HERMES_EXECUTION_MODEL.md`: Hermes may supervise runtime execution internally, but Pantheon must not become the runtime.
+- Re-checked `docs/governance/EVIDENCE_PACK.md` and expanded `prompts/system/evidence_pack.md` to match the canonical minimum and extended fields.
 
 ## Files Touched
 
@@ -42,13 +43,13 @@ none
 - Documentation only.
 - No runtime execution.
 - Compared branch against current `main` before finalizing the prompt registry.
+- Re-verified PR state after update: branch ahead of `main`, not behind, and PR mergeable.
 
 ## Open points
 
 - Runtime binding is not implemented.
 - Hermes prompt loading must be verified separately using `SOUL.md` and project context files.
 - OpenWebUI workspace profile alignment remains pending.
-- Evidence Pack prompt is currently intentionally compact because tool-side content filtering blocked more detailed wording.
 
 ## Next action
 
