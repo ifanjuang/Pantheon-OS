@@ -24,6 +24,10 @@ The runtime must not treat these documents as decorative notes. They drive devel
 | `ROADMAP.md` | Active priorities and phased trajectory |
 | `ARCHITECTURE.md` | Technical anatomy after the Hermes-backed pivot |
 | `HERMES_EXECUTION_MODEL.md` | Runtime execution boundaries, subagent model, LangGraph policy and approval interrupt doctrine |
+| `HERMES_CAPABILITY_MAP.md` | Operational map assigning capabilities to Hermes, OpenWebUI, Pantheon or legacy |
+| `GOVERNANCE_METHODS.md` | Standard execution methods for classification, Task Contracts, approvals, Evidence Packs and memory candidates |
+| `MEMORY_STORAGE_MODEL.md` | Canonical memory storage, indexing, candidate, evidence and approval model |
+| `OPENWEBUI_PLUGIN_POLICY.md` | OpenWebUI Functions, Tools, Pipes, Filters, Actions and plugin safety policy |
 | `MODULES.md` | Module and domain definition contract |
 | `AGENTS.md` | Abstract agent roster and responsibilities |
 | `MEMORY.md` | Canonical memory governance |
