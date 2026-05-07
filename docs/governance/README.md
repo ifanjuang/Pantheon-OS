@@ -23,6 +23,7 @@ The runtime must not treat these documents as decorative notes. They drive devel
 | `STATUS.md` | Current project state and implementation status |
 | `ROADMAP.md` | Active priorities and phased trajectory |
 | `ARCHITECTURE.md` | Technical anatomy after the Hermes-backed pivot |
+| `HERMES_EXECUTION_MODEL.md` | Runtime execution boundaries, subagent model, LangGraph policy and approval interrupt doctrine |
 | `MODULES.md` | Module and domain definition contract |
 | `AGENTS.md` | Abstract agent roster and responsibilities |
 | `MEMORY.md` | Canonical memory governance |
