@@ -1,0 +1,29 @@
+id: request_classification
+name: Request Classification
+domain: general
+status: candidate
+version: 0.1.0
+language: en
+
+summary: >
+  Candidate governance skill for classifying a user request by domain,
+  question type, risk, context dependency, freshness need, evidence need
+  and recommended response mode. Documentation only.
+
+lifecycle:
+  state: candidate
+  level: 0
+  xp:
+    validated: 0
+    pending: 0
+  review_required: true
+
+outputs:
+  - request_classification
+  - recommended_mode
+  - risk_flags
+  - evidence_hint
+  - approval_hint
+
+review:
+  required_before_activation: true
