@@ -21,7 +21,8 @@ The runtime must not treat these documents as decorative notes. They drive devel
 | File | Role |
 |---|---|
 | `STATUS.md` | Current project state and implementation status |
-| `ROADMAP.md` | Active priorities and phased trajectory |
+| `ROADMAP.md` | Detailed active priorities and trajectory |
+| `DEVELOPMENT_PHASES.md` | Phase-based reading of the roadmap without replacing detailed roadmap content |
 | `ARCHITECTURE.md` | Technical anatomy after the Hermes-backed pivot |
 | `HERMES_EXECUTION_MODEL.md` | Runtime execution boundaries, subagent model, LangGraph policy and approval interrupt doctrine |
 | `HERMES_CAPABILITY_MAP.md` | Operational map assigning capabilities to Hermes, OpenWebUI, Pantheon or legacy |
