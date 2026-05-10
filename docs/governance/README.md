@@ -43,6 +43,7 @@ The runtime must not treat these documents as decorative notes. They drive devel
 | `TASK_CONTRACT_REVISIONS.md` | Addendum for single-role task contracts, workflow revision signals, contract revisions, resume policy and reset-to-baseline |
 | `EVIDENCE_PACK.md` | Audit contract for consequential outputs |
 | `EPISTEMIC_CONTROL.md` | Claim-level evidence, uncertainty, epistemic payloads and skill epistemic contracts |
+| `EPISTEMIC_CONTROL_PROPAGATION.md` | Adoption map for applying epistemic control across existing governance documents |
 | `EVALUATION.md` | Evaluation doctrine for measuring skills, workflows, outputs and runtime candidates without granting authority |
 | `HERMES_INTEGRATION.md` | Pantheon ↔ Hermes boundary and context export rules |
 | `OPENWEBUI_INTEGRATION.md` | OpenWebUI cockpit, Knowledge and validation boundary |
