@@ -34,6 +34,7 @@ The runtime must not treat these documents as decorative notes. They drive devel
 | `REQUEST_ORCHESTRATION.md` | Request classification, METIS framing, AGORA consultation, variants, revision and arbitration doctrine |
 | `ROUTING_FOUNDATION.md` | Canonical routing foundation for role/skill/workflow boundaries, Request Briefs, W0-W5 and light role consultation |
 | `ROLE_SIGNALS.md` | Structured communication schema for role signals, consultations, handoffs, warnings, vetoes and stop gates |
+| `ROLE_SIGNAL_PROFILES.md` | Recipient profile registry and format reminder rules for IRIS-mediated addressed role signals |
 | `GOVERNANCE_ENHANCEMENT_BACKLOG.md` | Candidate backlog for role/skill/workflow, deliverables, assets, Night Run and evaluation improvements |
 | `MEMORY.md` | Canonical memory governance |
 | `APPROVALS.md` | Approval criticality policy C0-C5 |
