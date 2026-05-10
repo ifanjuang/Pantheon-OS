@@ -1,0 +1,150 @@
+id: rich_elicitation
+name: Rich Elicitation
+domain: general
+status: candidate
+version: 0.1.0
+language: fr
+
+summary: >
+  Candidate request-framing skill for asking bounded clarifying questions before
+  ambiguous, high-variance or consequential tasks. Adapted from the external
+  Rich-Elicitation-Skill concept into Pantheon Next governance. It supports
+  METIS, HECATE, ATHENA and APOLLO but does not replace request orchestration.
+
+owners:
+  - Pantheon Next
+
+lifecycle:
+  state: candidate
+  level: 0
+  xp:
+    validated: 0
+    pending: 0
+  last_review: null
+  review_required: true
+  probation_reason: null
+
+use_when:
+  - request_has_two_or_more_material_ambiguities
+  - audience_tone_scope_or_format_is_unclear
+  - several_valid_strategic_directions_exist
+  - wrong_first_draft_would_create_high_revision_cost
+  - deliverable_scope_or_success_criteria_are_unclear
+  - client_facing_or_consequential_output_has_unclear_intent
+
+do_not_use_when:
+  - simple_factual_lookup
+  - simple_calculation
+  - clearly_scoped_rewrite
+  - simple_translation
+  - minor_ambiguity_can_be_handled_with_stated_assumptions
+  - user_explicitly_requests_no_questions
+
+capabilities:
+  - ambiguity_dimension_detection
+  - blocking_question_selection
+  - grouped_question_block_generation
+  - recommended_option_selection
+  - assumption_if_skipped_generation
+  - stop_condition_detection
+  - follow_up_round_detection
+  - escalation_to_workflow_signal
+
+allowed_actions:
+  - propose_clarifying_questions
+  - group_related_questions
+  - mark_one_recommended_option
+  - state_assumptions
+  - stop_after_enough_context
+  - request_workflow_escalation
+
+forbidden_actions:
+  - execute_task
+  - call_tool
+  - mutate_files
+  - approve_action
+  - promote_memory
+  - activate_skill
+  - canonize_workflow
+  - ask_unbounded_questions
+  - bypass_research_when_sources_are_required
+  - bypass_themis_or_apollo
+  - expose_raw_chain_of_thought
+  - ask_for_information_already_available_in_approved_context
+
+round_policy:
+  max_rounds: 3
+  round_1_max_questions: 3
+  round_2_max_questions: 3
+  round_3_max_questions: 2
+  stop_after_round_3: true
+  proceed_with_assumptions_after_max_rounds: true
+
+question_types:
+  - single_select
+  - multi_select
+  - rank_priorities
+  - free_text
+  - confirm_assumption
+
+trigger_policy:
+  minimum_material_ambiguities: 2
+  ask_if_can_reasonably_assume: false
+  proceed_with_assumptions_if_minor: true
+  escalate_if_risk_level_at_or_above: C3
+
+role_mapping:
+  METIS: detects_if_clarification_is_required
+  HECATE: identifies_ambiguity_and_hidden_uncertainty
+  ATHENA: selects_response_strategy_or_workflow_need
+  THEMIS: flags_risk_based_need_to_clarify
+  APOLLO: checks_final_brief_adherence
+  IRIS: formulates_question_block
+
+approval:
+  default_level: C0
+  escalate_when:
+    - contractual_position
+    - external_send
+    - memory_promotion
+    - file_mutation
+    - runtime_activation
+    - legal_or_financial_commitment
+
+evidence:
+  evidence_pack_required_by_default: false
+  record_in_evidence_pack_if_consequential:
+    - clarifying_questions
+    - selected_options
+    - assumptions_retained
+    - unresolved_ambiguities
+    - scope_decisions
+
+hermes_mapping:
+  type: candidate_prompt_or_skill_pattern
+  source_inspiration: CyberZenithX/Rich-Elicitation-Skill
+  hermes_skill: null
+  activation_required: true
+  sandbox_required: true
+  approval_required: true
+  notes: >
+    This is not a direct copy of the Claude skill. It is a Pantheon candidate
+    skill aligned with REQUEST_ORCHESTRATION.md and must be reviewed before any
+    Hermes implementation or OpenWebUI behavior is configured.
+
+outputs:
+  - elicitation_trigger
+  - question_block
+  - assumption_block
+  - stop_condition
+  - workflow_escalation_signal
+
+review:
+  required_before_activation: true
+  required_documents:
+    - docs/governance/REQUEST_ORCHESTRATION.md
+    - docs/governance/WORKFLOW_ADAPTATION.md
+    - docs/governance/SKILL_LIFECYCLE.md
+    - docs/governance/APPROVALS.md
+    - docs/governance/EVIDENCE_PACK.md
+    - docs/governance/GOVERNANCE_ENHANCEMENT_BACKLOG.md
