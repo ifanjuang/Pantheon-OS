@@ -1,0 +1,182 @@
+version: 1
+
+routing_policy:
+  owner: pantheon_next
+  executor: hermes_agent
+  principle: "Pantheon defines. Hermes selects under policy. OpenWebUI exposes."
+  status: candidate
+  runtime_binding: not_implemented
+
+default_prompt: general
+
+composition_rules:
+  always_include:
+    - general
+  include_governance_when:
+    - architecture_boundary
+    - hermes
+    - openwebui
+    - pantheon
+    - memory
+    - approvals
+    - evidence_pack
+    - task_contract
+    - repository_mutation
+    - external_tools
+  include_request_orchestration_when:
+    - vague_request
+    - ambiguous_request
+    - multi_domain_request
+    - source_dependent_request
+    - risky_request
+    - user_requests_variants
+    - branch_or_pr_cleanup
+  uncertainty_rule: ask_user_if_unresolved_after_approved_context
+
+prompts:
+  general:
+    file: prompts/system/general.md
+    purpose: Default Pantheon Next assistant.
+    approval_level: C0
+    triggers:
+      - general request
+      - project orientation
+      - unclear request
+
+  pantheon_next_governance:
+    file: prompts/system/pantheon_next_governance.md
+    purpose: Governance and architecture doctrine.
+    approval_level: C1
+    triggers:
+      - pantheon
+      - governance
+      - architecture boundary
+      - approvals
+      - task contracts
+      - evidence packs
+      - canonical memory
+      - runtime boundary
+
+  request_orchestration:
+    file: prompts/system/request_orchestration.md
+    purpose: METIS framing, AGORA comparison, variants, revision requests and ZEUS arbitration.
+    approval_level: C1
+    triggers:
+      - vague request
+      - ambiguous request
+      - variants
+      - agora
+      - metis
+      - request routing
+      - branch cleanup
+      - pr extraction
+
+  hermes_operator:
+    file: prompts/system/hermes_operator.md
+    purpose: Hermes execution runtime behavior under Task Contracts.
+    approval_level: C2
+    triggers:
+      - hermes
+      - task execution
+      - skills
+      - tools
+      - subagents
+      - langgraph inside hermes
+      - patch candidates
+      - terminal
+
+  openwebui_cockpit:
+    file: prompts/system/openwebui_cockpit.md
+    purpose: OpenWebUI cockpit and Knowledge boundary.
+    approval_level: C1
+    triggers:
+      - openwebui
+      - knowledge base
+      - workspace model
+      - validation UI
+      - evidence display
+
+  architecture_fr:
+    file: prompts/system/architecture_fr.md
+    purpose: French architecture and maîtrise d’œuvre domain.
+    approval_level: C2
+    triggers:
+      - CCTP
+      - DPGF
+      - CCAP
+      - devis
+      - chantier
+      - permis
+      - déclaration préalable
+      - ABF
+      - ERP
+      - réception
+      - DOE
+      - DET
+      - AOR
+
+  software_repo_audit:
+    file: prompts/system/software_repo_audit.md
+    purpose: Repository and Markdown audit.
+    approval_level: C2
+    triggers:
+      - repo
+      - code audit
+      - markdown governance
+      - changelog
+      - readme
+      - ai_logs
+      - docker compose
+      - github
+      - branch
+      - pull request
+
+  client_communication:
+    file: prompts/system/client_communication.md
+    purpose: Client-facing communication.
+    approval_level: C3
+    triggers:
+      - email client
+      - message client
+      - relance
+      - mise en demeure
+      - assureur
+      - avocat
+      - mairie
+      - copropriété
+
+  evidence_pack:
+    file: prompts/system/evidence_pack.md
+    purpose: Evidence Pack generation.
+    approval_level: C2
+    triggers:
+      - evidence pack
+      - preuves
+      - sources
+      - commands
+      - rollback
+      - assumptions
+
+  memory_governance:
+    file: prompts/system/memory_governance.md
+    purpose: Candidate memory and canonical memory governance.
+    approval_level: C4
+    triggers:
+      - memory
+      - mémoire
+      - canonical memory
+      - candidate memory
+      - memory promotion
+      - project memory
+      - system memory
+
+  prompt_router:
+    file: prompts/system/prompt_router.md
+    purpose: Governed prompt selection policy.
+    approval_level: C1
+    triggers:
+      - prompt routing
+      - prompt selection
+      - system prompt
+      - workspace model
+      - hermes context
