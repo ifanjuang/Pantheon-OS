@@ -56,6 +56,9 @@ Pantheon orchestration engine
 | `knowledge_publication_candidate` | May publish source docs into Knowledge, never memory |
 | `blocked_for_core` | Must not enter Pantheon core |
 | `rejected_for_core` | Not useful or too dangerous for core |
+| `untrusted_discovery_only` | May be read as an untrusted index; no download, install, sign-in or authority |
+| `evaluation_candidate` | May inform future benchmark/evaluation workflows after review |
+| `documentation_retrieval_candidate` | May help local/read-only Markdown navigation after review |
 
 ---
 
@@ -312,6 +315,249 @@ Useful memory benchmark, but high-risk. Sandbox only, non-sensitive data only, n
 
 ---
 
+### 3.5 `hermesguide.xyz/directory`
+
+Classification:
+
+```yaml
+name: hermesguide.xyz/directory
+category:
+  - hermes_ecosystem_directory
+  - community_index
+  - discovery_surface
+status:
+  - untrusted_discovery_only
+  - watch
+  - blocked_for_core
+```
+
+Evidence notes:
+
+```text
+The site presents itself as a Hermes-related directory / guide surface.
+External reputation checks classify the domain as suspicious / low-trust at the time of review.
+It is not an official Hermes Agent or Nous Research source.
+```
+
+Allowed use:
+
+```text
+manual discovery of candidate repositories
+source leads for later independent verification
+no authentication
+no downloads
+no copy-paste install commands
+```
+
+Forbidden:
+
+```text
+Do not use as official Hermes documentation.
+Do not use as source of configuration truth.
+Do not install anything directly from the directory.
+Do not sign in.
+Do not enter secrets.
+Do not treat listed projects as reviewed.
+Do not feed client/project data into any linked service.
+```
+
+Decision:
+
+```text
+Untrusted discovery only. Every linked project must be reviewed from its primary source before any classification or experiment.
+```
+
+---
+
+### 3.6 `PrinceGabriel-lgtm/freshcontext-mcp`
+
+Classification:
+
+```yaml
+name: PrinceGabriel-lgtm/freshcontext-mcp
+category:
+  - mcp_connector
+  - web_intelligence
+  - web_scraping
+  - research_expansion
+  - freshness_envelope
+status:
+  - hermes_lab_only
+  - watch
+  - blocked_for_core
+```
+
+Useful patterns:
+
+```text
+freshness timestamp envelope
+source discovery across GitHub, Hacker News, Reddit, arXiv and market/release sources
+research expansion for non-sensitive tasks
+tool-level gateway control and call logging as a pattern
+```
+
+Allowed use:
+
+```text
+non-sensitive Hermes Lab tests
+source discovery benchmarks
+comparison against SearXNG / official source search
+research expansion only under Task Contract
+```
+
+Forbidden:
+
+```text
+No Pantheon core integration.
+No production MCP connector.
+No client/project data queries.
+No automatic source authority.
+No memory promotion.
+No external calls without Task Contract and tool policy.
+No reliance when connector health is degraded or unknown.
+```
+
+Decision:
+
+```text
+Potential research-expansion benchmark. Hermes Lab only, non-sensitive data only, blocked for core.
+```
+
+---
+
+### 3.7 `lightfeed/resurf`
+
+Classification:
+
+```yaml
+name: lightfeed/resurf
+category:
+  - browser_agent_benchmark
+  - reproducible_test_environment
+  - evaluation_harness
+  - browser_agent_regression
+status:
+  - evaluation_candidate
+  - hermes_lab_only
+  - blocked_for_core
+  - to_verify
+```
+
+Useful patterns:
+
+```text
+reproducible browser-agent tests
+synthetic or controlled web interaction environments
+recorded user interaction trajectories
+failure-mode testing
+browser automation regression harness
+```
+
+Allowed use:
+
+```text
+non-sensitive Hermes Lab browser-agent benchmark
+future evaluation of browser skills
+static review for EVALUATION.md patterns
+no live client sites
+```
+
+Forbidden:
+
+```text
+No Pantheon runtime.
+No production browser automation.
+No real client web actions.
+No external site automation from core.
+No OpenWebUI direct tool.
+No approval bypass for browser operations.
+```
+
+Verification required:
+
+```text
+Primary GitHub README must be reviewed directly before any experiment.
+License must be checked.
+Runtime dependencies must be checked.
+Network behavior must be checked.
+```
+
+Decision:
+
+```text
+Promising evaluation candidate, but not adopted. Keep as Hermes Lab benchmark lead only.
+```
+
+---
+
+### 3.8 `Dreeseaw/mdlens`
+
+Classification:
+
+```yaml
+name: Dreeseaw/mdlens
+category:
+  - markdown_retrieval_cli
+  - documentation_navigation
+  - evidence_pack_helper
+  - local_developer_tool
+status:
+  - documentation_retrieval_candidate
+  - candidate_dev_tool
+  - watch
+  - blocked_for_core_runtime
+```
+
+Useful patterns:
+
+```text
+Markdown retrieval for AI agents
+natural-language question over documentation corpus
+bounded evidence pack output
+section-level navigation
+highlight extraction
+context-window discipline
+local governance doc search
+```
+
+Allowed use:
+
+```text
+local read-only repository documentation navigation
+ARGOS source inventory helper candidate
+Evidence Pack preparation helper candidate
+Claude Code local helper candidate
+Hermes Lab read-only helper candidate
+```
+
+Forbidden:
+
+```text
+No Pantheon runtime dependency.
+No autonomous agent loop.
+No memory promotion.
+No approval decision.
+No file mutation.
+No replacement for ARGOS or APOLLO.
+No use as source authority without reading primary files.
+```
+
+Verification required:
+
+```text
+Primary GitHub README must be reviewed directly before install.
+License, release status, binary/install path and dependency surface must be checked.
+Name collision with other `mdlens` packages must be avoided.
+```
+
+Decision:
+
+```text
+Strong candidate for local Markdown navigation and evidence preparation, but only after a small sandbox test on a cloned repo. Not core runtime.
+```
+
+---
+
 ## 4. Extracted roadmap actions
 
 Candidate actions:
@@ -322,9 +568,13 @@ Create skill_candidate_security_review skill candidate.
 Create openwebui_kb_sync_review skill candidate.
 Create hermes_skill_sandbox_review skill candidate.
 Create diagram_asset_review skill candidate.
+Create markdown_retrieval_tool_review skill candidate.
+Create browser_agent_benchmark_review skill candidate.
 Create operations/hermes_lab.md.
 Create operations/hermes_skill_sandbox.md.
 Create operations/hermes_memory_lab.md only if memory lab is approved.
+Create operations/markdown_retrieval_lab.md only if mdlens-style tooling is prioritized.
+Create operations/browser_agent_eval_lab.md only if browser-agent benchmarking is prioritized.
 Define context modes lean / standard / full.
 Add Use when / Do not use when to SKILL_LIFECYCLE.md.
 Add skill benchmark packs before activation.
@@ -343,6 +593,9 @@ self-evolution auto-merge
 hook runtime activation without review
 OpenWebUI cockpit replacement
 Hermes runtime replacement
+untrusted directory based installation
+production browser automation
+remote MCP connector use on private data
 ```
 
 ---
