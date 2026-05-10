@@ -49,6 +49,7 @@ The runtime must not treat these documents as decorative notes. They drive devel
 | `KNOWLEDGE_TAXONOMY.md` | Knowledge vs Memory classification |
 | `CODE_AUDIT_POST_PIVOT.md` | Legacy/runtime code classification register |
 | `PRE_REFACTOR_ARCHITECTURE_FINDINGS.md` | Read-only audit synthesis of existing code assets to preserve or reclassify before refactor |
+| `RUN_GRAPH.md` | Read-only run observation schema and optional Inline Run Stream rules |
 | `WORKFLOW_SCHEMA.md` | Canonical workflow/task definition schema |
 | `WORKFLOW_ADAPTATION.md` | Adaptive workflow doctrine: session workflows, dependency graphs, role consultation, ZEUS arbitration and reset/candidate rules |
 | `SKILL_LIFECYCLE.md` | Skill lifecycle, XP/status and Hermes mapping policy |
