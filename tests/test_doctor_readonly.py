@@ -7,7 +7,8 @@ verify that:
 * The Doctor exposes the expected check identifiers.
 * Running the checks against the real repository succeeds.
 * The Doctor never mutates source files (it only writes under
-  `reports/doctor/` when explicitly asked, which is bypassed here).
+  `reports/doctor/` when explicitly asked, and can be run with `--no-write`).
+* The Doctor rejects custom report output paths outside `reports/doctor/`.
 * The rendered report contains the canonical Markdown sections required
   by `operations/doctor.md` section 27 (Doctor report template).
 """
@@ -112,7 +113,7 @@ def test_doctor_renders_required_sections(doctor):
         assert section in rendered, f"section missing: {section}"
 
 
-def test_doctor_no_write_when_disabled(doctor, tmp_path):
+def test_doctor_no_write_when_disabled(doctor):
     """`main(--no-write)` must not create the default report file."""
     default_report = doctor._default_report_path(REPO_ROOT, "1999-12-31")
     assert not default_report.exists()
@@ -121,15 +122,32 @@ def test_doctor_no_write_when_disabled(doctor, tmp_path):
     assert not default_report.exists()
 
 
-def test_doctor_writes_only_under_reports_doctor(doctor, tmp_path):
-    """When asked to write, Doctor must write a single Markdown file under reports/doctor/."""
+def test_doctor_writes_under_reports_doctor_when_allowed(doctor):
+    """When asked to write, Doctor may write only under reports/doctor/."""
+    output = REPO_ROOT / "reports" / "doctor" / "1999-12-31-test-doctor-report.md"
+    if output.exists():
+        output.unlink()
+    try:
+        rc = doctor.main(["--output", str(output), "--date", "1999-12-31"])
+        assert rc == 0
+        assert output.is_file()
+        content = output.read_text(encoding="utf-8")
+        assert content.startswith("# Pantheon Doctor Report — 1999-12-31")
+        assert "## Findings" in content
+    finally:
+        if output.exists():
+            output.unlink()
+
+
+def test_doctor_blocks_output_outside_reports_doctor(doctor, tmp_path, capsys):
+    """A custom --output outside reports/doctor/ must be blocked and must not create a file."""
     output = tmp_path / "doctor-out.md"
     rc = doctor.main(["--output", str(output), "--date", "2026-01-02"])
+    captured = capsys.readouterr()
     assert rc == 0
-    assert output.is_file()
-    content = output.read_text(encoding="utf-8")
-    assert content.startswith("# Pantheon Doctor Report — 2026-01-02")
-    assert "## Findings" in content
+    assert not output.exists()
+    assert "Doctor output blocked" in captured.err
+    assert "reports/doctor" in captured.err
 
 
 def test_doctor_module_has_no_side_effect_on_import(doctor):
