@@ -32,6 +32,7 @@ The runtime must not treat these documents as decorative notes. They drive devel
 | `MODULES.md` | Module and domain definition contract |
 | `AGENTS.md` | Abstract agent roster and responsibilities |
 | `REQUEST_ORCHESTRATION.md` | Request classification, METIS framing, AGORA consultation, variants, revision and arbitration doctrine |
+| `GOVERNANCE_ENHANCEMENT_BACKLOG.md` | Candidate backlog for role/skill/workflow, deliverables, assets, Night Run and evaluation improvements |
 | `MEMORY.md` | Canonical memory governance |
 | `APPROVALS.md` | Approval criticality policy C0-C5 |
 | `TASK_CONTRACTS.md` | Hermes/Pantheon task execution contracts |
@@ -45,6 +46,7 @@ The runtime must not treat these documents as decorative notes. They drive devel
 | `EXTERNAL_RUNTIME_OPTIONS.md` | Classification of optional runtimes, workflow labs, context engines and graph/workspace tools |
 | `EXTERNAL_AI_OPTION_REVIEWS.md` | Focused reviews for external AI options, structured-output tools, evaluation tools and agent-execution discipline references |
 | `EXTERNAL_HERMES_UI_OPTION_REVIEWS.md` | Focused reviews for Hermes web UIs, dashboards, workspaces, memory providers, search plugins, skill packs, self-evolution tools and ecosystem catalogues |
+| `EXTERNAL_ECOSYSTEM_REVIEWS.md` | External repository review register for SwarmKit, leaf, ECC and Hermes memory installer candidates |
 | `EXECUTION_DISCIPLINE.md` | Minimal execution discipline: smallest safe path, single-role before workflow, surgical changes and evidence before assertion |
 | `KNOWLEDGE_TAXONOMY.md` | Knowledge vs Memory classification |
 | `CODE_AUDIT_POST_PIVOT.md` | Legacy/runtime code classification register |
