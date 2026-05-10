@@ -19,12 +19,20 @@ It tells Hermes, Pantheon and OpenWebUI:
 - what evidence must be returned;
 - whether memory can be affected;
 - whether fallback is allowed;
-- whether remediation may propose a patch candidate.
+- whether remediation may propose a patch candidate;
+- whether claim-level evidence, uncertainty and contradiction policy are required.
 
 Rule:
 
 ```text
 No governed task should execute without a task contract when it can mutate files, use tools, affect memory, create candidates, process private documents or expose external risk.
+```
+
+Epistemic rule:
+
+```text
+A Task Contract must not only frame execution.
+It must frame what the task is allowed to claim.
 ```
 
 ---
@@ -36,6 +44,7 @@ Task contracts must follow:
 ```text
 APPROVALS.md
 EVIDENCE_PACK.md
+EPISTEMIC_CONTROL.md
 EXTERNAL_TOOLS_POLICY.md
 HERMES_INTEGRATION.md
 KNOWLEDGE_TAXONOMY.md
@@ -65,6 +74,7 @@ Each task contract must define:
 | `skills` | yes | Skills expected or allowed |
 | `memory_impact` | yes | `none`, `candidate_only`, `promotion_review` |
 | `evidence_required` | yes | Whether an Evidence Pack is mandatory |
+| `epistemic_requirements` | when consequential | Claim Register, uncertainty, contradiction and final-answer requirements |
 | `fallback_policy` | yes | Retry and alternative-tool rules |
 | `remediation_policy` | yes | Patch candidate and issue-correction rules |
 
@@ -90,6 +100,19 @@ task_contract:
   skills: []
   memory_impact: none
   evidence_required: true
+  epistemic_requirements:
+    claim_register_required: false
+    minimum_claim_status_for_final: asserted | source_supported | tested | inferred_from_sources | validated
+    allow_inferred_claims: true
+    unsupported_claim_policy: list_and_limit | block_final | ask_user | request_sources
+    contradiction_policy: list_and_limit | zeus_arbitration_required | block_final
+    uncertainty_policy:
+      expose_uncertainty: true
+      require_uncertainty_type: true
+      require_next_action_for_high_uncertainty: true
+    final_answer_policy:
+      no_certainty_increase_without_evidence: true
+      display_material_limitations: true
   fallback_policy:
     retry_allowed: false
     alternative_tool_allowed: false
@@ -114,6 +137,41 @@ task_contract:
       - tool_policy_change
       - memory_change
       - external_action
+```
+
+---
+
+# 4b. Epistemic requirements policy
+
+`epistemic_requirements` defines what the task may claim, what must be evidenced and what must block finalization.
+
+Reference:
+
+```text
+EPISTEMIC_CONTROL.md
+EVIDENCE_PACK.md#4b-claim-register-evidence
+```
+
+Default policy by risk:
+
+| Approval level | Claim discipline |
+|---|---|
+| C0 | Lightweight claim tracking when source-dependent |
+| C1 | List assumptions, limitations and unsupported material claims |
+| C2 | Use Claim Register when action depends on extracted or inferred claims |
+| C3 | Use Claim Register for file, skill, workflow, memory or policy candidates |
+| C4 | Block unsupported material claims unless explicitly retained as draft with visible limits |
+| C5 | Block by default; require explicit policy gate and evidence path |
+
+Rules:
+
+```text
+A task may execute only inside its allowed claim boundary.
+A Task Contract may require a Claim Register even when no file mutation happens.
+A final answer must not be more certain than its weakest material claim.
+A summary, role handoff, IRIS mediation or AGORA consultation must not increase certainty without new evidence.
+Unsupported material claims must either remain visible, trigger source request, or block finalization.
+Contradictions that affect approval, memory, external use or canonization require ZEUS/THEMIS/APOLLO handling.
 ```
 
 ---
@@ -212,6 +270,19 @@ task_contract:
   skills: [repo_md_audit, evidence_pack_check]
   memory_impact: none
   evidence_required: true
+  epistemic_requirements:
+    claim_register_required: true
+    minimum_claim_status_for_final: source_supported
+    allow_inferred_claims: true
+    unsupported_claim_policy: list_and_limit
+    contradiction_policy: zeus_arbitration_required
+    uncertainty_policy:
+      expose_uncertainty: true
+      require_uncertainty_type: true
+      require_next_action_for_high_uncertainty: true
+    final_answer_policy:
+      no_certainty_increase_without_evidence: true
+      display_material_limitations: true
   fallback_policy:
     retry_allowed: true
     alternative_tool_allowed: false
@@ -247,6 +318,19 @@ task_contract:
   skills: [quote_vs_cctp_consistency, contractual_risk_check, evidence_pack_check]
   memory_impact: candidate_only
   evidence_required: true
+  epistemic_requirements:
+    claim_register_required: true
+    minimum_claim_status_for_final: source_supported
+    allow_inferred_claims: true
+    unsupported_claim_policy: list_and_limit
+    contradiction_policy: zeus_arbitration_required
+    uncertainty_policy:
+      expose_uncertainty: true
+      require_uncertainty_type: true
+      require_next_action_for_high_uncertainty: true
+    final_answer_policy:
+      no_certainty_increase_without_evidence: true
+      display_material_limitations: true
   fallback_policy:
     retry_allowed: true
     alternative_tool_allowed: false
@@ -282,6 +366,19 @@ task_contract:
   skills: [client_message_safety, approval_risk_check]
   memory_impact: none
   evidence_required: true
+  epistemic_requirements:
+    claim_register_required: true
+    minimum_claim_status_for_final: source_supported
+    allow_inferred_claims: true
+    unsupported_claim_policy: block_final
+    contradiction_policy: zeus_arbitration_required
+    uncertainty_policy:
+      expose_uncertainty: true
+      require_uncertainty_type: true
+      require_next_action_for_high_uncertainty: true
+    final_answer_policy:
+      no_certainty_increase_without_evidence: true
+      display_material_limitations: true
   fallback_policy:
     retry_allowed: true
     alternative_tool_allowed: false
@@ -317,6 +414,19 @@ task_contract:
   skills: [memory_promotion_check, privacy_check, source_check]
   memory_impact: promotion_review
   evidence_required: true
+  epistemic_requirements:
+    claim_register_required: true
+    minimum_claim_status_for_final: validated
+    allow_inferred_claims: false
+    unsupported_claim_policy: block_final
+    contradiction_policy: block_final
+    uncertainty_policy:
+      expose_uncertainty: true
+      require_uncertainty_type: true
+      require_next_action_for_high_uncertainty: true
+    final_answer_policy:
+      no_certainty_increase_without_evidence: true
+      display_material_limitations: true
   fallback_policy:
     retry_allowed: false
     alternative_tool_allowed: false
@@ -352,6 +462,19 @@ task_contract:
   skills: [skill_candidate_review, evidence_pack_check]
   memory_impact: none
   evidence_required: true
+  epistemic_requirements:
+    claim_register_required: true
+    minimum_claim_status_for_final: source_supported
+    allow_inferred_claims: true
+    unsupported_claim_policy: block_final
+    contradiction_policy: zeus_arbitration_required
+    uncertainty_policy:
+      expose_uncertainty: true
+      require_uncertainty_type: true
+      require_next_action_for_high_uncertainty: true
+    final_answer_policy:
+      no_certainty_increase_without_evidence: true
+      display_material_limitations: true
   fallback_policy:
     retry_allowed: true
     alternative_tool_allowed: false
@@ -387,6 +510,19 @@ task_contract:
   skills: [legacy_classification, repo_md_audit]
   memory_impact: none
   evidence_required: true
+  epistemic_requirements:
+    claim_register_required: true
+    minimum_claim_status_for_final: source_supported
+    allow_inferred_claims: true
+    unsupported_claim_policy: list_and_limit
+    contradiction_policy: zeus_arbitration_required
+    uncertainty_policy:
+      expose_uncertainty: true
+      require_uncertainty_type: true
+      require_next_action_for_high_uncertainty: true
+    final_answer_policy:
+      no_certainty_increase_without_evidence: true
+      display_material_limitations: true
   fallback_policy:
     retry_allowed: true
     alternative_tool_allowed: false
@@ -415,6 +551,7 @@ Always work on a copy.
 Never overwrite the source PDF.
 Never commit real documents to the repository.
 Knowledge ingestion requires Evidence Pack and approval.
+Claim-level uncertainty that affects Knowledge ingestion, privacy, redaction or external use must be recorded.
 ```
 
 ## 8.1 pdf_info_check
@@ -809,6 +946,9 @@ task_contract:
 ```text
 A task contract does not authorize execution by itself.
 It defines the frame inside which approval policy can authorize execution.
+It also defines the claim boundary inside which Hermes, Pantheon roles and skills may produce results.
 ```
 
 Fallbacks and remediation candidates are part of the frame, not loopholes around it.
+
+Epistemic requirements are part of the frame, not optional prose.

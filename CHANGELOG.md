@@ -35,6 +35,8 @@ Le projet suit SemVer : `MAJOR.MINOR.PATCH`.
 
 ### Changed
 
+- `docs/governance/TASK_CONTRACTS.md` : ajout de `epistemic_requirements`, du cadrage des claims autorisés et de la politique de contradiction/incertitude par niveau de risque.
+- `docs/governance/ROLE_SIGNALS.md` : ajout de `epistemic_payload`, des règles de conservation de l’incertitude et de l’interdiction d’augmenter la certitude sans nouvelle preuve entre rôles.
 - `docs/governance/EVIDENCE_PACK.md` : ajout du Claim Register, de l’epistemic summary et des règles empêchant l’augmentation de certitude sans nouvelle preuve dans les Evidence Packs.
 - `docs/governance/SKILL_LIFECYCLE.md` : ajout d’un bloc `epistemic_contract` pour les manifests de skills, avec types de claims autorisés, preuves minimales, claims interdits et triggers d’escalade.
 - `docs/governance/README.md` indexe désormais `EPISTEMIC_CONTROL_PROPAGATION.md` comme carte d’adoption de la doctrine épistémique.
