@@ -91,6 +91,7 @@ Definitions:
 | `.env.example` | `.env.example` | Environment template | keep | Keep after domain correction | `DOMAIN=architecture_fr` fixed | Monitor future env templates | P0 |
 | `CLAUDE.md` | `CLAUDE.md` | Claude guidance | keep after rewrite | Previously described autonomous runtime | Aligned with Pantheon Next doctrine | P0 |
 | Installer UI | `scripts/install/ui/` | Installation interface | legacy | Archive or reorient after audit | Heavy UI before governance stabilized | Inspect before reuse | P2 |
+| Legacy generic skills | `skills/generic/` | Previous generic skill pack outside canonical domain packages | legacy | Do not extend or import as canonical Pantheon skills; mine for useful patterns only after audit | Confuses legacy `skills/generic` with canonical `domains/general/skills`; may bypass skill lifecycle | Keep classified; migrate useful ideas into candidate skills under `domains/general/skills/` only through review | P1 |
 | Legacy folder | `legacy/` | Archived components | archive | Keep non-imported | Accidental import | Add doctor check later | P2 |
 
 ---
