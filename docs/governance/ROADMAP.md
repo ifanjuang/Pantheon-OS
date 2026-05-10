@@ -86,6 +86,10 @@ docs/governance/KNOWLEDGE_TAXONOMY.md
 docs/governance/CODE_AUDIT_POST_PIVOT.md
 docs/governance/WORKFLOW_SCHEMA.md
 docs/governance/WORKFLOW_ADAPTATION.md
+docs/governance/ROUTING_FOUNDATION.md
+docs/governance/ROLE_SIGNALS.md
+docs/governance/ROLE_SIGNAL_PROFILES.md
+docs/governance/RUN_GRAPH.md
 docs/governance/SKILL_LIFECYCLE.md
 docs/governance/MEMORY_EVENT_SCHEMA.md
 docs/governance/VERSIONS.md
@@ -166,6 +170,10 @@ Pantheon-Next/
       CODE_AUDIT_POST_PIVOT.md
       WORKFLOW_SCHEMA.md
       WORKFLOW_ADAPTATION.md
+      ROUTING_FOUNDATION.md
+      ROLE_SIGNALS.md
+      ROLE_SIGNAL_PROFILES.md
+      RUN_GRAPH.md
       SKILL_LIFECYCLE.md
       MEMORY_EVENT_SCHEMA.md
       VERSIONS.md

@@ -164,6 +164,56 @@ Rules:
 
 ---
 
+# 6b. Role signal traceability
+
+When the task involved structured role-to-role messages, the Evidence Pack must reference those signals.
+
+The signals themselves are defined in `ROLE_SIGNALS.md` and `ROLE_SIGNAL_PROFILES.md`.
+
+The Evidence Pack does not duplicate raw signal payloads. It records the artifacts that prove governance was respected.
+
+| Field | Required when relevant | Purpose |
+|---|---:|---|
+| `role_signals` | yes | List of `role_signal` ids with sender, recipient, type and risk level |
+| `addressed_role_signals` | yes | List of IRIS-mediated `addressed_role_signal` ids with mediator, sender substance ref and addressed profile |
+| `role_consultations` | yes | List of `role_consultation` ids with reason, expected outputs, max rounds and final status |
+| `format_reminder_request` | yes | List of `format_reminder_request` ids and the addressed role |
+| `format_reminder_response` | yes | List of structure-only responses received |
+| `format_blocked` | yes | List of `format_blocked` events and the role they were rerouted to |
+| `handoff_signals` | yes | List of handoffs between active roles |
+| `veto_signal` | yes | THEMIS veto signals raised, including approval impact |
+| `stop_gate_signal` | yes | APOLLO stop gate decisions and unresolved items |
+| `workflow_revision_signal` | yes | Revision signals emitted, the recommendation and the resulting arbitration |
+
+Role signal evidence shape:
+
+```yaml
+role_signal_traceability:
+  role_signals: []
+  addressed_role_signals: []
+  role_consultations: []
+  format_reminder_request: []
+  format_reminder_response: []
+  format_blocked: []
+  handoff_signals: []
+  veto_signal: []
+  stop_gate_signal: []
+  workflow_revision_signal: []
+```
+
+Rules:
+
+```text
+Role signal payloads must remain bounded.
+Raw chain-of-thought is forbidden in the Evidence Pack.
+Risk levels recorded in evidence must match the risk levels emitted in the original signal.
+Limitations declared in a signal must remain visible in the Evidence Pack.
+A consequential addressed_role_signal must reference the underlying role_signal substance, not replace it.
+A format_reminder_request must remain structure-only; any decision-bearing response is invalid evidence and must be flagged.
+```
+
+---
+
 # 7. When Evidence Pack is mandatory
 
 Evidence Pack is mandatory for:

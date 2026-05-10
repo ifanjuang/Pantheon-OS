@@ -328,6 +328,62 @@ Rules:
 
 ---
 
+## 10b. Role Signal visibility
+
+Role Signals defined in `ROLE_SIGNALS.md` and shaped via `ROLE_SIGNAL_PROFILES.md` may be surfaced in the Run Graph only as public summaries.
+
+Allowed surface forms:
+
+```text
+short ROLE : message in the Inline Run Stream
+public summary line in a snapshot node
+addressed_role_signal summary attributed to IRIS as mediator
+role_consultation summary attributed to the asking role and the answering role
+handoff_signal summary attributed to ATHENA or the active role
+workflow_revision_signal summary attributed to the emitter
+veto_signal summary attributed to THEMIS
+stop_gate_signal summary attributed to APOLLO
+format_reminder_request and format_reminder_response summaries attributed to IRIS
+format_blocked summary attributed to IRIS
+```
+
+Forbidden surface forms:
+
+```text
+raw chain-of-thought
+raw internal prompts
+raw mediated message bodies that contain private substance
+secrets, tokens, credentials or connection strings
+full private document content
+unredacted personal data
+private file paths
+sensitive client data
+source dumps from a Knowledge Base
+internal Hermes tool transcripts
+```
+
+Display constraints:
+
+```text
+Role Signals are observations, not runtime commands.
+Run Graph never executes a role signal.
+Run Graph never edits a role signal payload.
+Run Graph never approves, vetoes or arbitrates from a role signal.
+Run Graph may show that a signal exists, by whom, to whom and at what risk level.
+Authoritative content lives in the Evidence Pack, not in the Run Graph.
+```
+
+Reference flow:
+
+```text
+ROLE_SIGNALS.md          schema and types
+ROLE_SIGNAL_PROFILES.md  expected addressed-role structure
+EVIDENCE_PACK.md         persistent traceability
+TASK_CONTRACT_REVISIONS.md  revision impact
+```
+
+---
+
 ## 11. Temporary display and persistence warning
 
 Inline Run Stream messages may be visually temporary in OpenWebUI.

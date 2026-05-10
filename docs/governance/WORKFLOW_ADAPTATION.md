@@ -49,6 +49,9 @@ EXTERNAL_TOOLS_POLICY.md
 HERMES_INTEGRATION.md
 KNOWLEDGE_TAXONOMY.md
 MODEL_ROUTING_POLICY.md
+ROLE_SIGNALS.md
+ROLE_SIGNAL_PROFILES.md
+ROUTING_FOUNDATION.md
 ```
 
 A workflow adaptation must not:
@@ -70,17 +73,24 @@ turn Pantheon into an autonomous runtime
 
 ## 3. Canonical vocabulary
 
-| Term | Meaning |
-|---|---|
-| `workflow_template` | reusable governed pattern stored in the repo |
-| `session_workflow` | workflow selected, adapted or generated for the current task/session |
-| `workflow_override` | local/session change applied over a baseline template |
-| `workflow_candidate` | durable proposal to add or update a workflow template |
-| `workflow_revision_signal` | runtime signal that the current workflow no longer fits |
-| `workflow_patch` | proposed change to the current session workflow |
-| `task_contract_revision` | revised execution frame sent to Hermes |
-| `resume_policy` | rule describing where and how execution resumes |
-| `reset_to_baseline` | discard local/session override and return to original template |
+| Term | Meaning | Reference |
+|---|---|---|
+| `workflow_template` | reusable governed pattern stored in the repo | `WORKFLOW_SCHEMA.md` |
+| `session_workflow` | workflow selected, adapted or generated for the current task/session | `WORKFLOW_SCHEMA.md` |
+| `workflow_override` | local/session change applied over a baseline template | this document |
+| `workflow_candidate` | durable proposal to add or update a workflow template | this document |
+| `workflow_revision_signal` | runtime signal that the current workflow no longer fits | `ROLE_SIGNALS.md`, `TASK_CONTRACT_REVISIONS.md` |
+| `workflow_patch` | proposed change to the current session workflow | this document |
+| `task_contract_revision` | revised execution frame sent to Hermes | `TASK_CONTRACT_REVISIONS.md` |
+| `resume_policy` | rule describing where and how execution resumes | `TASK_CONTRACT_REVISIONS.md` |
+| `reset_to_baseline` | discard local/session override and return to original template | `TASK_CONTRACT_REVISIONS.md` |
+| `role_signal` | structured role-to-role message envelope | `ROLE_SIGNALS.md` |
+| `addressed_role_signal` | role signal mediated by IRIS for a specific addressed role | `ROLE_SIGNALS.md`, `ROLE_SIGNAL_PROFILES.md` |
+| `role_consultation` | bounded ad hoc consultation between two roles | `ROLE_SIGNALS.md` |
+| `handoff_signal` | structured transfer of an active step from one role to another | `ROLE_SIGNALS.md` |
+| `format_reminder_request` | IRIS request asking the addressed role to remind the expected message structure | `ROLE_SIGNAL_PROFILES.md` |
+| `format_reminder_response` | structure-only response to a format reminder request | `ROLE_SIGNAL_PROFILES.md` |
+| `format_blocked` | IRIS block when a format reminder would require the addressed role to decide | `ROLE_SIGNAL_PROFILES.md` |
 
 ---
 
@@ -138,6 +148,31 @@ IRIS for output form and user-facing constraints
 ```
 
 The consultation must produce visible structured outputs, not raw chain-of-thought.
+
+Each consultation step must be expressed as a structured Role Signal as defined in `ROLE_SIGNALS.md`:
+
+```text
+role_signal           for information transmission, risk warning, stop gate, etc.
+addressed_role_signal for IRIS-mediated messages shaped for a specific addressed role
+role_consultation     for bounded ad hoc question/answer between two roles
+handoff_signal        when the active role of a step changes
+```
+
+When IRIS mediates an addressed signal, the recipient profile must follow `ROLE_SIGNAL_PROFILES.md`.
+
+If IRIS lacks a usable profile, IRIS may emit a `format_reminder_request` to the addressed role.
+
+If the format reminder would require substantive judgment (risk classification, approval, arbitration, source verification, quantity calculation, memory scope), IRIS must emit a `format_blocked` and route the task to the competent role instead of formatting on behalf of that role.
+
+Consultation rules:
+
+```text
+Consultation outputs must remain bounded.
+Raw chain-of-thought is forbidden in any role signal.
+Risk levels must not be lowered by the sender or by IRIS.
+Limitations must be preserved across mediation.
+External-facing wording is not authorized inside consultation.
+```
 
 ---
 
@@ -408,9 +443,23 @@ workflow_revision_signal:
     limitation: "External use requires C4 validation."
 ```
 
+A `workflow_revision_signal` is also a Role Signal type as defined in `ROLE_SIGNALS.md` section 7.
+
+Other Role Signals may also imply a revision and trigger ZEUS arbitration:
+
+```text
+veto_signal           emitted by THEMIS when an action becomes unsafe
+stop_gate_signal      emitted by APOLLO when finalization is not safe
+risk_warning          emitted by THEMIS when risk rises during execution
+source_gap_signal     emitted by ARGOS when a required source is missing
+skill_gap_signal      emitted by HEPHAESTUS / HEPHAISTOS when method robustness is at risk
+```
+
 Signals do not apply changes by themselves.
 
 They trigger ZEUS arbitration.
+
+ZEUS may then produce a `workflow_patch` that becomes a `task_contract_revision` (see `TASK_CONTRACT_REVISIONS.md`).
 
 ---
 
@@ -577,7 +626,16 @@ parallel groups and join policy
 fallbacks and reset events
 limitations and unsupported claims
 approval required before external use
+role signals emitted during the adaptation
+addressed role signals mediated by IRIS
+role consultations performed and their bounded answers
+format_reminder_request and format_reminder_response if any
+format_blocked events if any
+handoff signals between active roles
+workflow_revision_signal events and triggering conditions
 ```
+
+Role signal evidence is referenced, not duplicated. See `EVIDENCE_PACK.md` for the canonical fields.
 
 ---
 
