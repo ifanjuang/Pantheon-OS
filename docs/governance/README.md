@@ -35,21 +35,26 @@ The runtime must not treat these documents as decorative notes. They drive devel
 | `ROUTING_FOUNDATION.md` | Canonical routing foundation for role/skill/workflow boundaries, Request Briefs, W0-W5 and light role consultation |
 | `ROLE_SIGNALS.md` | Structured communication schema for role signals, consultations, handoffs, warnings, vetoes and stop gates |
 | `ROLE_SIGNAL_PROFILES.md` | Recipient profile registry and format reminder rules for IRIS-mediated addressed role signals |
+| `DELIVERABLE_OPERATING_MODEL.md` | Governance model for complete deliverables, Deliverable Contracts, milestone gates, section gates, Stop Gates and bounded Night Run |
 | `GOVERNANCE_ENHANCEMENT_BACKLOG.md` | Candidate backlog for role/skill/workflow, deliverables, assets, Night Run and evaluation improvements |
 | `MEMORY.md` | Canonical memory governance |
 | `APPROVALS.md` | Approval criticality policy C0-C5 |
 | `TASK_CONTRACTS.md` | Hermes/Pantheon task execution contracts |
 | `TASK_CONTRACT_REVISIONS.md` | Addendum for single-role task contracts, workflow revision signals, contract revisions, resume policy and reset-to-baseline |
 | `EVIDENCE_PACK.md` | Audit contract for consequential outputs |
+| `EVALUATION.md` | Evaluation doctrine for measuring skills, workflows, outputs and runtime candidates without granting authority |
 | `HERMES_INTEGRATION.md` | Pantheon ↔ Hermes boundary and context export rules |
 | `OPENWEBUI_INTEGRATION.md` | OpenWebUI cockpit, Knowledge and validation boundary |
 | `OPENWEBUI_DOMAIN_MAPPING.md` | Mapping policy between Pantheon canonical domains and OpenWebUI Knowledge Bases, Workspace Models and operator Skills |
 | `MODEL_ROUTING_POLICY.md` | Model selection policy for OpenWebUI presets, Ollama instances, Hermes execution and Pantheon abstract agents |
 | `EXTERNAL_TOOLS_POLICY.md` | Governance for external integrations |
 | `EXTERNAL_RUNTIME_OPTIONS.md` | Classification of optional runtimes, workflow labs, context engines and graph/workspace tools |
+| `EXTERNAL_RUNTIME_REVIEW_TEMPLATE.md` | Template for classifying external runtime, agent, MCP, memory, benchmark and tooling options before adoption |
+| `EXTERNAL_RUNTIME_OPTION_REVIEWS_KANWAS_AKS_AGENTRQ_OPENCODE_SIX_HATS.md` | Focused review of Kanwas, AKS Reference Server, AgentRQ, opencode-loop and six-hats-skill options |
 | `EXTERNAL_AI_OPTION_REVIEWS.md` | Focused reviews for external AI options, structured-output tools, evaluation tools and agent-execution discipline references |
 | `EXTERNAL_HERMES_UI_OPTION_REVIEWS.md` | Focused reviews for Hermes web UIs, dashboards, workspaces, memory providers, search plugins, skill packs, self-evolution tools and ecosystem catalogues |
 | `EXTERNAL_ECOSYSTEM_REVIEWS.md` | External repository review register for SwarmKit, leaf, ECC and Hermes memory installer candidates |
+| `EXTERNAL_MEMORY_RUNTIME_REVIEWS_OPENCONCHO_HONCHO.md` | Review of OpenConcho and Honcho as external memory runtime options rejected for core memory |
 | `EXECUTION_DISCIPLINE.md` | Minimal execution discipline: smallest safe path, single-role before workflow, surgical changes and evidence before assertion |
 | `KNOWLEDGE_TAXONOMY.md` | Knowledge vs Memory classification |
 | `CODE_AUDIT_POST_PIVOT.md` | Legacy/runtime code classification register |
@@ -61,6 +66,7 @@ The runtime must not treat these documents as decorative notes. They drive devel
 | `MEMORY_EVENT_SCHEMA.md` | Memory event and candidate schema before promotion |
 | `EXTERNAL_WATCHLIST.md` | External repo / tool watchlist |
 | `VERSIONS.md` | Tracking versions of runtimes and models |
+| `AI_LOG.md` | Deprecated pointer to `ai_logs/README.md`; retained only to resolve stale references and prevent recreation of the former single-file log |
 
 ---
 
