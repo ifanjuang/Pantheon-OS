@@ -8,8 +8,10 @@ language: fr
 summary: >
   Candidate skill supporting IRIS signal mediation. Formats structured role
   signals according to the addressed Pantheon Role while preserving substance,
-  limitations, confidence and risk. It is not a runtime message bus and does
-  not execute, approve, arbitrate, promote memory or activate skills.
+  limitations, confidence and risk. It uses recipient profiles first, may request
+  a format reminder only as fallback, and blocks if formatting would require a
+  substantive decision. It is not a runtime message bus and does not execute,
+  approve, arbitrate, promote memory or activate skills.
 
 owners:
   - Pantheon Next
@@ -30,6 +32,8 @@ use_when:
   - run_graph_needs_public_signal_summary
   - workflow_handoff_needs_clean_payload
   - risk_limitations_or_confidence_must_be_preserved
+  - addressed_role_profile_is_available
+  - format_reminder_is_needed_for_structure_only
 
 do_not_use_when:
   - free_form_debate
@@ -40,10 +44,20 @@ do_not_use_when:
   - workflow_canonization
   - tool_execution
   - approval_decision_itself
+  - format_reminder_requires_substantive_decision
+
+formatting_hierarchy:
+  - use_known_role_signal_profile
+  - request_format_reminder_only_if_profile_is_insufficient
+  - accept_format_reminder_only_if_structure_only
+  - block_if_reminder_requires_decision_or_authority_change
 
 capabilities:
   - addressed_role_signal_formatting
   - role_profile_selection
+  - format_reminder_request_generation
+  - format_reminder_response_validation
+  - format_blocked_generation
   - limitation_preservation
   - confidence_preservation
   - risk_level_preservation
@@ -56,7 +70,9 @@ allowed_actions:
   - choose_address_profile
   - preserve_constraints
   - create_public_summary
+  - request_format_reminder
   - request_safer_signal_format
+  - block_formatting_when_substantive_decision_is_required
 
 forbidden_actions:
   - execute_tool
@@ -71,7 +87,12 @@ forbidden_actions:
   - lower_risk_level
   - remove_limitations
   - hide_uncertainty
+  - accept_decision_inside_format_reminder
   - expose_raw_chain_of_thought
+
+address_profiles_source:
+  canonical_document: docs/governance/ROLE_SIGNAL_PROFILES.md
+  local_manifest_profiles_are_summary_only: true
 
 address_profiles:
   ZEUS:
@@ -157,6 +178,22 @@ address_profiles:
       - diagram
       - architecture_pattern
 
+format_reminder_policy:
+  allowed: true
+  max_rounds: 1
+  allowed_output:
+    - required_fields
+    - forbidden_fields
+    - escalation_conditions
+  forbidden_output:
+    - final_approval
+    - risk_downgrade
+    - external_send_instruction
+    - memory_promotion
+    - skill_activation
+    - workflow_canonization
+    - substantive_decision
+
 approval:
   default_level: C0
   escalate_when:
@@ -172,6 +209,8 @@ evidence:
   record_in_evidence_pack_if_consequential:
     - original_signal
     - mediated_signal
+    - format_reminder_request
+    - format_reminder_response
     - addressed_role
     - risk_level
     - limitations_preserved
@@ -186,6 +225,9 @@ hermes_mapping:
 
 outputs:
   - addressed_role_signal
+  - format_reminder_request
+  - format_reminder_response_validation
+  - format_blocked
   - role_signal_public_summary
   - signal_formatting_warning
   - escalation_required
@@ -194,6 +236,7 @@ review:
   required_before_activation: true
   required_documents:
     - docs/governance/ROLE_SIGNALS.md
+    - docs/governance/ROLE_SIGNAL_PROFILES.md
     - docs/governance/ROUTING_FOUNDATION.md
     - docs/governance/AGENTS.md
     - docs/governance/WORKFLOW_ADAPTATION.md
