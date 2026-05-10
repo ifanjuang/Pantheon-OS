@@ -30,6 +30,9 @@ EXECUTION_DISCIPLINE.md
 APPROVALS.md
 EVIDENCE_PACK.md
 HERMES_INTEGRATION.md
+ROLE_SIGNALS.md
+ROLE_SIGNAL_PROFILES.md
+ROUTING_FOUNDATION.md
 ```
 
 ---
@@ -192,6 +195,48 @@ signals must not mutate workflows
 signals must not change approvals
 signals must not resume execution
 signals must not canonize memory, skills or workflows
+```
+
+---
+
+## 4b. Role Signal triggers for revision
+
+`workflow_revision_signal` is one Role Signal type. Other Role Signals defined in `ROLE_SIGNALS.md` may also require a contract revision, a pause, a reroute, an escalation or a reset-to-baseline.
+
+| Role Signal | Typical trigger | Effect on the Task Contract |
+|---|---|---|
+| `veto_signal` (THEMIS) | unsafe action, missing approval, contractual exposure | pause; revision required when approval level rises; cannot be overridden |
+| `stop_gate_signal` (APOLLO) | unresolved contradiction, unsupported claim, missing limitation | pause; revision when finalization is blocked; reset-to-baseline if scope drifted |
+| `risk_warning` (THEMIS) | risk rises during execution | revision when approval level changes; otherwise visible warning only |
+| `source_gap_signal` (ARGOS) | required source missing or conflicting | pause; revision to add source step; possible reset-to-baseline if scope cannot be resolved |
+| `skill_gap_signal` (HEPHAESTUS / HEPHAISTOS) | method robustness at risk | revision to add review or test step; never auto-activates a skill |
+| `clarification_request` | ambiguity that materially changes route | reroute through METIS or ATHENA; revision if structure changes |
+| `handoff_signal` | active role of a step changes | revision required only if inputs, outputs or approvals change |
+| `format_reminder_request` (IRIS) | missing structural profile | no revision; structure-only response expected |
+| `format_blocked` (IRIS) | reminder would require substantive judgment | reroute to the competent role; revision only if that role then changes the frame |
+
+Resulting status options:
+
+```text
+continue_unchanged
+pause_for_arbitration
+escalate_to_workflow
+add_review_step
+remove_step
+change_dependencies
+reset_to_baseline
+stop_and_report
+```
+
+Rules:
+
+```text
+A Role Signal does not modify the Task Contract by itself.
+ZEUS arbitrates after a signal that requires a revision.
+THEMIS retains veto power over any revision that would lower approval.
+APOLLO retains the stop gate over any revision that would weaken finalization quality.
+IRIS may format and route signals but never decides the revision.
+Hermes pauses on any signal flagged with `execution_status: paused`.
 ```
 
 ---
@@ -423,6 +468,20 @@ outputs_discarded
 resume_policy
 limitations
 next_safe_action
+```
+
+When the revision was triggered by Role Signals other than `workflow_revision_signal`, the fragment must reference the underlying signals as defined in `EVIDENCE_PACK.md` section 6b:
+
+```text
+role_signals
+addressed_role_signals
+role_consultations
+veto_signal
+stop_gate_signal
+format_reminder_request
+format_reminder_response
+format_blocked
+handoff_signals
 ```
 
 If the task returns to single-role or baseline, the Evidence Pack must state why.

@@ -78,7 +78,10 @@ workflow runtime hidden inside Pantheon
 | `knowledge/registry.example.yaml` | ✅ Added | Example registry maps OpenWebUI Knowledge Bases to domains, tiers, privacy, freshness and evidence rules |
 | `CODE_AUDIT_POST_PIVOT.md` | ✅ Added | Initial register for legacy/runtime component classification |
 | `WORKFLOW_SCHEMA.md` | ✅ Added | Canonical workflow/task definition schema exists, including `solo` / `single_role_task` path |
-| `WORKFLOW_ADAPTATION.md` | ✅ Added | Defines adaptive workflows as governed dependency graphs with role consultation, ZEUS arbitration, reset and candidate rules |
+| `WORKFLOW_ADAPTATION.md` | ✅ Added | Defines adaptive workflows as governed dependency graphs with role consultation, ZEUS arbitration, reset and candidate rules; aligned with Role Signals |
+| `ROUTING_FOUNDATION.md` | ✅ Added | Defines request → role routing foundation without runtime authority |
+| `ROLE_SIGNALS.md` | ✅ Added | Canonical role-to-role signal schema (consultation, transmission, veto, stop gate, handoff, revision) |
+| `ROLE_SIGNAL_PROFILES.md` | ✅ Added | Recipient profiles, format reminder request/response and format blocked rules |
 | `SKILL_LIFECYCLE.md` | ✅ Added | Skill lifecycle, XP/status and Hermes mapping policy exists |
 | `MEMORY_EVENT_SCHEMA.md` | ✅ Added | Memory event/candidate schema exists |
 | `VERSIONS.md` | ✅ Added | Runtime/model version tracking exists |
@@ -218,6 +221,9 @@ docs/governance/KNOWLEDGE_TAXONOMY.md
 docs/governance/CODE_AUDIT_POST_PIVOT.md
 docs/governance/WORKFLOW_SCHEMA.md
 docs/governance/WORKFLOW_ADAPTATION.md
+docs/governance/ROUTING_FOUNDATION.md
+docs/governance/ROLE_SIGNALS.md
+docs/governance/ROLE_SIGNAL_PROFILES.md
 docs/governance/SKILL_LIFECYCLE.md
 docs/governance/MEMORY_EVENT_SCHEMA.md
 knowledge/registry.example.yaml
