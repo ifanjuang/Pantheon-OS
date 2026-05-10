@@ -1,0 +1,144 @@
+id: deliverable_contract_builder
+name: Deliverable Contract Builder
+domain: general
+status: candidate
+version: 0.1.0
+language: fr
+
+summary: >
+  Candidate skill that transforms a user request for a complete deliverable into
+  a governed Deliverable Contract, including production mode, milestones,
+  evidence requirements, approvals and stop gate rules. It does not produce the
+  final deliverable or execute tools.
+
+owners:
+  - Pantheon Next
+
+lifecycle:
+  state: candidate
+  level: 0
+  xp:
+    validated: 0
+    pending: 0
+  review_required: true
+
+use_when:
+  - complete_report_requested
+  - complete_dossier_requested
+  - complete_audit_requested
+  - cctp_complete_requested
+  - long_article_requested
+  - documentation_package_requested
+  - technical_memo_requested
+  - long_refinement_session_requested
+  - deliverable_requires_sections_sources_assets_or_gates
+
+do_not_use_when:
+  - simple_answer
+  - short_rewrite
+  - simple_email
+  - translation
+  - minor_correction
+  - single_factual_question
+  - small_calculation
+
+capabilities:
+  - request_brief_generation
+  - deliverable_type_classification
+  - production_mode_selection
+  - milestone_gate_planning
+  - section_gate_planning
+  - evidence_requirement_detection
+  - approval_requirement_detection
+  - stop_gate_requirement_detection
+  - asset_need_detection
+  - definition_of_done_generation
+
+allowed_actions:
+  - propose_deliverable_contract
+  - propose_production_plan_outline
+  - propose_milestones
+  - propose_section_gates
+  - propose_definition_of_done
+  - identify_unresolved_questions
+  - state_assumptions_if_no_answer
+  - request_rich_elicitation_if_blocking
+
+forbidden_actions:
+  - execute_tool
+  - mutate_files
+  - send_external_message
+  - promote_memory
+  - activate_skill
+  - canonize_workflow
+  - produce_final_deliverable_without_required_contract
+  - hide_assumptions
+  - claim_evidence_without_sources
+  - start_unbounded_refinement
+  - bypass_themis
+  - bypass_apollo
+
+role_mapping:
+  METIS: request_framing
+  HERA: trajectory_and_milestones
+  ATHENA: method_and_production_plan
+  ARGOS: sources_and_facts
+  HECATE: uncertainty_and_hidden_risk
+  THEMIS: approval_and_risk
+  APOLLO: stop_gate_and_final_readiness
+  ZEUS: arbitration_and_reroute
+  IRIS: wording_and_user_facing_output
+  DAEDALUS: structure_and_diagrams
+  DEMETER: quantities_tables_and_resources
+  CHRONOS: sequence_dependencies_and_freshness
+  HEPHAESTUS: robustness_and_skill_gaps
+
+approval:
+  default_level: C1
+  escalate_when:
+    - external_facing_deliverable
+    - persistent_internal_document
+    - contractual_or_financial_content
+    - legal_sensitive_content
+    - memory_promotion_possible
+    - file_mutation_requested
+    - runtime_execution_requested
+
+evidence:
+  evidence_pack_required_when:
+    - source_dependent
+    - external_facing
+    - contractual
+    - financial
+    - legal_sensitive
+    - high_confidence_claim
+    - persistent
+    - web_or_knowledge_sources_used
+
+hermes_mapping:
+  type: candidate_planning_skill
+  hermes_skill: null
+  activation_required: true
+  sandbox_required: true
+  approval_required: true
+
+outputs:
+  - request_brief
+  - deliverable_contract
+  - production_plan_outline
+  - milestone_gate_plan
+  - section_gate_plan
+  - definition_of_done
+  - unresolved_questions
+  - assumptions_if_no_answer
+
+review:
+  required_before_activation: true
+  required_documents:
+    - docs/governance/DELIVERABLE_OPERATING_MODEL.md
+    - docs/governance/ROUTING_FOUNDATION.md
+    - docs/governance/AGENTS.md
+    - docs/governance/ROLE_SIGNALS.md
+    - docs/governance/EVIDENCE_PACK.md
+    - docs/governance/APPROVALS.md
+    - docs/governance/TASK_CONTRACTS.md
