@@ -84,6 +84,26 @@ def _iter_files(root: Path, glob: str) -> Iterable[Path]:
             yield p
 
 
+def _doctor_reports_dir(repo: Path) -> Path:
+    return repo / "reports" / "doctor"
+
+
+def _resolve_allowed_report_path(repo: Path, requested: Path) -> Path | None:
+    """Return the resolved output path only when it stays under reports/doctor/.
+
+    The Doctor is read-only with one narrow exception: it may write its own
+    report under `reports/doctor/`. A custom `--output` outside that directory
+    is blocked without raising and without changing the exit code.
+    """
+    allowed_dir = _doctor_reports_dir(repo).resolve()
+    output = requested.resolve()
+    try:
+        output.relative_to(allowed_dir)
+    except ValueError:
+        return None
+    return output
+
+
 # ── Required governance documents (mirrors operations/doctor.md §6) ─────────
 
 REQUIRED_GOVERNANCE_DOCS = [
@@ -699,14 +719,17 @@ def _default_repo_root() -> Path:
 
 
 def _default_report_path(repo: Path, date: str) -> Path:
-    return repo / "reports" / "doctor" / f"{date}-doctor-report.md"
+    return _doctor_reports_dir(repo) / f"{date}-doctor-report.md"
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Pantheon Doctor — read-only governance checker")
     parser.add_argument("--repo", type=Path, default=None, help="Repository root (defaults to autodetect)")
     parser.add_argument(
-        "--output", type=Path, default=None, help="Report path (defaults to reports/doctor/{date}-doctor-report.md)"
+        "--output",
+        type=Path,
+        default=None,
+        help="Report path, restricted to reports/doctor/ (defaults to reports/doctor/{date}-doctor-report.md)",
     )
     parser.add_argument("--print", dest="print_to_stdout", action="store_true", help="Print the report to stdout")
     parser.add_argument("--no-write", action="store_true", help="Do not write the report file")
@@ -723,9 +746,17 @@ def main(argv: list[str] | None = None) -> int:
             sys.stdout.write("\n")
 
     if not args.no_write:
-        output = (args.output or _default_report_path(repo, report.date)).resolve()
-        output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(rendered, encoding="utf-8")
+        requested_output = args.output or _default_report_path(repo, report.date)
+        output = _resolve_allowed_report_path(repo, requested_output)
+        if output is None:
+            allowed_dir = _doctor_reports_dir(repo).resolve()
+            sys.stderr.write(
+                "Doctor output blocked: --output must stay under "
+                f"{allowed_dir}. No report file was written.\n"
+            )
+        else:
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_text(rendered, encoding="utf-8")
 
     return 0
 
