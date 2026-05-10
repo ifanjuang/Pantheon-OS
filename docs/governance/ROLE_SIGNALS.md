@@ -20,6 +20,19 @@ They may communicate through structured signals.
 
 They must not form a hidden autonomous agent network.
 
+Epistemic rule:
+
+```text
+A role signal may transmit claims, uncertainty and risk.
+It must not increase certainty without new evidence.
+```
+
+Reference:
+
+```text
+EPISTEMIC_CONTROL.md
+```
+
 ---
 
 ## 2. Purpose
@@ -35,6 +48,7 @@ AGORA bounded consultation
 Run Graph visibility
 Evidence Pack traceability
 Task Contract revision signals
+claim-level uncertainty propagation
 ```
 
 It does not implement:
@@ -46,6 +60,7 @@ agent loop
 tool execution
 memory promotion
 approval bypass
+truth oracle
 ```
 
 ---
@@ -102,6 +117,7 @@ memory authority
 workflow engine
 AGORA replacement
 Hermes replacement
+certainty upgrader
 ```
 
 IRIS may:
@@ -112,6 +128,7 @@ choose the correct signal type
 reduce ambiguity in the message
 remove irrelevant detail
 preserve limitations and risk flags
+preserve claim status and uncertainty
 request a safer signal format
 prepare a public Run Graph summary
 prepare a user-facing summary after validation
@@ -121,9 +138,11 @@ IRIS must not:
 
 ```text
 change the factual content of ARGOS findings
+increase claim certainty without new evidence
 lower THEMIS risk level
 weaken an APOLLO stop gate
 hide HECATE uncertainty
+remove unsupported-claim flags
 choose ZEUS arbitration result
 execute Hermes tools
 send external messages
@@ -188,6 +207,16 @@ addressed_role_signal:
     confidence: partial
     limitations:
       - "The architect mission scope is not fully available."
+    epistemic_payload:
+      claim_refs: []
+      weakest_claim_status: source_supported
+      uncertainty_level: medium
+      uncertainty_reasons:
+        - missing_contract_scope
+      confidence_may_be_reduced_by_recipient: true
+      confidence_may_be_increased_by_recipient: false
+      evidence_required_to_increase_confidence:
+        - signed_contract_document
   mediated_message:
     question_or_request: "Classify whether this wording could create responsibility or require C4 approval."
     requested_output:
@@ -197,6 +226,8 @@ addressed_role_signal:
   constraints:
     preserve_risk_level: true
     preserve_limitations: true
+    preserve_epistemic_payload: true
+    no_certainty_increase_without_evidence: true
     no_external_send: true
   status: open
 ```
@@ -204,6 +235,8 @@ addressed_role_signal:
 The mediated message may clarify form.
 
 It must not distort substance.
+
+It must not improve claim status unless new evidence is attached.
 
 ---
 
@@ -226,6 +259,7 @@ memory_candidate_signal
 skill_gap_signal
 asset_need_signal
 source_gap_signal
+epistemic_payload_signal
 ```
 
 Forbidden signal types:
@@ -239,6 +273,7 @@ canonize_workflow
 send_external_message
 mutate_file
 access_secret
+increase_claim_certainty_without_evidence
 raw_chain_of_thought
 ```
 
@@ -258,6 +293,14 @@ role_signal:
   content_summary: "Quantities extracted from the available DPGF."
   payload_ref: source_inventory.quantities
   confidence: partial
+  epistemic_payload:
+    claim_refs: []
+    weakest_claim_status: source_supported
+    uncertainty_level: low | medium | high
+    uncertainty_reasons: []
+    confidence_may_be_reduced_by_recipient: true
+    confidence_may_be_increased_by_recipient: false
+    evidence_required_to_increase_confidence: []
   assumptions: []
   limitations:
     - "The plumbing lot was not included in the provided schedule."
@@ -276,6 +319,43 @@ content_summary must be short.
 payload_ref should point to a bounded output, not raw private reasoning.
 limitations must be explicit when confidence is partial.
 risk_level must not be lowered by the sender.
+epistemic_payload is required when claim status, uncertainty or approval impact matters.
+weakest_claim_status must survive handoff.
+```
+
+---
+
+## 8b. Epistemic payload
+
+`epistemic_payload` preserves claim-level state through role handoffs.
+
+Reference:
+
+```text
+EPISTEMIC_CONTROL.md#6-role-signal-epistemic-payload
+```
+
+Shape:
+
+```yaml
+epistemic_payload:
+  claim_refs: []
+  weakest_claim_status: asserted | source_supported | tested | inferred_from_sources | conflicting | unsupported | blocked | validated | canonized
+  uncertainty_level: none | low | medium | high
+  uncertainty_reasons: []
+  confidence_may_be_reduced_by_recipient: true
+  confidence_may_be_increased_by_recipient: false
+  evidence_required_to_increase_confidence: []
+```
+
+Rules:
+
+```text
+A recipient role may lower confidence or claim status without new evidence.
+A recipient role may not increase confidence or claim status without new evidence.
+A handoff may clarify language but must preserve limitations, uncertainty and risk flags.
+A signal carrying conflicting or unsupported material claims must request review, arbitration, source check or block.
+An epistemic payload is not proof; it points to the claims and evidence that must be checked.
 ```
 
 ---
@@ -292,6 +372,16 @@ role_consultation:
   reason: possible_contractual_commitment
   question: "Can this wording create unintended responsibility?"
   context_summary: "Draft client message about contractor quote review."
+  epistemic_payload:
+    claim_refs: []
+    weakest_claim_status: inferred_from_sources
+    uncertainty_level: medium
+    uncertainty_reasons:
+      - mission_scope_missing
+    confidence_may_be_reduced_by_recipient: true
+    confidence_may_be_increased_by_recipient: false
+    evidence_required_to_increase_confidence:
+      - mission_contract
   expected_output:
     - risk_level
     - forbidden_wording
@@ -322,6 +412,7 @@ approval bypass
 memory promotion
 skill activation
 workflow canonization
+claim certainty upgrade without evidence
 ```
 
 Escalate to a workflow if:
@@ -352,6 +443,17 @@ role_signal:
   content_summary: "Cost lines grouped by lot are ready for economic review."
   payload_ref: extracted_cost_table.v1
   confidence: medium
+  epistemic_payload:
+    claim_refs:
+      - CL-2026-0001
+    weakest_claim_status: source_supported
+    uncertainty_level: medium
+    uncertainty_reasons:
+      - missing_unit_prices
+    confidence_may_be_reduced_by_recipient: true
+    confidence_may_be_increased_by_recipient: false
+    evidence_required_to_increase_confidence:
+      - complete_dpgf
   limitations:
     - "Unit prices are missing for two lines."
   requested_action: review
@@ -366,6 +468,7 @@ accepted_for_review
 needs_more_source
 blocked_by_limitation
 risk_escalation
+claim_status_lowered
 ```
 
 ---
@@ -381,6 +484,17 @@ role_signal:
   type: veto_signal
   purpose: "Block external-facing wording before approval."
   content_summary: "The draft creates a contractual commitment without C4 approval."
+  epistemic_payload:
+    claim_refs: []
+    weakest_claim_status: inferred_from_sources
+    uncertainty_level: medium
+    uncertainty_reasons:
+      - external_use
+      - contractual_scope_unclear
+    confidence_may_be_reduced_by_recipient: true
+    confidence_may_be_increased_by_recipient: false
+    evidence_required_to_increase_confidence:
+      - signed_scope
   risk_level: C4
   requested_action: block
   escalation:
@@ -394,6 +508,7 @@ Rules:
 A veto signal cannot be overridden by AGORA majority.
 ZEUS may reroute but cannot bypass the veto.
 APOLLO cannot finalize against a THEMIS veto.
+A veto signal must preserve the uncertainty or claim boundary that justified the veto.
 ```
 
 ---
@@ -409,6 +524,16 @@ role_signal:
   type: stop_gate_signal
   purpose: "Decide whether the answer can be finalized."
   content_summary: "The output is coherent but source limitations must be visible."
+  epistemic_payload:
+    claim_refs: []
+    weakest_claim_status: source_supported
+    uncertainty_level: medium
+    uncertainty_reasons:
+      - missing_quantity_schedule
+    confidence_may_be_reduced_by_recipient: true
+    confidence_may_be_increased_by_recipient: false
+    evidence_required_to_increase_confidence:
+      - quantity_schedule
   decision: ready_with_limits
   unresolved_items:
     - missing_quantity_schedule
@@ -425,6 +550,8 @@ needs_user_input
 blocked
 ```
 
+APOLLO must block or require visible limitations when the final wording would overstate weak claims.
+
 ---
 
 ## 13. Workflow revision signal
@@ -438,6 +565,18 @@ role_signal:
   type: workflow_revision_signal
   purpose: "Escalate ambiguity that changes the task route."
   content_summary: "The request moved from a simple rewrite to a contractual position."
+  epistemic_payload:
+    claim_refs: []
+    weakest_claim_status: asserted
+    uncertainty_level: high
+    uncertainty_reasons:
+      - task_scope_changed
+      - external_contractual_position_possible
+    confidence_may_be_reduced_by_recipient: true
+    confidence_may_be_increased_by_recipient: false
+    evidence_required_to_increase_confidence:
+      - user_confirmation
+      - scope_document
   recommended_change: escalate_to_W4
   risk_level: C4
   requested_action: arbitrate
@@ -469,6 +608,17 @@ handoff_signal:
     - source_inventory
     - missing_sources
     - usable_facts
+  epistemic_payload:
+    claim_refs: []
+    weakest_claim_status: asserted
+    uncertainty_level: medium
+    uncertainty_reasons:
+      - sources_not_checked_yet
+    confidence_may_be_reduced_by_recipient: true
+    confidence_may_be_increased_by_recipient: true
+    evidence_required_to_increase_confidence:
+      - source_inventory
+      - evidence_pack_refs
   blockers:
     - no_files_available
 ```
@@ -476,6 +626,8 @@ handoff_signal:
 Handoff is not delegation of authority.
 
 The receiving role performs only its defined responsibility.
+
+If the receiving role increases confidence, it must attach the new evidence.
 
 ---
 
@@ -491,6 +643,7 @@ risk_signal
 source_gap_signal
 brief_adherence_signal
 method_signal
+epistemic_payload_signal
 ```
 
 AGORA must output:
@@ -499,6 +652,7 @@ AGORA must output:
 structured summary
 variant comparison
 risk table
+claim-status summary
 recommendation for ZEUS
 ```
 
@@ -508,6 +662,7 @@ AGORA must not output:
 raw chain-of-thought
 unbounded debate
 majority vote overriding THEMIS or APOLLO
+certainty increase without evidence
 ```
 
 ---
@@ -545,6 +700,7 @@ Evidence Pack may record:
 ```text
 role_signals
 addressed_role_signals
+epistemic_payloads
 role_consultations
 handoffs
 risk_warnings
@@ -556,6 +712,8 @@ workflow_revision_signals
 Signal content is not proof by itself.
 
 The signal must point to evidence when it supports a factual or consequential claim.
+
+Epistemic payloads preserve the claim boundary across signals.
 
 ---
 
@@ -584,6 +742,7 @@ Roles may consult other roles.
 They communicate through structured signals.
 IRIS may format addressed signals.
 Signals are bounded, traceable and non-executing.
+Signals may preserve claim state but do not prove claims by themselves.
 ATHENA organizes.
 CHRONOS sequences.
 ZEUS arbitrates.
