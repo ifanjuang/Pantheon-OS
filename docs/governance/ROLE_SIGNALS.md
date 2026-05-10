@@ -66,7 +66,7 @@ Responsibilities:
 | Escalate risk or veto | THEMIS |
 | Request final readiness review | APOLLO |
 | Arbitrate disagreement or change of course | ZEUS |
-| Shape user-facing wording | IRIS |
+| Format role-to-role signals and user-facing wording | IRIS |
 | Execute runtime transport under Task Contract | Hermes Agent |
 | Display state and validation to user | OpenWebUI |
 | Govern schema, evidence and limits | Pantheon Next |
@@ -79,13 +79,135 @@ CHRONOS manages dependency timing.
 ZEUS arbitrates.
 THEMIS blocks unsafe signals.
 APOLLO validates final readiness.
+IRIS formats addressed signals.
 Hermes transports/executes runtime work under Task Contract.
 Pantheon governs the signal schema and limits.
 ```
 
 ---
 
-## 4. Signal types
+## 4. IRIS signal mediation
+
+IRIS may be invoked to transform an intent, finding, warning, question or handoff into a structured message adapted to the addressed role.
+
+IRIS is a formatter and clarity mediator.
+
+IRIS is not:
+
+```text
+message bus
+runtime dispatcher
+approval authority
+memory authority
+workflow engine
+AGORA replacement
+Hermes replacement
+```
+
+IRIS may:
+
+```text
+shape a signal for the addressed role
+choose the correct signal type
+reduce ambiguity in the message
+remove irrelevant detail
+preserve limitations and risk flags
+request a safer signal format
+prepare a public Run Graph summary
+prepare a user-facing summary after validation
+```
+
+IRIS must not:
+
+```text
+change the factual content of ARGOS findings
+lower THEMIS risk level
+weaken an APOLLO stop gate
+hide HECATE uncertainty
+choose ZEUS arbitration result
+execute Hermes tools
+send external messages
+promote memory
+activate skills
+```
+
+Canonical rule:
+
+```text
+IRIS formats the signal.
+The sender owns the substance.
+The addressed role owns its response.
+THEMIS owns risk.
+APOLLO owns final readiness.
+ZEUS owns arbitration.
+```
+
+---
+
+## 5. Addressed signal profiles
+
+A signal should be shaped according to the addressed role.
+
+| Addressed role | Signal should emphasize | Avoid |
+|---|---|---|
+| ZEUS | decision needed, options, conflict, arbitration request | excessive detail without decision point |
+| METIS | request intent, ambiguity, implicit needs, routing uncertainty | premature solution |
+| ATHENA | method, structure, dependencies, route proposal | raw unstructured findings |
+| ARGOS | source need, factual question, extraction target | opinion-heavy wording |
+| HECATE | uncertainty, hidden risk, unknowns, ambiguity | false certainty |
+| THEMIS | risk, approval level, forbidden action, liability exposure | softened warnings |
+| APOLLO | completeness, coherence, unsupported claims, final readiness | partial data without limits |
+| HERA | trajectory, milestone status, satisfaction gap, continue/pause signal | isolated facts without progress meaning |
+| CHRONOS | sequence, dependency, wait, join, freshness, deadline | unordered requests |
+| HEPHAESTUS | method robustness, skill gap, tests, rollback, technical weakness | vague improvement request |
+| DEMETER | quantities, costs, resources, tables, units, economic assumptions | unquantified claims |
+| POSEIDON | site, water, networks, soil, environment, physical constraints | abstract strategy without site constraints |
+| PROMETHEUS | alternatives, contradictions, edge cases, adversarial review | single-option framing |
+| IRIS | tone, wording, audience, communication constraints | unresolved risk without THEMIS signal |
+| HESTIA | project-memory relevance, project facts, context scope | system-level generalization |
+| MNEMOSYNE | reusable system rule, pattern, memory candidate evidence | local project detail as universal rule |
+| DAEDALUS | structure, diagram, system boundary, architecture pattern | vague conceptual drift |
+
+---
+
+## 6. Addressed signal envelope
+
+When IRIS mediates a signal, use this envelope.
+
+```yaml
+addressed_role_signal:
+  id: RS-YYYY-NNNN
+  mediator_role: IRIS
+  from_role: ARGOS
+  to_role: THEMIS
+  signal_type: risk_warning
+  address_profile: THEMIS
+  sender_substance:
+    content_summary: "A contractor quote is being discussed for possible client-facing use."
+    payload_ref: quote_review.summary
+    confidence: partial
+    limitations:
+      - "The architect mission scope is not fully available."
+  mediated_message:
+    question_or_request: "Classify whether this wording could create responsibility or require C4 approval."
+    requested_output:
+      - approval_level
+      - forbidden_wording
+      - safer_wording_guidance
+  constraints:
+    preserve_risk_level: true
+    preserve_limitations: true
+    no_external_send: true
+  status: open
+```
+
+The mediated message may clarify form.
+
+It must not distort substance.
+
+---
+
+## 7. Signal types
 
 Allowed signal types:
 
@@ -122,7 +244,7 @@ raw_chain_of_thought
 
 ---
 
-## 5. Base schema
+## 8. Base schema
 
 Every role signal should follow this shape when structured output is needed.
 
@@ -158,7 +280,7 @@ risk_level must not be lowered by the sender.
 
 ---
 
-## 6. Ad hoc Role Consultation
+## 9. Ad hoc Role Consultation
 
 A role may consult another role without a formal workflow when the task is simple and low-risk.
 
@@ -216,7 +338,7 @@ Hermes must execute tools
 
 ---
 
-## 7. Information transmission
+## 10. Information transmission
 
 Use information transmission when one role has produced a bounded output needed by another role.
 
@@ -248,7 +370,7 @@ risk_escalation
 
 ---
 
-## 8. Risk and veto signals
+## 11. Risk and veto signals
 
 THEMIS may emit a risk warning or veto signal.
 
@@ -276,7 +398,7 @@ APOLLO cannot finalize against a THEMIS veto.
 
 ---
 
-## 9. Stop Gate signal
+## 12. Stop Gate signal
 
 APOLLO may emit a stop gate signal.
 
@@ -305,7 +427,7 @@ blocked
 
 ---
 
-## 10. Workflow revision signal
+## 13. Workflow revision signal
 
 Workflow revision signals are used when the current route no longer fits.
 
@@ -331,7 +453,7 @@ ATHENA restructures the method if approved.
 
 ---
 
-## 11. Handoff signal
+## 14. Handoff signal
 
 Use a handoff signal when the active role changes.
 
@@ -357,7 +479,7 @@ The receiving role performs only its defined responsibility.
 
 ---
 
-## 12. AGORA relationship
+## 15. AGORA relationship
 
 AGORA is a bounded consultation mode composed of role signals.
 
@@ -390,7 +512,7 @@ majority vote overriding THEMIS or APOLLO
 
 ---
 
-## 13. Run Graph relationship
+## 16. Run Graph relationship
 
 Role Signals may be displayed in Run Graph or Inline Run Stream only as public summaries.
 
@@ -414,7 +536,7 @@ RUN_GRAPH.md
 
 ---
 
-## 14. Evidence Pack relationship
+## 17. Evidence Pack relationship
 
 Consequential role signals should be referenced in the Evidence Pack.
 
@@ -422,6 +544,7 @@ Evidence Pack may record:
 
 ```text
 role_signals
+addressed_role_signals
 role_consultations
 handoffs
 risk_warnings
@@ -436,7 +559,7 @@ The signal must point to evidence when it supports a factual or consequential cl
 
 ---
 
-## 15. Persistence
+## 18. Persistence
 
 Role Signals are session artifacts by default.
 
@@ -454,11 +577,12 @@ Persistence must not imply canonization.
 
 ---
 
-## 16. Final rule
+## 19. Final rule
 
 ```text
 Roles may consult other roles.
 They communicate through structured signals.
+IRIS may format addressed signals.
 Signals are bounded, traceable and non-executing.
 ATHENA organizes.
 CHRONOS sequences.
