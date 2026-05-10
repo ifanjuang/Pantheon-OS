@@ -32,6 +32,7 @@ The runtime must not treat these documents as decorative notes. They drive devel
 | `MODULES.md` | Module and domain definition contract |
 | `AGENTS.md` | Abstract agent roster and responsibilities |
 | `REQUEST_ORCHESTRATION.md` | Request classification, METIS framing, AGORA consultation, variants, revision and arbitration doctrine |
+| `ROUTING_FOUNDATION.md` | Canonical routing foundation for role/skill/workflow boundaries, Request Briefs, W0-W5 and light role consultation |
 | `GOVERNANCE_ENHANCEMENT_BACKLOG.md` | Candidate backlog for role/skill/workflow, deliverables, assets, Night Run and evaluation improvements |
 | `MEMORY.md` | Canonical memory governance |
 | `APPROVALS.md` | Approval criticality policy C0-C5 |
