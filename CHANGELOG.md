@@ -15,6 +15,7 @@ Le projet suit SemVer : `MAJOR.MINOR.PATCH`.
 
 ### Added
 
+- `docs/governance/EPISTEMIC_CONTROL_PROPAGATION.md` : carte d’adoption pour appliquer `EPISTEMIC_CONTROL.md` dans Evidence Packs, Task Contracts, Role Signals, Skill Lifecycle, Workflow Adaptation, STATUS et ROADMAP. Documentation uniquement, sans runtime ni enforcement automatique.
 - `docs/governance/EPISTEMIC_CONTROL.md` : doctrine de contrôle des affirmations à l’échelle du claim, avec Claim Register, `epistemic_payload` pour Role Signals, `epistemic_contract` pour manifests de skills, `epistemic_requirements` pour Task Contracts et gates Source/Uncertainty/Risk/Final Claim. Documentation uniquement, sans runtime, sans agent supplémentaire et sans auto-canonisation.
 - `docs/governance/REQUEST_ORCHESTRATION.md` : doctrine de cadrage des demandes par METIS, mode AGORA, variantes, demandes de révision, arbitrage ZEUS et adhérence au brief. Documentation uniquement, sans runtime ni boucle agentique.
 - `domains/general/skills/{request_classification,request_intent_enrichment,context_scope_expansion,brief_adherence_review,agent_revision_request,variant_generation,agent_forum_review,decision_arbitration}/` : skill candidates de pré-cadrage, enrichissement de demande, extension contrôlée du contexte, cohérence du livrable, variantes, forum AGORA et arbitrage. Aucun skill actif, aucun binding Hermes, aucun outil ou endpoint ajouté.
@@ -34,6 +35,9 @@ Le projet suit SemVer : `MAJOR.MINOR.PATCH`.
 
 ### Changed
 
+- `docs/governance/EVIDENCE_PACK.md` : ajout du Claim Register, de l’epistemic summary et des règles empêchant l’augmentation de certitude sans nouvelle preuve dans les Evidence Packs.
+- `docs/governance/SKILL_LIFECYCLE.md` : ajout d’un bloc `epistemic_contract` pour les manifests de skills, avec types de claims autorisés, preuves minimales, claims interdits et triggers d’escalade.
+- `docs/governance/README.md` indexe désormais `EPISTEMIC_CONTROL_PROPAGATION.md` comme carte d’adoption de la doctrine épistémique.
 - `docs/governance/README.md` indexe désormais `EPISTEMIC_CONTROL.md` comme document de gouvernance dédié au contrôle claim-level, à l’incertitude, aux payloads épistémiques et aux contrats épistémiques de skills.
 - `docs/governance/AGENTS.md` : METIS devient le rôle de cadrage initial des demandes ; AGORA est défini comme mode de consultation borné et non comme agent autonome ; APOLLO reçoit explicitement l’adhérence au brief ; ZEUS arbitre les variantes et désaccords sans contourner THEMIS, APOLLO ou les approvals humains.
 - `docs/governance/README.md` indexe `REQUEST_ORCHESTRATION.md`, `DEVELOPMENT_PHASES.md` et les nouveaux documents de gouvernance opératoire : capability map, methods, memory storage model et OpenWebUI plugin policy.
