@@ -1,0 +1,29 @@
+id: agent_revision_request
+name: Agent Revision Request
+domain: general
+status: candidate
+version: 0.1.0
+language: en
+
+summary: >
+  Candidate governance skill for bounded role-to-role revision requests.
+  Documentation only. Produces a revised candidate output request.
+
+lifecycle:
+  state: candidate
+  level: 0
+  xp:
+    validated: 0
+    pending: 0
+  review_required: true
+
+outputs:
+  - agent_revision_request
+  - target_output
+  - revision_reason
+  - requested_change
+  - approval_impact
+  - memory_impact
+
+review:
+  required_before_activation: true

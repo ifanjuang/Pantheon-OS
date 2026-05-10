@@ -31,6 +31,7 @@ The runtime must not treat these documents as decorative notes. They drive devel
 | `OPENWEBUI_PLUGIN_POLICY.md` | OpenWebUI Functions, Tools, Pipes, Filters, Actions and plugin safety policy |
 | `MODULES.md` | Module and domain definition contract |
 | `AGENTS.md` | Abstract agent roster and responsibilities |
+| `REQUEST_ORCHESTRATION.md` | Request classification, METIS framing, AGORA consultation, variants, revision and arbitration doctrine |
 | `MEMORY.md` | Canonical memory governance |
 | `APPROVALS.md` | Approval criticality policy C0-C5 |
 | `TASK_CONTRACTS.md` | Hermes/Pantheon task execution contracts |

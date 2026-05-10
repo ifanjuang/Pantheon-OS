@@ -1,0 +1,30 @@
+id: brief_adherence_review
+name: Brief Adherence Review
+domain: general
+status: candidate
+version: 0.1.0
+language: en
+
+summary: >
+  Candidate governance skill for checking whether a draft answer or deliverable
+  remains aligned with the initial request, interpreted intent, expected format,
+  scope, audience, assumptions, limits and evidence requirements.
+
+lifecycle:
+  state: candidate
+  level: 0
+  xp:
+    validated: 0
+    pending: 0
+  review_required: true
+
+outputs:
+  - brief_adherence_review
+  - missing_points
+  - scope_drift
+  - coherence_issues
+  - recommended_revision
+  - final_status
+
+review:
+  required_before_activation: true

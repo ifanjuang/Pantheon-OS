@@ -1,0 +1,27 @@
+id: variant_generation
+name: Variant Generation
+domain: general
+status: candidate
+version: 0.1.0
+language: en
+
+summary: >
+  Candidate governance skill for producing bounded sets of answer, strategy,
+  plan or wording variants. Documentation only.
+
+lifecycle:
+  state: candidate
+  level: 0
+  xp:
+    validated: 0
+    pending: 0
+  review_required: true
+
+outputs:
+  - variant_set
+  - variant_strengths
+  - variant_weaknesses
+  - selection_criteria
+
+review:
+  required_before_activation: true

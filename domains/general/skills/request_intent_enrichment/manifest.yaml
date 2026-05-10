@@ -1,0 +1,29 @@
+id: request_intent_enrichment
+name: Request Intent Enrichment
+domain: general
+status: candidate
+version: 0.1.0
+language: en
+
+summary: >
+  Candidate governance skill for interpreting the user's real intent,
+  implicit needs and likely answer shape before answer generation, retrieval
+  or workflow routing. Documentation only.
+
+lifecycle:
+  state: candidate
+  level: 0
+  xp:
+    validated: 0
+    pending: 0
+  review_required: true
+
+outputs:
+  - interpreted_intent
+  - implicit_needs
+  - missing_context
+  - likely_answer_shape
+  - recommended_next_step
+
+review:
+  required_before_activation: true

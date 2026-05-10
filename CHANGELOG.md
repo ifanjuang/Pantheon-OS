@@ -15,6 +15,8 @@ Le projet suit SemVer : `MAJOR.MINOR.PATCH`.
 
 ### Added
 
+- `docs/governance/REQUEST_ORCHESTRATION.md` : doctrine de cadrage des demandes par METIS, mode AGORA, variantes, demandes de révision, arbitrage ZEUS et adhérence au brief. Documentation uniquement, sans runtime ni boucle agentique.
+- `domains/general/skills/{request_classification,request_intent_enrichment,context_scope_expansion,brief_adherence_review,agent_revision_request,variant_generation,agent_forum_review,decision_arbitration}/` : skill candidates de pré-cadrage, enrichissement de demande, extension contrôlée du contexte, cohérence du livrable, variantes, forum AGORA et arbitrage. Aucun skill actif, aucun binding Hermes, aucun outil ou endpoint ajouté.
 - `docs/governance/DEVELOPMENT_PHASES.md` : lecture P0-P8 de la roadmap sans remplacer ni raccourcir `ROADMAP.md`.
 - `docs/governance/HERMES_CAPABILITY_MAP.md` : cartographie opérationnelle des capacités entre Hermes, OpenWebUI, Pantheon et legacy.
 - `docs/governance/GOVERNANCE_METHODS.md` : méthodes standard de classification, Task Contract, approvals, Evidence Packs et mémoire candidate.
@@ -31,7 +33,8 @@ Le projet suit SemVer : `MAJOR.MINOR.PATCH`.
 
 ### Changed
 
-- `docs/governance/README.md` indexe `DEVELOPMENT_PHASES.md` et les nouveaux documents de gouvernance opératoire : capability map, methods, memory storage model et OpenWebUI plugin policy.
+- `docs/governance/AGENTS.md` : METIS devient le rôle de cadrage initial des demandes ; AGORA est défini comme mode de consultation borné et non comme agent autonome ; APOLLO reçoit explicitement l’adhérence au brief ; ZEUS arbitre les variantes et désaccords sans contourner THEMIS, APOLLO ou les approvals humains.
+- `docs/governance/README.md` indexe `REQUEST_ORCHESTRATION.md`, `DEVELOPMENT_PHASES.md` et les nouveaux documents de gouvernance opératoire : capability map, methods, memory storage model et OpenWebUI plugin policy.
 - `config/domains.yaml` réduit au scope MVP : conserve `architecture_fr` (actif) et ajoute `general` comme socle. Les overlays aspirationnels `legal_fr` / `medical_fr` sont retirés (à recréer en V2 quand les dossiers existeront).
 - `config/policies.yaml` retire les `trusted_sources` `legal_fr` / `medical_fr` ; commentaire scope MVP-only.
 - `platform/api/pantheon_runtime/router.py` : retire la référence orpheline `domains/software` du context-pack ; `truth_files` mis à jour vers `docs/governance/*.md`.

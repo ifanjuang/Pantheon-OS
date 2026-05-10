@@ -1,0 +1,30 @@
+id: context_scope_expansion
+name: Context Scope Expansion
+domain: general
+status: candidate
+version: 0.1.0
+language: en
+
+summary: >
+  Candidate governance skill for proposing a bounded context expansion plan
+  across session context, uploaded documents, project/system memory,
+  OpenWebUI Knowledge, official sources or web sources. Documentation only.
+
+lifecycle:
+  state: candidate
+  level: 0
+  xp:
+    validated: 0
+    pending: 0
+  review_required: true
+
+outputs:
+  - context_scope_expansion
+  - known_context
+  - missing_context
+  - sources_to_check
+  - response_mode
+  - recommended_agents
+
+review:
+  required_before_activation: true

@@ -1,0 +1,28 @@
+id: decision_arbitration
+name: Decision Arbitration
+domain: general
+status: candidate
+version: 0.1.0
+language: en
+
+summary: >
+  Candidate governance skill supporting ZEUS arbitration between variants,
+  role opinions and response strategies. Documentation only.
+
+lifecycle:
+  state: candidate
+  level: 0
+  xp:
+    validated: 0
+    pending: 0
+  review_required: true
+
+outputs:
+  - decision_arbitration
+  - selected_variant
+  - rejected_variants
+  - required_modifications
+  - approval_impact
+
+review:
+  required_before_activation: true

@@ -1,0 +1,27 @@
+id: agent_forum_review
+name: Agent Forum Review
+domain: general
+status: candidate
+version: 0.1.0
+language: en
+
+summary: >
+  Candidate governance skill for bounded AGORA-style review of variants,
+  trade-offs and role disagreements. Documentation only.
+
+lifecycle:
+  state: candidate
+  level: 0
+  xp:
+    validated: 0
+    pending: 0
+  review_required: true
+
+outputs:
+  - agent_forum_review
+  - role_opinions
+  - disagreement_summary
+  - recommended_next_step
+
+review:
+  required_before_activation: true
