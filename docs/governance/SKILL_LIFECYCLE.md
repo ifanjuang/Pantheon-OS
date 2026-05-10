@@ -13,6 +13,12 @@ Pantheon skill = domain contract + governance layer.
 
 Pantheon must not duplicate Hermes. It defines purpose, domain, inputs, outputs, limits, risk, approval level, evidence requirements, memory impact and optional Hermes mapping.
 
+Reference for claim-level reliability, uncertainty and allowed claim types:
+
+```text
+EPISTEMIC_CONTROL.md
+```
+
 ---
 
 ## 2. Skill states
@@ -57,6 +63,7 @@ Hermes optional skills
 external/community skills as inspiration only
 near-duplicate names
 privacy, runtime and side-effect risks
+epistemic risk and allowed claim types
 ```
 
 Allowed decisions:
@@ -88,7 +95,7 @@ domains/{domain}/skills/{skill_id}/
 
 `UPDATES.md` stores candidate improvements.
 
-`manifest.yaml` stores lifecycle, level, XP, risk and Hermes mapping.
+`manifest.yaml` stores lifecycle, level, XP, risk, Hermes mapping and, when relevant, the skill epistemic contract.
 
 ---
 
@@ -108,7 +115,38 @@ lifecycle:
 
 ---
 
-## 6. Hermes mapping
+## 6. Epistemic contract block
+
+A Pantheon-compatible skill should declare the types of claims it may produce and the evidence required for each claim type.
+
+Reference schema:
+
+```text
+EPISTEMIC_CONTROL.md#7-skill-epistemic-contract
+```
+
+Minimal shape:
+
+```yaml
+epistemic_contract:
+  output_claim_types: []
+  minimum_evidence: {}
+  forbidden_claims: []
+  uncertainty_required_when: []
+  escalation_triggers: []
+```
+
+Rules:
+
+```text
+A skill cannot become an authority by producing confident wording.
+A skill may propose, extract, compare, calculate, flag or recommend only within its epistemic contract.
+A skill that exceeds its epistemic contract produces unsupported claims until reviewed.
+```
+
+---
+
+## 7. Hermes mapping
 
 ```yaml
 hermes_mapping:
@@ -129,7 +167,7 @@ hermes_mapping:
 
 ---
 
-## 7. XP model
+## 8. XP model
 
 XP measures validated maturity, not usage volume.
 
@@ -141,7 +179,7 @@ XP starts as `pending` and becomes validated only after review.
 
 ---
 
-## 8. Levels
+## 9. Levels
 
 | Level | Name | Validated XP | Meaning |
 |---:|---|---:|---|
@@ -158,7 +196,7 @@ Level-up requires updated examples, updated tests or checklists, privacy check, 
 
 ---
 
-## 9. Candidate skill factory rule
+## 10. Candidate skill factory rule
 
 A skill factory may only propose.
 
@@ -171,6 +209,7 @@ observed pattern
 → duplicate check
 → Hermes skill check
 → privacy check
+→ epistemic contract check
 → review
 → human validation
 → candidate files
@@ -183,11 +222,13 @@ automatic active skill creation
 automatic active skill patching
 automatic level-up
 automatic memory promotion
+automatic claim canonization
+automatic confidence upgrade
 ```
 
 ---
 
-## 10. Quarantine and level-down
+## 11. Quarantine and level-down
 
 Triggers:
 
@@ -197,7 +238,10 @@ Triggers:
 - obsolete assumptions;
 - duplicate of a better skill;
 - unclear scope;
-- broken examples or tests.
+- broken examples or tests;
+- repeated unsupported claims;
+- claims outside the skill epistemic contract;
+- hidden uncertainty or overstated confidence.
 
 Allowed decisions:
 
@@ -213,8 +257,9 @@ Deletion is exceptional.
 
 ---
 
-## 11. Final rule
+## 12. Final rule
 
 ```text
 A skill becomes stronger through validated usefulness, not automatic activity.
+A skill becomes trustworthy through evidence discipline, not confident output.
 ```
