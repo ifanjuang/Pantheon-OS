@@ -52,7 +52,7 @@ def mock_orchestra_run(mocker):
     """Mock de run_orchestra pour éviter d'appeler LangGraph + LLM."""
     run = _make_mock_run()
     mocker.patch(
-        "modules.orchestra.router.run_orchestra",
+        "apps.orchestra.router.run_orchestra",
         new_callable=AsyncMock,
         return_value=run,
     )
@@ -65,7 +65,7 @@ def mock_queue(mocker):
     mock_pool = AsyncMock()
     mock_pool.enqueue_job = AsyncMock()
     mocker.patch(
-        "modules.orchestra.router.get_queue",
+        "apps.orchestra.router.get_queue",
         new_callable=AsyncMock,
         return_value=mock_pool,
     )
@@ -116,7 +116,7 @@ class TestOrchestraRun:
     async def test_run_fallback_sync(self, client, moe_token, affaire, mock_orchestra_run, mocker):
         """Si Redis indisponible, fallback sync via run_orchestra."""
         mocker.patch(
-            "modules.orchestra.router.get_queue",
+            "apps.orchestra.router.get_queue",
             new_callable=AsyncMock,
             side_effect=Exception("Redis down"),
         )

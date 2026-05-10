@@ -23,7 +23,7 @@ def mock_run(mocker):
     run.iterations = 1
     run.duration_ms = 100
     mocker.patch(
-        "modules.webhooks.router.run_agent",
+        "apps.webhooks.router.run_agent",
         new_callable=AsyncMock,
         return_value=run,
     )

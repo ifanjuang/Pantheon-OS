@@ -14,7 +14,7 @@ from tests.conftest import auth_headers
 @pytest.fixture
 def mock_storage(mocker):
     mocker.patch(
-        "modules.capture.router.StorageService.upload",
+        "apps.capture.router.StorageService.upload",
         new_callable=AsyncMock,
         return_value="capture/test-audio.mp3",
     )
@@ -23,7 +23,7 @@ def mock_storage(mocker):
 @pytest.fixture
 def mock_transcribe_ok(mocker):
     mocker.patch(
-        "modules.capture.router.transcribe_audio",
+        "apps.capture.router.transcribe_audio",
         new_callable=AsyncMock,
         return_value="Le mur du bâtiment B présente des fissures.",
     )
@@ -33,7 +33,7 @@ def mock_transcribe_ok(mocker):
 def mock_transcribe_none(mocker):
     """Simule l'absence d'endpoint Whisper."""
     mocker.patch(
-        "modules.capture.router.transcribe_audio",
+        "apps.capture.router.transcribe_audio",
         new_callable=AsyncMock,
         return_value=None,
     )
@@ -57,7 +57,7 @@ class TestCaptureUpload:
     ):
         # Mock le background task pour ne pas lancer l'agent
         mocker.patch(
-            "modules.capture.service.process_capture",
+            "apps.capture.service.process_capture",
             new_callable=AsyncMock,
         )
         r = await client.post(
@@ -154,7 +154,7 @@ class TestProcessCapture:
         db.add(capture)
         await db.flush()
 
-        with patch("modules.capture.service.run_agent", new_callable=AsyncMock) as mock_agent:
+        with patch("apps.capture.service.run_agent", new_callable=AsyncMock) as mock_agent:
             mock_run = MagicMock()
             mock_run.id = uuid.uuid4()
             mock_run.result = "Observation : fissure mur nord."

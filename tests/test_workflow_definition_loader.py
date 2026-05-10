@@ -14,11 +14,7 @@ def test_workflow_loader_loads_workflow_with_tasks_yaml(tmp_path: Path):
     workflow_dir.mkdir(parents=True)
 
     (workflow_dir / "workflow.yaml").write_text(
-        "id: document_analysis\n"
-        "description: Analyze a document\n"
-        "pattern: cascade\n"
-        "outputs:\n"
-        "  - validated_facts\n",
+        "id: document_analysis\ndescription: Analyze a document\npattern: cascade\noutputs:\n  - validated_facts\n",
         encoding="utf-8",
     )
     (workflow_dir / "tasks.yaml").write_text(

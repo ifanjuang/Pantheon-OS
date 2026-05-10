@@ -32,7 +32,7 @@ class TestExtractAndStoreMemories:
             }
         )
 
-        with patch("modules.agent.memory.LlmService") as MockLlm:
+        with patch("apps.agent.memory.LlmService") as MockLlm:
             mock_client = MagicMock()
             mock_client.chat.completions.create = AsyncMock(return_value=_mock_llm_response(llm_response))
             MockLlm._get_client.return_value = mock_client
@@ -80,7 +80,7 @@ class TestExtractAndStoreMemories:
             }
         )
 
-        with patch("modules.agent.memory.LlmService") as MockLlm:
+        with patch("apps.agent.memory.LlmService") as MockLlm:
             mock_client = MagicMock()
             mock_client.chat.completions.create = AsyncMock(return_value=_mock_llm_response(llm_response))
             MockLlm._get_client.return_value = mock_client
@@ -244,7 +244,7 @@ class TestConsolidateMemories:
             }
         )
 
-        with patch("modules.agent.memory.LlmService") as MockLlm:
+        with patch("apps.agent.memory.LlmService") as MockLlm:
             mock_client = MagicMock()
             mock_client.chat.completions.create = AsyncMock(return_value=_mock_llm_response(consolidation_response))
             MockLlm._get_client.return_value = mock_client
