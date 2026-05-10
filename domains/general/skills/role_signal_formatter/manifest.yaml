@@ -1,0 +1,201 @@
+id: role_signal_formatter
+name: Role Signal Formatter
+domain: general
+status: candidate
+version: 0.1.0
+language: fr
+
+summary: >
+  Candidate skill supporting IRIS signal mediation. Formats structured role
+  signals according to the addressed Pantheon Role while preserving substance,
+  limitations, confidence and risk. It is not a runtime message bus and does
+  not execute, approve, arbitrate, promote memory or activate skills.
+
+owners:
+  - Pantheon Next
+
+lifecycle:
+  state: candidate
+  level: 0
+  xp:
+    validated: 0
+    pending: 0
+  last_review: null
+  review_required: true
+
+use_when:
+  - role_must_consult_another_role
+  - role_finding_must_be_transmitted
+  - agora_needs_structured_role_inputs
+  - run_graph_needs_public_signal_summary
+  - workflow_handoff_needs_clean_payload
+  - risk_limitations_or_confidence_must_be_preserved
+
+do_not_use_when:
+  - free_form_debate
+  - raw_chain_of_thought_exchange
+  - external_communication
+  - memory_promotion
+  - skill_activation
+  - workflow_canonization
+  - tool_execution
+  - approval_decision_itself
+
+capabilities:
+  - addressed_role_signal_formatting
+  - role_profile_selection
+  - limitation_preservation
+  - confidence_preservation
+  - risk_level_preservation
+  - requested_output_shaping
+  - public_signal_summary
+
+allowed_actions:
+  - format_role_signal
+  - choose_signal_type
+  - choose_address_profile
+  - preserve_constraints
+  - create_public_summary
+  - request_safer_signal_format
+
+forbidden_actions:
+  - execute_tool
+  - send_external_message
+  - approve_action
+  - reject_action
+  - arbitrate_disagreement
+  - promote_memory
+  - activate_skill
+  - canonize_workflow
+  - mutate_files
+  - lower_risk_level
+  - remove_limitations
+  - hide_uncertainty
+  - expose_raw_chain_of_thought
+
+address_profiles:
+  ZEUS:
+    emphasize:
+      - decision_needed
+      - options
+      - conflict
+      - arbitration_request
+  THEMIS:
+    emphasize:
+      - risk
+      - approval_level
+      - forbidden_action
+      - liability_exposure
+  APOLLO:
+    emphasize:
+      - completeness
+      - coherence
+      - unsupported_claims
+      - final_readiness
+  HERA:
+    emphasize:
+      - trajectory
+      - milestone_status
+      - satisfaction_gap
+      - continue_pause_signal
+  ARGOS:
+    emphasize:
+      - source_need
+      - factual_question
+      - extraction_target
+  DEMETER:
+    emphasize:
+      - quantities
+      - costs
+      - resources
+      - units
+      - assumptions
+  CHRONOS:
+    emphasize:
+      - sequence
+      - dependencies
+      - waits
+      - joins
+      - freshness
+  HECATE:
+    emphasize:
+      - uncertainty
+      - hidden_risk
+      - unknowns
+      - ambiguity
+  ATHENA:
+    emphasize:
+      - method
+      - structure
+      - route
+      - dependency_graph
+  PROMETHEUS:
+    emphasize:
+      - alternatives
+      - contradictions
+      - edge_cases
+  IRIS:
+    emphasize:
+      - audience
+      - tone
+      - wording
+      - communication_constraints
+  HESTIA:
+    emphasize:
+      - project_memory_relevance
+      - project_context
+      - project_fact_scope
+  MNEMOSYNE:
+    emphasize:
+      - reusable_rule
+      - system_pattern
+      - evidence_for_memory_candidate
+  DAEDALUS:
+    emphasize:
+      - structure
+      - system_boundary
+      - diagram
+      - architecture_pattern
+
+approval:
+  default_level: C0
+  escalate_when:
+    - file_mutation_requested
+    - memory_promotion_requested
+    - external_communication_requested
+    - C3_or_above_decision_requested
+    - runtime_skill_activation_requested
+    - tool_execution_requested
+
+evidence:
+  evidence_pack_required_by_default: false
+  record_in_evidence_pack_if_consequential:
+    - original_signal
+    - mediated_signal
+    - addressed_role
+    - risk_level
+    - limitations_preserved
+    - response_received
+
+hermes_mapping:
+  type: candidate_formatter
+  hermes_skill: null
+  activation_required: true
+  sandbox_required: true
+  approval_required: true
+
+outputs:
+  - addressed_role_signal
+  - role_signal_public_summary
+  - signal_formatting_warning
+  - escalation_required
+
+review:
+  required_before_activation: true
+  required_documents:
+    - docs/governance/ROLE_SIGNALS.md
+    - docs/governance/ROUTING_FOUNDATION.md
+    - docs/governance/AGENTS.md
+    - docs/governance/WORKFLOW_ADAPTATION.md
+    - docs/governance/EVIDENCE_PACK.md
+    - docs/governance/APPROVALS.md

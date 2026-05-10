@@ -33,11 +33,12 @@ The runtime must not treat these documents as decorative notes. They drive devel
 | `AGENTS.md` | Abstract agent roster and responsibilities |
 | `REQUEST_ORCHESTRATION.md` | Request classification, METIS framing, AGORA consultation, variants, revision and arbitration doctrine |
 | `ROUTING_FOUNDATION.md` | Canonical routing foundation for role/skill/workflow boundaries, Request Briefs, W0-W5 and light role consultation |
+| `ROLE_SIGNALS.md` | Structured communication schema for role signals, consultations, handoffs, warnings, vetoes and stop gates |
 | `GOVERNANCE_ENHANCEMENT_BACKLOG.md` | Candidate backlog for role/skill/workflow, deliverables, assets, Night Run and evaluation improvements |
 | `MEMORY.md` | Canonical memory governance |
 | `APPROVALS.md` | Approval criticality policy C0-C5 |
 | `TASK_CONTRACTS.md` | Hermes/Pantheon task execution contracts |
-| `TASK_CONTRACT_REVISIONS.md` | Addendum for single-role task contracts, workflow revision signals, task contract revisions, resume policy and reset-to-baseline |
+| `TASK_CONTRACT_REVISIONS.md` | Addendum for single-role task contracts, workflow revision signals, contract revisions, resume policy and reset-to-baseline |
 | `EVIDENCE_PACK.md` | Audit contract for consequential outputs |
 | `HERMES_INTEGRATION.md` | Pantheon ↔ Hermes boundary and context export rules |
 | `OPENWEBUI_INTEGRATION.md` | OpenWebUI cockpit, Knowledge and validation boundary |
