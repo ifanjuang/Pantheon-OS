@@ -1,0 +1,172 @@
+id: workflow_live_narrator
+name: Workflow Live Narrator
+domain: general
+status: candidate
+version: 0.1.0
+language: fr
+
+summary: >
+  Converts structured Run Graph, request orchestration and workflow events into
+  short public-facing inline progress messages for optional OpenWebUI display.
+  This skill is a narration/display contract only. It does not execute, approve,
+  validate, promote memory or canonize workflows.
+
+owners:
+  - Pantheon Next
+
+lifecycle:
+  state: candidate
+  level: 0
+  xp:
+    validated: 0
+    pending: 0
+  last_review: null
+  review_required: true
+  probation_reason: null
+
+capabilities:
+  - run_event_to_public_message
+  - request_frame_summary
+  - agora_summary
+  - role_status_summary
+  - missing_input_summary
+  - information_transfer_summary
+  - warning_summary
+  - veto_summary
+  - approval_notice_summary
+  - workflow_revision_summary
+  - source_usage_public_summary
+  - tool_usage_public_summary
+  - final_stream_safety_check
+
+allowed_actions:
+  - format_inline_message
+  - summarize_request_frame
+  - summarize_agora_state
+  - summarize_role_status
+  - summarize_waiting_state
+  - summarize_information_transmission
+  - summarize_missing_source
+  - summarize_warning
+  - summarize_veto
+  - summarize_approval_requirement
+  - summarize_workflow_revision
+  - suppress_sensitive_message
+  - request_safer_public_wording
+
+forbidden_actions:
+  - execute_workflow
+  - run_agent
+  - call_tool
+  - approve_action
+  - reject_action
+  - promote_memory
+  - create_memory
+  - activate_skill
+  - canonize_workflow
+  - mutate_files
+  - send_external_message
+  - expose_raw_chain_of_thought
+  - expose_system_prompt
+  - expose_raw_logs
+  - expose_secrets
+  - expose_full_private_document_content
+  - expose_sensitive_file_paths
+  - output_technical_jargon_by_default
+  - claim_final_validation
+
+input_event_types:
+  - run.started
+  - run.completed
+  - run.failed
+  - request.frame_created
+  - request.context_expansion_needed
+  - workflow.selected
+  - workflow.node.started
+  - workflow.node.completed
+  - workflow.node.blocked
+  - role.started
+  - role.waiting
+  - role.completed
+  - agora.started
+  - agora.completed
+  - information.requested
+  - information.transmitted
+  - source.consulted
+  - source.missing
+  - tool.started
+  - tool.completed
+  - tool.failed
+  - evidence.updated
+  - warning.raised
+  - veto.raised
+  - approval.required
+  - workflow.revision_signal
+  - workflow.patch_candidate
+
+output_modes:
+  default: public
+  allowed:
+    - public
+    - professional
+  blocked_by_default:
+    - technical
+    - debug
+
+format:
+  default_shape: "ROLE : short message."
+  emojis: false
+  colors: false
+  max_message_length: 180
+  max_messages_per_run: 60
+  show_technical_terms: false
+  show_raw_events: false
+  show_chain_of_thought: false
+
+visibility_policy:
+  user_visible_only: true
+  temporary_display_allowed: true
+  secure_deletion_assumed: false
+  sensitive_data_allowed: false
+  private_document_extracts_allowed: false
+  real_project_identifiers_allowed: false
+  examples_must_be_fictional: true
+
+approval_required_if:
+  - implementation_as_openwebui_function
+  - implementation_as_openwebui_pipe
+  - runtime_configuration_change
+  - persistent_event_storage
+  - technical_debug_mode
+  - panel_or_d3_mode
+  - workflow_revision_display_changes_approval_state
+  - sensitive_project_data_visibility
+
+hermes_mapping:
+  type: display_or_formatter_candidate
+  hermes_skill: null
+  activation_required: true
+  sandbox_required: true
+  approval_required: true
+  notes: >
+    This is not an executable Hermes skill by default. It may later be mapped
+    to a bounded formatter, OpenWebUI Function/Pipe display adapter, or
+    Pantheon read-only formatting endpoint.
+
+outputs:
+  - inline_public_message
+  - suppressed_message_reason
+  - public_run_summary
+  - safety_flags
+
+review:
+  required_before_activation: true
+  required_documents:
+    - docs/governance/RUN_GRAPH.md
+    - docs/governance/REQUEST_ORCHESTRATION.md
+    - docs/governance/SKILL_LIFECYCLE.md
+    - docs/governance/OPENWEBUI_INTEGRATION.md
+    - docs/governance/HERMES_INTEGRATION.md
+    - docs/governance/APPROVALS.md
+    - docs/governance/EVIDENCE_PACK.md
+    - operations/openwebui_inline_run_stream.md
