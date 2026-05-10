@@ -91,7 +91,7 @@ class TestCriticalityGuardHybrid:
     async def test_c5_from_rules_skips_ai(self):
         """C5 déterministe → pas d'appel LLM, source=rules."""
         impacts = CriticalityImpacts(impact_cout=60_000)
-        with patch("modules.guards.service.LlmService.extract") as mock_extract:
+        with patch("apps.guards.service.LlmService.extract") as mock_extract:
             verdict = await GuardsService.criticality_guard_hybrid(impacts, context="quelque chose")
         mock_extract.assert_not_called()
         assert verdict.criticite == "C5"
@@ -100,7 +100,7 @@ class TestCriticalityGuardHybrid:
     async def test_no_context_skips_ai(self):
         """Sans contexte → pas d'appel LLM même si c'est C3."""
         impacts = CriticalityImpacts(impact_cout=3_000)
-        with patch("modules.guards.service.LlmService.extract") as mock_extract:
+        with patch("apps.guards.service.LlmService.extract") as mock_extract:
             verdict = await GuardsService.criticality_guard_hybrid(impacts, context="")
         mock_extract.assert_not_called()
         assert verdict.criticite == "C3"
@@ -109,7 +109,7 @@ class TestCriticalityGuardHybrid:
     async def test_c1_no_context_skips_ai(self):
         """C1 sans contexte → source=rules."""
         impacts = CriticalityImpacts()
-        with patch("modules.guards.service.LlmService.extract") as mock_extract:
+        with patch("apps.guards.service.LlmService.extract") as mock_extract:
             verdict = await GuardsService.criticality_guard_hybrid(impacts)
         mock_extract.assert_not_called()
         assert verdict.criticite == "C1"
@@ -122,7 +122,7 @@ class TestCriticalityGuardHybrid:
         mock_ai.criticite = "C4"
         mock_ai.reasoning = "Risque de litige contractuel non capturé par les règles financières."
 
-        with patch("modules.guards.service.LlmService.extract", new_callable=AsyncMock) as mock_extract:
+        with patch("apps.guards.service.LlmService.extract", new_callable=AsyncMock) as mock_extract:
             mock_extract.return_value = mock_ai
             verdict = await GuardsService.criticality_guard_hybrid(
                 impacts,
@@ -142,7 +142,7 @@ class TestCriticalityGuardHybrid:
         mock_ai.criticite = "C2"
         mock_ai.reasoning = "Situation banale."
 
-        with patch("modules.guards.service.LlmService.extract", new_callable=AsyncMock) as mock_extract:
+        with patch("apps.guards.service.LlmService.extract", new_callable=AsyncMock) as mock_extract:
             mock_extract.return_value = mock_ai
             verdict = await GuardsService.criticality_guard_hybrid(
                 impacts,
@@ -157,7 +157,7 @@ class TestCriticalityGuardHybrid:
         impacts = CriticalityImpacts(impact_delai=15)  # C4 par les règles
 
         with patch(
-            "modules.guards.service.LlmService.extract",
+            "apps.guards.service.LlmService.extract",
             new_callable=AsyncMock,
             side_effect=RuntimeError("LLM timeout"),
         ):
@@ -177,7 +177,7 @@ class TestCriticalityGuardHybrid:
         mock_ai.criticite = "C5"
         mock_ai.reasoning = "Danger structurel identifié : ferraillage non conforme sous charge."
 
-        with patch("modules.guards.service.LlmService.extract", new_callable=AsyncMock) as mock_extract:
+        with patch("apps.guards.service.LlmService.extract", new_callable=AsyncMock) as mock_extract:
             mock_extract.return_value = mock_ai
             verdict = await GuardsService.criticality_guard_hybrid(
                 impacts,
@@ -245,11 +245,13 @@ class TestVetoPatterns:
         assert result.veto is True
         assert result.severity == "bloquant"
 
-    def test_hephaistos_infaisable_detected(self):
+    def test_ares_infaisable_detected(self):
+        # Veto patterns for technical infeasibility moved from Hephaistos to Ares
+        # (see apps/guards/veto_patterns.py: Hephaistos is diagram_builder only).
         from apps.guards.veto_patterns import fast_veto_check
 
         output = "Ce montage est techniquement infaisable selon les DTU en vigueur."
-        result = fast_veto_check("hephaistos", output)
+        result = fast_veto_check("ares", output)
         assert result is not None
         assert result.veto is True
 
@@ -295,7 +297,7 @@ class TestMemoryPromotion:
             }
         )
 
-        with patch("modules.agent.memory.LlmService") as MockLlm:
+        with patch("apps.agent.memory.LlmService") as MockLlm:
             mock_client = MagicMock()
             mock_client.chat.completions.create = AsyncMock(
                 return_value=MagicMock(choices=[MagicMock(message=MagicMock(content=llm_response))])
@@ -355,7 +357,7 @@ class TestMemoryPromotion:
             }
         )
 
-        with patch("modules.agent.memory.LlmService") as MockLlm:
+        with patch("apps.agent.memory.LlmService") as MockLlm:
             mock_client = MagicMock()
             mock_client.chat.completions.create = AsyncMock(
                 return_value=MagicMock(choices=[MagicMock(message=MagicMock(content=llm_response))])

@@ -89,7 +89,7 @@ def mock_llm_analyse(mocker):
     import json
 
     mocker.patch(
-        "modules.meeting.service._llm",
+        "apps.meeting.service._llm",
         new_callable=AsyncMock,
         return_value=json.dumps(ANALYSE_MOCK),
     )
@@ -100,7 +100,7 @@ def mock_llm_agenda(mocker):
     import json
 
     mocker.patch(
-        "modules.meeting.service._llm",
+        "apps.meeting.service._llm",
         new_callable=AsyncMock,
         return_value=json.dumps(AGENDA_MOCK),
     )
