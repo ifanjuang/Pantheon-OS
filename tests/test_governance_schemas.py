@@ -185,6 +185,21 @@ def test_validator_blocks_auto_fix_in_task_contract(validator, schemas):
     assert any("auto_fix_allowed" in e.path for e in errors)
 
 
+def test_validator_enforces_additional_properties_flag(validator):
+    """`additional_properties_allowed: false` must reject unknown keys."""
+    schema = {
+        "$pantheon_schema": 1,
+        "title": "strict_test",
+        "type": "object",
+        "required": ["id"],
+        "properties": {"id": {"type": "string"}},
+        "additional_properties_allowed": False,
+    }
+    validator._check_schema_well_formed(schema, Path("strict_test.schema.yaml"))
+    errors = validator.validate_instance({"id": "ok", "extra": "blocked"}, schema)
+    assert any("additional key" in e.message and "extra" in e.path for e in errors)
+
+
 def test_validator_no_filesystem_side_effect_on_import(validator):
     """Importing the validator module must not touch the filesystem."""
     _load_validator("pantheon_governance_validator_reload")
