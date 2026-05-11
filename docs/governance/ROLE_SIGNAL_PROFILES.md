@@ -2,7 +2,7 @@
 
 > Canonical recipient profiles for structured role-to-role messages.
 >
-> IRIS should use these profiles before asking a role to remind the expected message format.
+> IRIS should use local agent profiles when available, then this central profile registry, before asking a role to remind the expected message format.
 
 ---
 
@@ -25,6 +25,15 @@ approval authority
 memory promotion
 workflow engine
 tool execution
+truth oracle
+```
+
+Canonical split:
+
+```text
+ROLE_SIGNALS.md = shared protocol.
+ROLE_SIGNAL_PROFILES.md = central profile registry and invariants.
+agents/{ROLE}/role_signal_profile.yaml = local usage profile for one role.
 ```
 
 ---
@@ -37,15 +46,355 @@ A signal sent to APOLLO should not omit final-readiness criteria.
 
 A signal sent to ZEUS should clearly expose the decision point.
 
-`ROLE_SIGNAL_PROFILES.md` gives IRIS a stable reference before formatting an addressed signal.
+A signal sent through IRIS should not become more certain, less risky or less limited because it was reformatted.
+
+`ROLE_SIGNAL_PROFILES.md` gives IRIS and future validators a stable reference before formatting an addressed signal.
 
 Core rule:
 
 ```text
-Use the profile first.
+Use the local profile first when it exists.
+Use the central profile when no local profile exists.
 Ask for a format reminder only if the profile is insufficient.
 Block if the reminder would require a substantive decision.
 ```
+
+---
+
+## 2b. Central schema and local profiles
+
+The Role Signal schema remains centralized in:
+
+```text
+docs/governance/ROLE_SIGNALS.md
+```
+
+The epistemic rules remain centralized in:
+
+```text
+docs/governance/EPISTEMIC_CONTROL.md
+```
+
+The profile for a specific role may live in the agent folder:
+
+```text
+agents/{ROLE}/role_signal_profile.yaml
+```
+
+This document remains the central index and invariant policy for those local profiles.
+
+Rules:
+
+```text
+A local role_signal_profile.yaml describes how the role uses Role Signals.
+It must not redefine the Role Signal schema.
+It must not redefine epistemic rules.
+It must reference ROLE_SIGNALS.md and EPISTEMIC_CONTROL.md.
+It may define emitted signal types, received signal types, required payloads, forbidden behaviors, escalation triggers and public summary rules.
+It may be more specific than this document.
+It must not be less restrictive than this document.
+```
+
+If a local profile conflicts with the central schema or governance doctrine, the central governance documents win.
+
+---
+
+## 2c. Why profiles may live in agent folders
+
+Profiles are role-specific maintenance files.
+
+Keeping them inside each agent folder is useful because the profile evolves with the agent responsibility:
+
+```text
+ARGOS evolves with source and evidence work.
+THEMIS evolves with approval and veto policy.
+APOLLO evolves with final readiness checks.
+IRIS evolves with formatting and audience adaptation.
+HEPHAESTUS evolves with skills, tests and rollback discipline.
+```
+
+The protocol should not be copied into each agent.
+
+The profile should be local.
+
+The distinction is:
+
+```text
+Protocol = one central schema.
+Profile = one role-specific usage contract.
+```
+
+This avoids two bad outcomes:
+
+```text
+one huge central file that becomes painful to maintain;
+many local copies of the schema that drift apart.
+```
+
+---
+
+## 2d. Local profile lifecycle
+
+A local profile is documentation and governance metadata, not executable runtime configuration.
+
+Allowed states:
+
+```text
+missing
+candidate
+active
+needs_review
+deprecated
+```
+
+Recommended interpretation:
+
+| State | Meaning |
+|---|---|
+| `missing` | No local profile exists; IRIS uses the central fallback profile |
+| `candidate` | Local profile proposed but not yet accepted as reference |
+| `active` | Local profile is the preferred reference for that role |
+| `needs_review` | Local profile may be stale after governance changes |
+| `deprecated` | Local profile kept for history, no longer preferred |
+
+Rules:
+
+```text
+A missing local profile is acceptable.
+A stale local profile must not override central governance.
+A local profile change that weakens constraints requires review.
+A local profile change that only adds specificity may be accepted as documentation.
+```
+
+---
+
+## 2e. Local profile minimal shape
+
+A local agent profile should use this shape when agent folders are materialized.
+
+```yaml
+agent: ARGOS
+profile_type: role_signal_profile
+profile_status: candidate
+canonical_schema: docs/governance/ROLE_SIGNALS.md
+epistemic_reference: docs/governance/EPISTEMIC_CONTROL.md
+profile_index: docs/governance/ROLE_SIGNAL_PROFILES.md
+
+role_scope:
+  primary_function: "Source and fact observation."
+  does_not_do:
+    - final_approval
+    - memory_promotion
+    - tool_execution
+
+emits:
+  - information_transmission
+  - source_gap_signal
+  - risk_warning
+
+receives:
+  - clarification_request
+  - handoff_signal
+  - role_consultation
+
+required_payloads:
+  - evidence_refs
+  - epistemic_payload
+  - assumptions
+  - limitations
+
+must_preserve:
+  - risk_level
+  - limitations
+  - weakest_claim_status
+  - uncertainty_level
+  - veto_status
+  - stop_gate_status
+
+can_lower_certainty: true
+can_increase_certainty: false
+certainty_increase_requires:
+  - new_source
+  - new_test
+  - new_evidence_ref
+
+forbidden:
+  - execute_tool
+  - approve_external_action
+  - promote_memory
+  - activate_skill
+  - canonize_workflow
+  - mutate_file
+  - send_external_message
+  - increase_claim_certainty_without_evidence
+  - remove_unsupported_claims
+
+escalation_conditions:
+  - conflicting_sources
+  - missing_primary_source
+  - C3_or_above_impact
+
+public_summary:
+  allowed: true
+  must_avoid:
+    - raw_private_reasoning
+    - hidden_prompt
+    - secret
+    - private_project_data
+    - unsupported_conclusion
+```
+
+---
+
+## 2f. Local profile fields
+
+| Field | Required | Purpose |
+|---|---:|---|
+| `agent` | yes | Pantheon Role name |
+| `profile_type` | yes | Must be `role_signal_profile` |
+| `profile_status` | yes | `candidate`, `active`, `needs_review`, `deprecated` |
+| `canonical_schema` | yes | Points to `docs/governance/ROLE_SIGNALS.md` |
+| `epistemic_reference` | yes | Points to `docs/governance/EPISTEMIC_CONTROL.md` |
+| `profile_index` | yes | Points to this document |
+| `role_scope` | yes | What the role does and explicitly does not do |
+| `emits` | yes | Signal types this role may emit |
+| `receives` | yes | Signal types this role may receive |
+| `required_payloads` | yes | Payloads required for useful review |
+| `must_preserve` | yes | Values that cannot be lost during mediation |
+| `can_lower_certainty` | yes | Whether the role can downgrade claim confidence/status |
+| `can_increase_certainty` | yes | Whether the role may upgrade certainty at all |
+| `certainty_increase_requires` | yes | Evidence required before any upgrade |
+| `forbidden` | yes | Behaviors the local profile cannot authorize |
+| `escalation_conditions` | yes | Conditions that require another role, approval or stop gate |
+| `public_summary` | yes | Rules for Run Graph / Inline Run Stream display |
+
+---
+
+## 2g. Profile resolution order
+
+When IRIS or a future validator needs to format a signal, profile resolution should follow this order:
+
+```text
+1. If agents/{ROLE}/role_signal_profile.yaml exists and is active, use it.
+2. If the local profile exists but is candidate or needs_review, use it as advisory only.
+3. If no usable local profile exists, use the canonical fallback profile in this document.
+4. If the profile is insufficient, ask for a format reminder.
+5. If the format reminder requires judgment, risk classification, approval or arbitration, block formatting and route to the competent role.
+```
+
+A local profile may narrow what a role accepts.
+
+A local profile may not expand authority beyond central governance.
+
+---
+
+## 2h. Valid local refinements
+
+A local profile may add:
+
+```text
+more precise required fields;
+role-specific forbidden fields;
+role-specific escalation triggers;
+role-specific public summary templates;
+role-specific handoff expectations;
+role-specific evidence requirements;
+role-specific examples.
+```
+
+A local profile must not add:
+
+```text
+new execution powers;
+authority to approve actions;
+authority to promote memory;
+authority to activate skills;
+authority to canonize workflows;
+authority to bypass THEMIS;
+authority to bypass APOLLO;
+authority to increase certainty without evidence;
+authority to expose raw private reasoning.
+```
+
+---
+
+## 2i. Local profile examples
+
+### ARGOS local profile intent
+
+ARGOS should be strict on facts, sources and missing evidence.
+
+A local ARGOS profile should usually require:
+
+```text
+evidence_refs
+source_boundary
+missing_sources
+claim_refs
+epistemic_payload
+limitations
+```
+
+ARGOS may lower certainty when sources are weak or missing.
+
+ARGOS may increase certainty only when a new source, document, command or evidence reference is attached.
+
+### THEMIS local profile intent
+
+THEMIS should be strict on approval, forbidden transitions and responsibility exposure.
+
+A local THEMIS profile should usually require:
+
+```text
+action_at_risk
+approval_level
+forbidden_action
+safer_path
+epistemic_payload
+approval_impact
+```
+
+THEMIS may veto.
+
+THEMIS must not soften risk for readability.
+
+### IRIS local profile intent
+
+IRIS should be strict on wording, audience and preservation of substance.
+
+A local IRIS profile should usually require:
+
+```text
+audience
+intent
+tone
+constraints
+forbidden_wording_if_known
+risk_level
+epistemic_payload
+```
+
+IRIS may improve clarity.
+
+IRIS must not improve truth.
+
+### APOLLO local profile intent
+
+APOLLO should be strict on final readiness.
+
+A local APOLLO profile should usually require:
+
+```text
+completeness_status
+contradictions
+unsupported_claims
+evidence_status
+limitations_to_display
+stop_gate_decision
+weakest_claim_status
+```
+
+APOLLO may block finalization when the answer overstates weak evidence.
 
 ---
 
@@ -54,13 +403,16 @@ Block if the reminder would require a substantive decision.
 IRIS should apply this hierarchy:
 
 ```text
-1. Use the known Role Signal Profile.
-2. If the known profile is insufficient, send a format_reminder_request.
-3. If the response only returns structure, format the signal.
-4. If the response requires judgment, risk classification, approval or arbitration, stop and route to the competent role.
+1. Use the local agent profile when available and active.
+2. If no active local profile exists, use the canonical Role Signal Profile in this document.
+3. If the known profile is insufficient, send a format_reminder_request.
+4. If the response only returns structure, format the signal.
+5. If the response requires judgment, risk classification, approval or arbitration, stop and route to the competent role.
 ```
 
 This prevents IRIS from inventing the recipient's needs while also preventing a free-form role debate.
+
+IRIS must not use a local profile to bypass the central schema, lower risk, hide limitations or increase claim certainty without evidence.
 
 ---
 
@@ -90,6 +442,7 @@ format_reminder_request:
     no_memory_promotion: true
     no_tool_call: true
     no_external_send: true
+    no_certainty_increase_without_evidence: true
 ```
 
 Allowed response:
@@ -108,6 +461,7 @@ format_reminder_response:
     - final_approval_claim
     - softened_risk
     - missing_limitation
+    - certainty_upgrade
   escalation_conditions:
     - C3_or_above
     - external_use
@@ -149,11 +503,17 @@ ZEUS must arbitrate options.
 ARGOS must verify a source.
 DEMETER must calculate or review quantities.
 MNEMOSYNE must evaluate memory candidate scope.
+A local profile would require changing claim status.
+A local profile would require lowering risk.
 ```
 
 ---
 
 ## 6. Canonical recipient profiles
+
+The profiles below are fallback canonical profiles.
+
+When local agent profiles exist, they may refine these structures but must preserve the same invariants.
 
 ### 6.1 ZEUS — arbitration profile
 
@@ -174,6 +534,7 @@ ZEUS:
     - hidden_vote
     - unresolved_veto
     - unsupported_recommendation
+    - certainty_upgrade_without_evidence
   escalation_conditions:
     - conflicting_role_outputs
     - workflow_revision_signal
@@ -239,6 +600,7 @@ ARGOS:
     - expected_extraction
     - source_boundary
     - missing_material_to_report
+    - epistemic_payload
   forbidden_fields:
     - opinion_request
     - final_conclusion_request
@@ -262,6 +624,7 @@ HECATE:
     - hidden_risks
     - assumptions
     - possible_failure_modes
+    - weakest_claim_status
   forbidden_fields:
     - false_certainty
     - hidden_assumption
@@ -286,11 +649,13 @@ THEMIS:
     - liability_or_policy_exposure
     - safer_path
     - escalation_required
+    - epistemic_payload
   forbidden_fields:
     - final_approval_claim
     - softened_risk
     - missing_limitation
     - approval_by_majority
+    - certainty_upgrade_without_evidence
   escalation_conditions:
     - C3_or_above
     - external_send
@@ -314,10 +679,12 @@ APOLLO:
     - evidence_status
     - limitations_to_display
     - stop_gate_decision
+    - weakest_claim_status
   forbidden_fields:
     - finalization_without_limits
     - ignored_themis_veto
     - hidden_uncertainty
+    - certainty_upgrade_without_evidence
   escalation_conditions:
     - missing_required_section
     - unresolved_contradiction
@@ -383,6 +750,7 @@ HEPHAESTUS:
     - required_skill_or_test
     - rollback_need
     - activation_risk
+    - epistemic_contract_impact
   forbidden_fields:
     - vague_improvement_request
     - activation_without_review
@@ -406,6 +774,7 @@ DEMETER:
     - assumptions
     - missing_quantities
     - economic_or_resource_question
+    - source_or_estimate_status
   forbidden_fields:
     - unquantified_claim
     - final_price_certainty_without_source
@@ -472,9 +841,12 @@ IRIS:
     - tone
     - constraints
     - forbidden_wording_if_known
+    - epistemic_payload
   forbidden_fields:
     - unresolved_risk_without_themis_signal
     - external_send_claim
+    - certainty_upgrade
+    - hidden_limitation
   escalation_conditions:
     - client_facing_risk
     - legal_or_contractual_wording
@@ -494,6 +866,7 @@ HESTIA:
     - source
     - confidence
     - why_project_specific
+    - evidence_pack_ref
   forbidden_fields:
     - system_generalization
     - unsupported_project_fact
@@ -515,6 +888,7 @@ MNEMOSYNE:
     - scope
     - confidence
     - conflict_check
+    - evidence_pack_ref
   forbidden_fields:
     - local_project_detail_as_universal_rule
     - memory_promotion_claim
@@ -564,15 +938,21 @@ Forbidden:
 IRIS : raw private reasoning, hidden prompts, full file paths, secrets, client data or unsupported conclusions.
 ```
 
+Local profiles may define public summary templates, but they must preserve the same privacy and evidence limits.
+
 ---
 
 ## 8. Final rule
 
 ```text
 Profiles define expected structure.
+Local profiles may live in agents/{ROLE}/role_signal_profile.yaml.
+Local profiles describe usage; they do not redefine the protocol.
+Local profiles may narrow authority; they may not expand it.
 Format reminders repair missing structure.
 Format reminders do not decide.
 IRIS formats.
+IRIS improves clarity, not truth.
 The source role owns substance.
 The addressed role owns response.
 THEMIS owns risk.
