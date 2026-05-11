@@ -111,6 +111,9 @@ def _check_subschema_well_formed(node: Any, source: Path, path: str) -> None:
     declared_type = node.get("type")
     if declared_type is not None and declared_type not in ALLOWED_TYPES:
         raise ValueError(f"{source}:{path}: invalid type {declared_type!r}")
+    additional_properties_allowed = node.get("additional_properties_allowed")
+    if additional_properties_allowed is not None and not isinstance(additional_properties_allowed, bool):
+        raise ValueError(f"{source}:{path}: additional_properties_allowed must be boolean")
     properties = node.get("properties")
     if properties is not None:
         if not isinstance(properties, dict):
@@ -157,14 +160,12 @@ def _validate_node(value: Any, schema: dict, path: str, errors: list[ValidationE
         return
 
     if "one_of" in schema:
-        sub_errors_per_branch = []
         matches = 0
         for sub in schema["one_of"]:
             sub_errors: list[ValidationError] = []
             _validate_node(value, sub, path, sub_errors)
             if not sub_errors:
                 matches += 1
-            sub_errors_per_branch.append(sub_errors)
         if matches != 1:
             errors.append(
                 ValidationError(
@@ -218,6 +219,10 @@ def _validate_object(value: Any, schema: dict, path: str, errors: list[Validatio
     for key in forbidden & set(value):
         errors.append(ValidationError(_join(path, key), f"forbidden key {key!r} present"))
     properties = schema.get("properties", {})
+    if not schema.get("additional_properties_allowed", True):
+        allowed = set(properties) | forbidden
+        for key in set(value) - allowed:
+            errors.append(ValidationError(_join(path, key), f"additional key {key!r} is not allowed"))
     for key, sub_value in value.items():
         if key in properties:
             _validate_node(sub_value, properties[key], _join(path, key), errors)
@@ -380,8 +385,9 @@ def main(argv: list[str] | None = None) -> int:
         targets.extend(discover_example_instances(examples_dir))
 
     results = _validate_targets(schemas, targets)
-    sys.stdout.write(_render_results(results))
-    if not _render_results(results).endswith("\n"):
+    rendered = _render_results(results)
+    sys.stdout.write(rendered)
+    if not rendered.endswith("\n"):
         sys.stdout.write("\n")
 
     if args.exit_on_error and any(not r.passed for r in results):
