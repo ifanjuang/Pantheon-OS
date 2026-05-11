@@ -155,3 +155,20 @@ class ApprovalClassification(BaseModel):
     reason: str
     required_human_validation: bool
     blocked_until_policy_exists: bool = False
+
+
+class GovernanceDocument(BaseModel):
+    """A canonical governance Markdown document exposed by the Domain API.
+
+    The Domain API is read-only. Returning a `GovernanceDocument` never
+    mutates the underlying file. The `last_known_static_source` field is
+    a stable pointer to the canonical Markdown path, so callers can
+    cross-reference findings with the source of truth without trusting
+    the API response alone.
+    """
+
+    path: str
+    title: str
+    status: ComponentStatus
+    content: str
+    last_known_static_source: str
