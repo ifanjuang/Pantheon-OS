@@ -37,16 +37,16 @@ Pantheon Next gouverne.
 
 ## 2. Adoption map
 
-| Target document | Adoption point | Required effect |
-|---|---|---|
-| `EVIDENCE_PACK.md` | Claim Register and epistemic summary | Consequential outputs track material claims, uncertainty and unsupported assertions |
-| `TASK_CONTRACTS.md` | `epistemic_requirements` block | Task Contracts can require claim-level evidence and contradiction policy |
-| `ROLE_SIGNALS.md` | `epistemic_payload` block | Role handoffs preserve claim refs, uncertainty and certainty-change constraints |
-| `ROLE_SIGNAL_PROFILES.md` | IRIS formatting hierarchy | IRIS cannot increase certainty or hide limitations while formatting signals |
-| `SKILL_LIFECYCLE.md` | `epistemic_contract` manifest block | Skills declare allowed claim types, minimum evidence and forbidden claims |
-| `WORKFLOW_ADAPTATION.md` | Source / Uncertainty / Risk / Final Claim gates | Workflow adaptation uses uncertainty as a routing, verification and blocking signal |
-| `STATUS.md` | Current global status | Mark claim-level epistemic control as documented, with runtime enforcement not implemented |
-| `ROADMAP.md` | P1 governance task | Track operational propagation before any runtime implementation |
+| Target document | Adoption point | Required effect | Status |
+|---|---|---|---|
+| `EVIDENCE_PACK.md` | Claim Register and epistemic summary | Consequential outputs track material claims, uncertainty and unsupported assertions | started |
+| `TASK_CONTRACTS.md` | `epistemic_requirements` block | Task Contracts can require claim-level evidence and contradiction policy | started |
+| `ROLE_SIGNALS.md` | `epistemic_payload` block | Role handoffs preserve claim refs, uncertainty and certainty-change constraints | started |
+| `ROLE_SIGNAL_PROFILES.md` | IRIS formatting hierarchy + local agent profiles | IRIS cannot increase certainty or hide limitations while formatting signals; local profiles may live under `agents/{ROLE}/` | started |
+| `SKILL_LIFECYCLE.md` | `epistemic_contract` manifest block | Skills declare allowed claim types, minimum evidence and forbidden claims | started |
+| `WORKFLOW_ADAPTATION.md` | Source / Uncertainty / Risk / Final Claim gates | Workflow adaptation uses uncertainty as a routing, verification and blocking signal | pending |
+| `STATUS.md` | Current global status | Mark claim-level epistemic control as documented, with runtime enforcement not implemented | pending |
+| `ROADMAP.md` | P1 governance task | Track operational propagation before any runtime implementation | pending |
 
 ---
 
@@ -54,7 +54,7 @@ Pantheon Next gouverne.
 
 Status: started.
 
-`EVIDENCE_PACK.md` should treat Claim Register as the place where material assertions are tracked.
+`EVIDENCE_PACK.md` treats Claim Register as the place where material assertions are tracked.
 
 Minimum effects:
 
@@ -75,9 +75,9 @@ Evidence Pack first. Claim discipline inside the Evidence Pack. Canonization lat
 
 ## 4. Task Contract adoption
 
-Status: pending.
+Status: started.
 
-Task Contracts should include an optional `epistemic_requirements` block.
+`TASK_CONTRACTS.md` includes an optional `epistemic_requirements` block.
 
 Reference shape:
 
@@ -87,7 +87,7 @@ epistemic_requirements:
   minimum_claim_status_for_final: source_supported
   allow_inferred_claims: true
   unsupported_claim_policy: list_and_limit | block_final | ask_user | request_sources
-  contradiction_policy: zeus_arbitration_required
+  contradiction_policy: list_and_limit | zeus_arbitration_required | block_final
   uncertainty_policy:
     expose_uncertainty: true
     require_uncertainty_type: true
@@ -109,9 +109,9 @@ C4-C5 outputs must block unsupported material claims unless the user explicitly 
 
 ## 5. Role Signal adoption
 
-Status: pending.
+Status: started.
 
-Role Signals should include optional `epistemic_payload` when claim state, uncertainty or approval impact matters.
+`ROLE_SIGNALS.md` includes optional `epistemic_payload` when claim state, uncertainty or approval impact matters.
 
 Reference shape:
 
@@ -140,15 +140,22 @@ Limitations must survive every handoff.
 
 ## 6. Role Signal Profile adoption
 
-Status: pending.
+Status: started.
 
-`ROLE_SIGNAL_PROFILES.md` should make the IRIS formatting hierarchy epistemic-safe.
+`ROLE_SIGNAL_PROFILES.md` makes the IRIS formatting hierarchy epistemic-safe and allows local per-agent profiles.
+
+Recommended local path:
+
+```text
+agents/{ROLE}/role_signal_profile.yaml
+```
 
 Required rule:
 
 ```text
 IRIS may improve clarity, structure and audience fit.
 IRIS must not increase certainty, remove limitations, soften a veto, lower risk or hide unsupported claims.
+A local role_signal_profile.yaml describes usage; it does not redefine the Role Signal protocol.
 ```
 
 If formatting would require substantive judgment, the existing `format_blocked` path remains correct.
@@ -159,7 +166,7 @@ If formatting would require substantive judgment, the existing `format_blocked` 
 
 Status: started.
 
-`SKILL_LIFECYCLE.md` should require each Pantheon-compatible skill to declare the types of claims it is allowed to produce.
+`SKILL_LIFECYCLE.md` requires each Pantheon-compatible skill to declare the types of claims it is allowed to produce.
 
 Minimum manifest block:
 
@@ -213,8 +220,9 @@ Status: pending.
 ```text
 EPISTEMIC_CONTROL.md = documented
 Claim Register = documented, runtime enforcement not implemented
-Task Contract epistemic_requirements = planned or partially documented
-Role Signal epistemic_payload = planned or partially documented
+Task Contract epistemic_requirements = partially documented
+Role Signal epistemic_payload = partially documented
+Role Signal local profiles = documented, optional, not runtime
 Skill epistemic_contract = partially documented
 Workflow epistemic gates = documented target
 ```
@@ -230,7 +238,7 @@ Status: pending.
 `ROADMAP.md` should add a P1 task:
 
 ```text
-Propagate claim-level epistemic control across Evidence Packs, Task Contracts, Role Signals, Skill Lifecycle and Workflow Adaptation before any runtime implementation.
+Propagate claim-level epistemic control across Evidence Packs, Task Contracts, Role Signals, Role Signal Profiles, Skill Lifecycle and Workflow Adaptation before any runtime implementation.
 ```
 
 A later P2/P3 task may cover structured-output validation or Hermes-side enforcement, but only after the documentation contracts are stable.
