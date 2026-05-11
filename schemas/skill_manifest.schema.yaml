@@ -1,0 +1,100 @@
+$pantheon_schema: 1
+title: skill_manifest
+description: |
+  Pantheon skill manifest. Mirrors SKILL_LIFECYCLE.md §5 (lifecycle
+  block) and §6 (Hermes mapping). A skill manifest never auto-activates
+  the skill; activation requires human approval.
+governance_refs:
+  - docs/governance/SKILL_LIFECYCLE.md
+  - docs/governance/HERMES_INTEGRATION.md
+
+type: object
+required:
+  - id
+  - domain
+  - lifecycle
+  - hermes_mapping
+properties:
+  id:
+    type: string
+    pattern: ^[a-z0-9_]+$
+  domain:
+    type: string
+  description:
+    type: string
+  lifecycle:
+    type: object
+    required:
+      - state
+      - level
+      - xp
+      - review_required
+    properties:
+      state:
+        enum: [candidate, active, probation, quarantine, archived, rejected]
+      level:
+        type: integer
+      xp:
+        type: object
+        required:
+          - validated
+          - pending
+        properties:
+          validated:
+            type: integer
+          pending:
+            type: integer
+      last_review:
+        type: string
+        nullable: true
+      review_required:
+        type: boolean
+      probation_reason:
+        type: string
+        nullable: true
+  hermes_mapping:
+    one_of:
+      - type: object
+        required:
+          - type
+          - hermes_skill
+          - activation_required
+          - sandbox_required
+          - approval_required
+        properties:
+          type:
+            enum: [wrap_hermes_skill]
+          hermes_skill:
+            type: string
+          activation_required:
+            enum: [true]
+          sandbox_required:
+            enum: [true]
+          approval_required:
+            enum: [true]
+      - type: object
+        required:
+          - type
+          - checked
+        properties:
+          type:
+            enum: [none_found]
+          checked:
+            type: boolean
+  approval_level:
+    enum: [C0, C1, C2, C3, C4, C5]
+  memory_impact:
+    enum: [none, candidate_only, promotion_review]
+  evidence_required:
+    type: boolean
+  forbidden_tools:
+    type: array
+    items:
+      type: string
+
+forbidden_keys:
+  - auto_activate
+  - auto_levelup
+  - auto_promote_memory
+  - secret
+  - api_key

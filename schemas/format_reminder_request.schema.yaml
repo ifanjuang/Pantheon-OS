@@ -1,0 +1,87 @@
+$pantheon_schema: 1
+title: format_reminder_request
+description: |
+  IRIS asks the addressed role to remind the expected message structure.
+  Mirrors ROLE_SIGNAL_PROFILES.md §4. Format reminders are about
+  structure only; constraints `no_decision`, `no_approval`,
+  `no_execution`, `no_memory_promotion`, `no_tool_call` and
+  `no_external_send` must all be present and true.
+governance_refs:
+  - docs/governance/ROLE_SIGNAL_PROFILES.md
+  - docs/governance/ROLE_SIGNALS.md
+
+type: object
+required:
+  - id
+  - from_role
+  - to_role
+  - purpose
+  - context_summary
+  - expected_output
+  - constraints
+properties:
+  id:
+    type: string
+    pattern: ^FRR-[0-9]{4}-[0-9A-Z_-]+$
+  from_role:
+    enum: [IRIS]
+  to_role:
+    enum:
+      - ZEUS
+      - METIS
+      - ATHENA
+      - ARGOS
+      - HECATE
+      - THEMIS
+      - APOLLO
+      - PROMETHEUS
+      - HEPHAESTUS
+      - HEPHAISTOS
+      - HESTIA
+      - MNEMOSYNE
+      - CHRONOS
+      - HERA
+      - ARES
+      - DIONYSOS
+      - DEMETER
+      - POSEIDON
+      - DAEDALUS
+  purpose:
+    type: string
+  context_summary:
+    type: string
+  expected_output:
+    type: array
+    items:
+      type: string
+    min_items: 1
+  constraints:
+    type: object
+    required:
+      - no_decision
+      - no_approval
+      - no_execution
+      - no_memory_promotion
+      - no_tool_call
+      - no_external_send
+    properties:
+      no_decision:
+        enum: [true]
+      no_approval:
+        enum: [true]
+      no_execution:
+        enum: [true]
+      no_memory_promotion:
+        enum: [true]
+      no_tool_call:
+        enum: [true]
+      no_external_send:
+        enum: [true]
+
+forbidden_keys:
+  - decision
+  - approval
+  - final_wording
+  - risk_level
+  - tool_call
+  - secret

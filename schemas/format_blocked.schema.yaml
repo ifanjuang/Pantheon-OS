@@ -1,0 +1,58 @@
+$pantheon_schema: 1
+title: format_blocked
+description: |
+  IRIS stops and reroutes when a format reminder would require the
+  addressed role to decide. Mirrors ROLE_SIGNAL_PROFILES.md §5.
+  `escalation_required` must be true.
+governance_refs:
+  - docs/governance/ROLE_SIGNAL_PROFILES.md
+
+type: object
+required:
+  - from_role
+  - reason
+  - blocked_action
+  - next_role
+  - next_action
+  - escalation_required
+properties:
+  from_role:
+    enum: [IRIS]
+  reason:
+    type: string
+  blocked_action:
+    enum:
+      - format_signal
+      - mediate_message
+      - reformulate_for_role
+  next_role:
+    enum:
+      - ZEUS
+      - METIS
+      - ATHENA
+      - ARGOS
+      - HECATE
+      - THEMIS
+      - APOLLO
+      - PROMETHEUS
+      - HEPHAESTUS
+      - HEPHAISTOS
+      - HESTIA
+      - MNEMOSYNE
+      - CHRONOS
+      - HERA
+      - ARES
+      - DIONYSOS
+      - DEMETER
+      - POSEIDON
+      - DAEDALUS
+  next_action:
+    type: string
+  escalation_required:
+    enum: [true]
+
+forbidden_keys:
+  - decision
+  - approval
+  - tool_call
+  - secret

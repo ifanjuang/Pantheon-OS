@@ -1,0 +1,93 @@
+$pantheon_schema: 1
+title: role_consultation
+description: |
+  Bounded ad hoc consultation between two Pantheon Roles. Mirrors
+  ROLE_SIGNALS.md §9. Consultations are scoped to one clarification
+  round by default and never carry tool execution, memory promotion or
+  approval bypass.
+governance_refs:
+  - docs/governance/ROLE_SIGNALS.md
+  - docs/governance/WORKFLOW_ADAPTATION.md
+
+type: object
+required:
+  - id
+  - from_role
+  - to_role
+  - reason
+  - question
+  - context_summary
+  - max_rounds
+  - status
+properties:
+  id:
+    type: string
+    pattern: ^RC-[0-9]{4}-[0-9A-Z_-]+$
+  from_role:
+    enum:
+      - ZEUS
+      - METIS
+      - ATHENA
+      - ARGOS
+      - HECATE
+      - THEMIS
+      - APOLLO
+      - PROMETHEUS
+      - HEPHAESTUS
+      - HEPHAISTOS
+      - HESTIA
+      - MNEMOSYNE
+      - IRIS
+      - CHRONOS
+      - HERA
+      - ARES
+      - DIONYSOS
+      - DEMETER
+      - POSEIDON
+      - DAEDALUS
+  to_role:
+    enum:
+      - ZEUS
+      - METIS
+      - ATHENA
+      - ARGOS
+      - HECATE
+      - THEMIS
+      - APOLLO
+      - PROMETHEUS
+      - HEPHAESTUS
+      - HEPHAISTOS
+      - HESTIA
+      - MNEMOSYNE
+      - IRIS
+      - CHRONOS
+      - HERA
+      - ARES
+      - DIONYSOS
+      - DEMETER
+      - POSEIDON
+      - DAEDALUS
+  reason:
+    type: string
+  question:
+    type: string
+  context_summary:
+    type: string
+  expected_output:
+    type: array
+    items:
+      type: string
+  max_rounds:
+    type: integer
+  risk_level:
+    enum: [C0, C1, C2, C3, C4, C5]
+    nullable: true
+  status:
+    enum: [open, answered, superseded, blocked, closed]
+
+forbidden_keys:
+  - raw_chain_of_thought
+  - hidden_prompt
+  - secret
+  - api_key
+  - tool_call

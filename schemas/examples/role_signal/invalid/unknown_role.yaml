@@ -1,0 +1,8 @@
+# Invalid: HERMES is not a Pantheon Role; from_role enum rejects it.
+# AGENTS.md §3 explicitly states "Hermes Agent is not a Pantheon Role".
+id: RS-2026-0003
+from_role: HERMES
+to_role: ZEUS
+type: information_transmission
+content_summary: Forbidden role.
+status: open

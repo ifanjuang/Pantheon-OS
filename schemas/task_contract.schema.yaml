@@ -1,0 +1,157 @@
+$pantheon_schema: 1
+title: task_contract
+description: |
+  Generic Task Contract envelope. Mirrors TASK_CONTRACTS.md §3 (Required
+  fields) and §4 (Generic YAML shape). Hermes executes only the approved
+  current frame; this schema validates the frame statically.
+governance_refs:
+  - docs/governance/TASK_CONTRACTS.md
+  - docs/governance/APPROVALS.md
+  - docs/governance/HERMES_INTEGRATION.md
+
+type: object
+required:
+  - id
+  - domain
+  - purpose
+  - mode
+  - inputs
+  - outputs
+  - allowed_tools
+  - forbidden_tools
+  - approval_level
+  - agents
+  - skills
+  - memory_impact
+  - evidence_required
+  - fallback_policy
+  - remediation_policy
+properties:
+  id:
+    type: string
+    pattern: ^[a-z0-9_]+$
+  domain:
+    type: string
+  purpose:
+    type: string
+  mode:
+    enum:
+      - read_only
+      - suggest
+      - draft
+      - patch_candidate
+      - execute_under_contract
+  inputs:
+    type: object
+    required:
+      - required
+    properties:
+      required:
+        type: array
+        items:
+          type: string
+      optional:
+        type: array
+        items:
+          type: string
+  outputs:
+    type: object
+    required:
+      - required
+    properties:
+      required:
+        type: array
+        items:
+          type: string
+  allowed_tools:
+    type: array
+    items:
+      type: string
+  forbidden_tools:
+    type: array
+    items:
+      type: string
+  approval_level:
+    enum: [C0, C1, C2, C3, C4, C5]
+  agents:
+    type: array
+    items:
+      enum:
+        - ZEUS
+        - METIS
+        - ATHENA
+        - ARGOS
+        - HECATE
+        - THEMIS
+        - APOLLO
+        - PROMETHEUS
+        - HEPHAESTUS
+        - HEPHAISTOS
+        - HESTIA
+        - MNEMOSYNE
+        - IRIS
+        - CHRONOS
+        - HERA
+        - ARES
+        - DIONYSOS
+        - DEMETER
+        - POSEIDON
+        - DAEDALUS
+  skills:
+    type: array
+    items:
+      type: string
+  memory_impact:
+    enum: [none, candidate_only, promotion_review]
+  evidence_required:
+    type: boolean
+  fallback_policy:
+    type: object
+    required:
+      - retry_allowed
+      - alternative_tool_allowed
+      - max_retries
+      - require_approval_if_risk_increases
+      - forbidden_fallbacks
+    properties:
+      retry_allowed:
+        type: boolean
+      alternative_tool_allowed:
+        type: boolean
+      max_retries:
+        type: integer
+      require_approval_if_risk_increases:
+        type: boolean
+      forbidden_fallbacks:
+        type: array
+        items:
+          type: string
+  remediation_policy:
+    type: object
+    required:
+      - enabled
+      - auto_fix_allowed
+      - patch_candidate_allowed
+      - require_evidence_pack
+    properties:
+      enabled:
+        type: boolean
+      parallel_analysis_allowed:
+        type: boolean
+      auto_fix_allowed:
+        enum: [false]
+      patch_candidate_allowed:
+        type: boolean
+      require_evidence_pack:
+        type: boolean
+      require_approval_if:
+        type: array
+        items:
+          type: string
+
+forbidden_keys:
+  - secret
+  - api_key
+  - private_key
+  - silent_self_revision
+  - auto_fix

@@ -1,0 +1,15 @@
+# Invalid: no_decision must be true. A format reminder may not authorize decisions.
+id: FRR-2026-0002
+from_role: IRIS
+to_role: APOLLO
+purpose: Remind the structure for a stop gate signal.
+context_summary: Final readiness review.
+expected_output:
+  - required_fields
+constraints:
+  no_decision: false
+  no_approval: true
+  no_execution: true
+  no_memory_promotion: true
+  no_tool_call: true
+  no_external_send: true

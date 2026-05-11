@@ -1,0 +1,37 @@
+# Valid: WORKFLOW_SCHEMA.md §4 (quote_vs_cctp_review).
+id: quote_vs_cctp_review
+name: Quote vs CCTP Review
+domain: architecture_fr
+status: candidate
+version: 0.1.0
+pattern: cascade
+purpose: Compare a contractor quote against a CCTP and identify gaps, duplicates, risks and clarification points.
+inputs:
+  - cctp
+  - quote
+  - lot_scope
+outputs:
+  - diagnostic
+  - inconsistency_table
+  - missing_items
+  - risk_notes
+  - approval_required
+agents:
+  - ATHENA
+  - ARGOS
+  - HEPHAESTUS
+  - THEMIS
+  - APOLLO
+skills:
+  - project_context_resolution
+  - source_check
+  - quote_vs_cctp_consistency
+approval_points:
+  - external_communication
+  - file_mutation
+  - memory_promotion
+memory_impact:
+  - none_by_default
+  - candidate_only_if_reusable_pattern_detected
+evidence_required: true
+fallback: keep_as_diagnostic_if_sources_are_incomplete

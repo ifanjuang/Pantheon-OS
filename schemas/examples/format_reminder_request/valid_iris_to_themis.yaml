@@ -1,0 +1,18 @@
+# Valid: IRIS asks THEMIS for the structure of a risk review signal.
+# Mirrors ROLE_SIGNAL_PROFILES.md §4 (Format reminder request).
+id: FRR-2026-0001
+from_role: IRIS
+to_role: THEMIS
+purpose: Remind the expected structure for a risk review signal.
+context_summary: A draft may imply validation of a contractor quote.
+expected_output:
+  - required_fields
+  - forbidden_fields
+  - escalation_conditions
+constraints:
+  no_decision: true
+  no_approval: true
+  no_execution: true
+  no_memory_promotion: true
+  no_tool_call: true
+  no_external_send: true

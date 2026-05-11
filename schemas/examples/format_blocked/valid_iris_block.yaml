@@ -1,0 +1,8 @@
+# Valid: IRIS blocks a format request that would require THEMIS to decide.
+# Mirrors ROLE_SIGNAL_PROFILES.md §5 (Format blocked).
+from_role: IRIS
+reason: The requested format requires substantive risk classification.
+blocked_action: format_signal
+next_role: THEMIS
+next_action: THEMIS must classify risk directly.
+escalation_required: true

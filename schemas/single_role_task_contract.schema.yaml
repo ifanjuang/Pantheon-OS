@@ -1,0 +1,108 @@
+$pantheon_schema: 1
+title: single_role_task_contract
+description: |
+  Single-role variant of Task Contract. Mirrors TASK_CONTRACT_REVISIONS.md
+  §2 (Single-role task contract). A single-role frame is allowed only when
+  the request is simple, low-risk, non-persistent, not externally sent and
+  not file-mutating; escalation conditions to a workflow are listed
+  explicitly so reviewers can see the boundary.
+governance_refs:
+  - docs/governance/TASK_CONTRACT_REVISIONS.md
+  - docs/governance/EXECUTION_DISCIPLINE.md
+
+type: object
+required:
+  - id
+  - domain
+  - role
+  - purpose
+  - mode
+  - approval_level
+  - inputs
+  - outputs
+  - allowed_tools
+  - forbidden_tools
+  - memory_impact
+  - evidence_required
+  - escalation_conditions
+properties:
+  id:
+    type: string
+    pattern: ^[a-z0-9_]+$
+  domain:
+    type: string
+  role:
+    enum:
+      - ZEUS
+      - METIS
+      - ATHENA
+      - ARGOS
+      - HECATE
+      - THEMIS
+      - APOLLO
+      - PROMETHEUS
+      - HEPHAESTUS
+      - HEPHAISTOS
+      - HESTIA
+      - MNEMOSYNE
+      - IRIS
+      - CHRONOS
+      - HERA
+      - ARES
+      - DIONYSOS
+      - DEMETER
+      - POSEIDON
+      - DAEDALUS
+  purpose:
+    type: string
+  mode:
+    enum: [read_only, suggest, draft]
+  approval_level:
+    enum: [C0, C1, C2]
+  inputs:
+    type: object
+    required:
+      - required
+    properties:
+      required:
+        type: array
+        items:
+          type: string
+      optional:
+        type: array
+        items:
+          type: string
+  outputs:
+    type: object
+    required:
+      - required
+    properties:
+      required:
+        type: array
+        items:
+          type: string
+  allowed_tools:
+    type: array
+    items:
+      type: string
+  forbidden_tools:
+    type: array
+    items:
+      type: string
+  memory_impact:
+    enum: [none, candidate_only]
+  evidence_required:
+    type: boolean
+  escalation_conditions:
+    type: array
+    items:
+      type: string
+    min_items: 1
+
+forbidden_keys:
+  - external_send
+  - memory_promotion
+  - file_mutation
+  - secret
+  - api_key
+  - tool_call

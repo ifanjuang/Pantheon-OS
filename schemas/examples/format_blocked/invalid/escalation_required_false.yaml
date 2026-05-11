@@ -1,0 +1,8 @@
+# Invalid: escalation_required must be true for a format_blocked event
+# (the whole point is to reroute to the competent role).
+from_role: IRIS
+reason: Format request needs decision.
+blocked_action: format_signal
+next_role: APOLLO
+next_action: APOLLO must decide stop gate readiness.
+escalation_required: false

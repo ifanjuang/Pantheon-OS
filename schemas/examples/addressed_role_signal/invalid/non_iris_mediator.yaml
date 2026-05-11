@@ -1,0 +1,11 @@
+# Invalid: only IRIS can be the mediator_role per ROLE_SIGNALS.md §4.
+id: RS-2026-0011
+mediator_role: HERA
+from_role: ARGOS
+to_role: THEMIS
+signal_type: risk_warning
+sender_substance:
+  content_summary: Quote review summary.
+mediated_message:
+  question_or_request: Classify wording risk.
+status: open

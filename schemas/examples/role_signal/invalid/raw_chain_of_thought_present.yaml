@@ -1,0 +1,10 @@
+# Invalid: raw_chain_of_thought is a forbidden top-level key per
+# ROLE_SIGNALS.md §7 (Forbidden signal types) and §16 (Run Graph).
+id: RS-2026-0004
+from_role: ARGOS
+to_role: APOLLO
+type: information_transmission
+content_summary: Findings from sources.
+status: open
+raw_chain_of_thought: |
+  I first thought about X, then I considered Y, then I decided Z because...

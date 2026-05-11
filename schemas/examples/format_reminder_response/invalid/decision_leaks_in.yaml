@@ -1,0 +1,15 @@
+# Invalid: forbidden top-level key `decision` (a structure-only reminder cannot decide).
+# Mirrors ROLE_SIGNAL_PROFILES.md §4 (Forbidden response).
+id: FRR-2026-0099-RESPONSE
+from_role: THEMIS
+to_role: IRIS
+required_fields:
+  - action_at_risk
+forbidden_fields:
+  - softened_risk
+escalation_conditions:
+  - C3_or_above
+no_decision: true
+decision: Approved
+risk_level: C1
+final_wording: Send this to the client.

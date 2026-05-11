@@ -1,0 +1,15 @@
+# Invalid: forbidden top-level key `auto_activate`.
+# Mirrors SKILL_LIFECYCLE.md §9 (Forbidden: automatic active skill creation).
+id: bad_skill
+domain: general
+lifecycle:
+  state: candidate
+  level: 0
+  xp:
+    validated: 0
+    pending: 0
+  review_required: true
+hermes_mapping:
+  type: none_found
+  checked: true
+auto_activate: true

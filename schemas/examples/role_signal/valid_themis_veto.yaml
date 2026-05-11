@@ -1,0 +1,11 @@
+# Valid: THEMIS vetoes external-facing wording before C4 approval.
+# Mirrors ROLE_SIGNALS.md §11 (Risk and veto signals).
+id: RS-2026-0002
+from_role: THEMIS
+to_role: ZEUS
+type: veto_signal
+purpose: Block external-facing wording before approval.
+content_summary: The draft creates a contractual commitment without C4 approval.
+risk_level: C4
+requested_action: block
+status: open

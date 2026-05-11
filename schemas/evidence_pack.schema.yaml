@@ -1,0 +1,144 @@
+$pantheon_schema: 1
+title: evidence_pack
+description: |
+  Minimum Evidence Pack envelope. Mirrors EVIDENCE_PACK.md §3
+  (Minimum Evidence Pack) and §6b (Role signal traceability). A
+  consequential output without evidence is a draft, not a validated
+  result.
+governance_refs:
+  - docs/governance/EVIDENCE_PACK.md
+  - docs/governance/APPROVALS.md
+
+type: object
+required:
+  - id
+  - task_id
+  - date
+  - operator
+  - files_read
+  - sources_used
+  - commands_run
+  - tools_used
+  - knowledge_bases_consulted
+  - documents_used
+  - assumptions
+  - unsupported_claims
+  - limitations
+  - outputs
+  - approval_required
+  - next_safe_action
+properties:
+  id:
+    type: string
+  task_id:
+    type: string
+  date:
+    type: string
+    pattern: ^[0-9]{4}-[0-9]{2}-[0-9]{2}$
+  operator:
+    type: string
+  files_read:
+    type: array
+    items:
+      type: string
+  sources_used:
+    type: array
+    items:
+      type: string
+  commands_run:
+    type: array
+    items:
+      type: string
+  tools_used:
+    type: array
+    items:
+      type: string
+  knowledge_bases_consulted:
+    type: array
+    items:
+      type: string
+  documents_used:
+    type: array
+    items:
+      type: string
+  assumptions:
+    type: array
+    items:
+      type: string
+  unsupported_claims:
+    type: array
+    items:
+      type: string
+  limitations:
+    type: array
+    items:
+      type: string
+  outputs:
+    type: array
+    items:
+      type: string
+  approval_required:
+    one_of:
+      - type: object
+        required:
+          - level
+        properties:
+          level:
+            enum: [C0, C1, C2, C3, C4, C5]
+          reason:
+            type: string
+      - enum: [C0, C1, C2, C3, C4, C5]
+      - type: "null"
+  next_safe_action:
+    type: string
+  role_signal_traceability:
+    type: object
+    properties:
+      role_signals:
+        type: array
+        items:
+          type: string
+      addressed_role_signals:
+        type: array
+        items:
+          type: string
+      role_consultations:
+        type: array
+        items:
+          type: string
+      format_reminder_request:
+        type: array
+        items:
+          type: string
+      format_reminder_response:
+        type: array
+        items:
+          type: string
+      format_blocked:
+        type: array
+        items:
+          type: string
+      handoff_signals:
+        type: array
+        items:
+          type: string
+      veto_signal:
+        type: array
+        items:
+          type: string
+      stop_gate_signal:
+        type: array
+        items:
+          type: string
+      workflow_revision_signal:
+        type: array
+        items:
+          type: string
+
+forbidden_keys:
+  - raw_chain_of_thought
+  - hidden_prompt
+  - secret
+  - api_key
+  - private_key
+  - softened_risk

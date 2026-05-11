@@ -1,0 +1,77 @@
+$pantheon_schema: 1
+title: task_contract_revision
+description: |
+  Visible revised execution frame produced after ZEUS arbitration.
+  Mirrors TASK_CONTRACT_REVISIONS.md §6. Hermes resumes only on the
+  approved current frame; revisions must declare a resume policy.
+governance_refs:
+  - docs/governance/TASK_CONTRACT_REVISIONS.md
+  - docs/governance/WORKFLOW_ADAPTATION.md
+
+type: object
+required:
+  - parent_task_contract
+  - revision_id
+  - status
+  - reason
+  - changes
+  - resume_policy
+properties:
+  parent_task_contract:
+    type: string
+  revision_id:
+    type: string
+    pattern: ^REV-[0-9]+$
+  status:
+    enum:
+      - pending_approval
+      - approved
+      - rejected
+      - superseded
+      - reset_to_baseline
+  reason:
+    type: string
+  source_signal:
+    type: string
+  arbitration:
+    type: string
+  changes:
+    type: object
+  resume_policy:
+    type: object
+    required:
+      - mode
+    properties:
+      mode:
+        enum:
+          - continue_current_step
+          - resume_from_step
+          - after_human_validation
+          - replay_from_checkpoint
+          - reset_to_baseline
+          - stop_and_report
+      resume_from:
+        type: string
+      preserve_outputs:
+        type: array
+        items:
+          type: string
+      discard_outputs:
+        type: array
+        items:
+          type: string
+      replay_required:
+        type: boolean
+      require_new_evidence_pack_fragment:
+        type: boolean
+      stop_if:
+        type: array
+        items:
+          type: string
+
+forbidden_keys:
+  - silent_self_revision
+  - secret
+  - api_key
+  - tool_call
+  - auto_resume_after_escalation

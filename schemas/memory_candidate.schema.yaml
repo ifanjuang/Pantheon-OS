@@ -1,0 +1,143 @@
+$pantheon_schema: 1
+title: memory_candidate
+description: |
+  Candidate memory event. Mirrors MEMORY_EVENT_SCHEMA.md §3 (Event
+  model). A memory event is not memory; promotion to project or system
+  scope requires Evidence Pack and C3+ review. Forbidden terminology
+  `agency` and `memory/agency` is rejected at this level.
+governance_refs:
+  - docs/governance/MEMORY_EVENT_SCHEMA.md
+  - docs/governance/MEMORY.md
+  - docs/governance/EVIDENCE_PACK.md
+
+type: object
+required:
+  - id
+  - event_type
+  - source_layer
+  - text
+  - category
+  - scope_candidate
+  - confidence
+  - sensitivity
+  - validation_status
+  - decision
+properties:
+  id:
+    type: string
+  event_type:
+    enum:
+      - client_request
+      - company_quote
+      - site_observation
+      - contractual_warning
+      - design_decision
+      - approval_decision
+      - document_received
+      - document_sent
+      - regulatory_constraint
+      - payment_event
+      - delay_event
+      - nonconformity
+      - scope_change
+      - quote_revision
+      - site_instruction
+      - safety_notice
+      - permit_event
+      - commission_feedback
+      - technical_reserve
+      - contract_amendment
+      - invoice_dispute
+      - reception_reserve
+      - insurance_risk
+      - skill_improvement_candidate
+      - workflow_improvement_candidate
+      - source_policy_candidate
+  source_layer:
+    enum: [openwebui, hermes, pantheon, imported_document]
+  source_ref:
+    type: string
+    nullable: true
+  actor:
+    type: string
+    nullable: true
+  target:
+    type: string
+    nullable: true
+  project_id:
+    type: string
+    nullable: true
+  text:
+    type: string
+    min_length: 1
+  category:
+    enum:
+      - general
+      - technical
+      - planning
+      - budget
+      - contractual
+      - regulatory
+      - safety
+      - quality
+      - privacy
+      - operations
+      - software
+  scope_candidate:
+    enum: [session, project, system]
+  confidence:
+    type: number
+  sensitivity:
+    enum: [public, internal, project, sensitive, secret]
+  evidence_pack_id:
+    type: string
+    nullable: true
+  source_documents:
+    type: array
+    items:
+      type: string
+  source_runs:
+    type: array
+    items:
+      type: string
+  related_files:
+    type: array
+    items:
+      type: string
+  tags:
+    type: array
+    items:
+      type: string
+  created_at:
+    type: string
+    nullable: true
+  validation_status:
+    enum: [candidate, under_review, validated, rejected, archived]
+  reviewer:
+    type: string
+    nullable: true
+  decision:
+    enum:
+      - keep_candidate
+      - promote_to_project
+      - promote_to_system
+      - reject
+      - archive
+      - needs_more_evidence
+      - supersede_existing
+  valid_from:
+    type: string
+    nullable: true
+  valid_until:
+    type: string
+    nullable: true
+  superseded_by:
+    type: string
+    nullable: true
+
+forbidden_keys:
+  - agency
+  - agency_scope
+  - auto_promoted
+  - secret
+  - api_key

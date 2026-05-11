@@ -1,0 +1,31 @@
+# Invalid: remediation_policy.auto_fix_allowed must be false (Pantheon never auto-fixes).
+# Mirrors TASK_CONTRACTS.md §6 (Global remediation policy).
+id: bad_remediation
+domain: general
+purpose: Example of a contract that wrongly enables auto-fix.
+mode: read_only
+inputs:
+  required: []
+outputs:
+  required:
+    - report
+allowed_tools: []
+forbidden_tools:
+  - external_send
+approval_level: C0
+agents: []
+skills: []
+memory_impact: none
+evidence_required: true
+fallback_policy:
+  retry_allowed: false
+  alternative_tool_allowed: false
+  max_retries: 0
+  require_approval_if_risk_increases: true
+  forbidden_fallbacks:
+    - destructive_action
+remediation_policy:
+  enabled: true
+  auto_fix_allowed: true
+  patch_candidate_allowed: true
+  require_evidence_pack: true

@@ -1,0 +1,25 @@
+# Valid: candidate memory event for a fictional design decision.
+# Mirrors MEMORY_EVENT_SCHEMA.md §3 (Event model).
+id: memevt_001
+event_type: design_decision
+source_layer: pantheon
+source_ref: domains/architecture_fr/workflows/quote_vs_cctp_review/UPDATES.md
+text: "Reusable doctrine: when CCTP and quote disagree on lot scope, default to CCTP wording until clarified."
+category: contractual
+scope_candidate: project
+confidence: 0.6
+sensitivity: project
+evidence_pack_id: EP-2026-0042
+source_documents: []
+source_runs: []
+related_files: []
+tags:
+  - quote
+  - cctp
+created_at: '2026-05-10'
+validation_status: candidate
+reviewer: null
+decision: keep_candidate
+valid_from: null
+valid_until: null
+superseded_by: null
