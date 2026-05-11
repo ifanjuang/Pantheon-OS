@@ -1,0 +1,20 @@
+# Invalid: forbidden top-level key `auto_canonize`.
+# Mirrors WORKFLOW_SCHEMA.md §7 (Forbidden as Pantheon core).
+id: bad_workflow
+name: Bad workflow
+domain: general
+status: candidate
+version: 0.1.0
+pattern: cascade
+purpose: Example of a workflow that wrongly self-canonizes.
+inputs:
+  - input_a
+outputs:
+  - output_a
+agents:
+  - ATHENA
+approval_points: []
+memory_impact:
+  - none_by_default
+evidence_required: true
+auto_canonize: true

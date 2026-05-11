@@ -1,0 +1,13 @@
+# Invalid: forbidden top-level key `agency` (forbidden terminology per MEMORY_EVENT_SCHEMA.md §2).
+# Use scope_candidate: system instead, only after promotion review.
+id: memevt_002
+event_type: design_decision
+source_layer: pantheon
+text: Some reusable rule.
+category: general
+scope_candidate: system
+confidence: 0.4
+sensitivity: internal
+validation_status: candidate
+decision: keep_candidate
+agency: shared

@@ -1,0 +1,30 @@
+# Valid: IRIS rewrites a short draft without sending it.
+# Mirrors TASK_CONTRACT_REVISIONS.md §2 (Single-role task contract).
+id: client_message_tone_review
+domain: general
+role: IRIS
+purpose: Rewrite a short draft without sending it.
+mode: suggest
+approval_level: C1
+inputs:
+  required:
+    - draft_text
+  optional:
+    - tone
+outputs:
+  required:
+    - revised_text
+    - limitations
+allowed_tools:
+  - text_review
+forbidden_tools:
+  - external_send
+  - memory_write
+  - file_write
+memory_impact: none
+evidence_required: false
+escalation_conditions:
+  - external_send_requested
+  - legal_or_contractual_claim_detected
+  - project_private_context_required
+  - multi_source_reconciliation_required

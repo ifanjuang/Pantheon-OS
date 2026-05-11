@@ -1,0 +1,25 @@
+# Valid: IRIS mediates an ARGOS finding into a risk_warning addressed to THEMIS.
+# Mirrors ROLE_SIGNALS.md §6 (Addressed signal envelope).
+id: RS-2026-0010
+mediator_role: IRIS
+from_role: ARGOS
+to_role: THEMIS
+signal_type: risk_warning
+address_profile: THEMIS
+sender_substance:
+  content_summary: A contractor quote is being discussed for possible client-facing use.
+  payload_ref: quote_review.summary
+  confidence: partial
+  limitations:
+    - The architect mission scope is not fully available.
+mediated_message:
+  question_or_request: Classify whether this wording could create responsibility or require C4 approval.
+  requested_output:
+    - approval_level
+    - forbidden_wording
+    - safer_wording_guidance
+constraints:
+  preserve_risk_level: true
+  preserve_limitations: true
+  no_external_send: true
+status: open

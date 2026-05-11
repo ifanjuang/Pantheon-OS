@@ -1,0 +1,132 @@
+$pantheon_schema: 1
+title: role_signal
+description: |
+  Canonical structured role-to-role message envelope. Mirrors
+  ROLE_SIGNALS.md §8 (Base schema). Role signals are bounded, traceable
+  and non-executing; they never carry raw chain-of-thought or secrets.
+governance_refs:
+  - docs/governance/ROLE_SIGNALS.md
+  - docs/governance/AGENTS.md
+
+type: object
+required:
+  - id
+  - from_role
+  - to_role
+  - type
+  - content_summary
+  - status
+properties:
+  id:
+    type: string
+    pattern: ^RS-[0-9]{4}-[0-9A-Z_-]+$
+  from_role:
+    enum:
+      - ZEUS
+      - METIS
+      - ATHENA
+      - ARGOS
+      - HECATE
+      - THEMIS
+      - APOLLO
+      - PROMETHEUS
+      - HEPHAESTUS
+      - HEPHAISTOS
+      - HESTIA
+      - MNEMOSYNE
+      - IRIS
+      - CHRONOS
+      - HERA
+      - ARES
+      - DIONYSOS
+      - DEMETER
+      - POSEIDON
+      - DAEDALUS
+  to_role:
+    enum:
+      - ZEUS
+      - METIS
+      - ATHENA
+      - ARGOS
+      - HECATE
+      - THEMIS
+      - APOLLO
+      - PROMETHEUS
+      - HEPHAESTUS
+      - HEPHAISTOS
+      - HESTIA
+      - MNEMOSYNE
+      - IRIS
+      - CHRONOS
+      - HERA
+      - ARES
+      - DIONYSOS
+      - DEMETER
+      - POSEIDON
+      - DAEDALUS
+  type:
+    enum:
+      - role_need_statement
+      - information_transmission
+      - clarification_request
+      - role_consultation
+      - risk_warning
+      - veto_signal
+      - brief_adherence_signal
+      - workflow_revision_signal
+      - handoff_signal
+      - stop_gate_signal
+      - memory_candidate_signal
+      - skill_gap_signal
+      - asset_need_signal
+      - source_gap_signal
+  purpose:
+    type: string
+  content_summary:
+    type: string
+    min_length: 1
+  payload_ref:
+    type: string
+    nullable: true
+  confidence:
+    enum: [high, medium, low, partial]
+    nullable: true
+  assumptions:
+    type: array
+    items:
+      type: string
+  limitations:
+    type: array
+    items:
+      type: string
+  risk_level:
+    enum: [C0, C1, C2, C3, C4, C5]
+    nullable: true
+  evidence_refs:
+    type: array
+    items:
+      type: string
+  requested_action:
+    enum:
+      - review
+      - comment
+      - continue
+      - escalate
+      - block
+      - arbitrate
+      - finalize
+      - finalize_with_limits
+    nullable: true
+  deadline_or_dependency:
+    type: any
+    nullable: true
+  status:
+    enum: [open, answered, superseded, blocked, closed]
+
+forbidden_keys:
+  - raw_chain_of_thought
+  - hidden_prompt
+  - secret
+  - api_key
+  - private_key
+  - tool_call

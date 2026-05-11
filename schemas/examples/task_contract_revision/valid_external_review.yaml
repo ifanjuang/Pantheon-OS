@@ -1,0 +1,27 @@
+# Valid: revision adding a THEMIS external review step after risk rises.
+# Mirrors TASK_CONTRACT_REVISIONS.md §6 and §7 (Resume policy).
+parent_task_contract: TC-2026-0001
+revision_id: REV-001
+status: pending_approval
+reason: Risk level changed during execution.
+source_signal: WRS-2026-0001
+arbitration: ZA-2026-0001
+changes:
+  approval_level:
+    from: C1
+    to: C4
+  added_steps:
+    - id: themis_external_wording_review
+      role: THEMIS
+      purpose: Review client-facing wording before release.
+  evidence_required:
+    from: false
+    to: true
+  forbidden_tools_added:
+    - external_send_without_approval
+resume_policy:
+  mode: after_human_validation
+  resume_from: themis_external_wording_review
+  preserve_outputs:
+    - iris_draft_v1
+  require_new_evidence_pack_fragment: true

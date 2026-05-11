@@ -1,0 +1,55 @@
+# Valid: TASK_CONTRACTS.md §7.1 (repo_consistency_audit), simplified.
+id: repo_consistency_audit
+domain: software
+purpose: Run a read-only audit of repository governance coherence.
+mode: read_only
+inputs:
+  required:
+    - repo_path
+  optional:
+    - report_path
+outputs:
+  required:
+    - findings_table
+    - approval_required
+    - next_safe_action
+allowed_tools:
+  - read_file
+  - search_files
+forbidden_tools:
+  - write_file
+  - external_send
+  - secret_access
+  - docker_socket
+approval_level: C0
+agents:
+  - APOLLO
+  - HECATE
+skills:
+  - project_context_resolution
+memory_impact: none
+evidence_required: true
+fallback_policy:
+  retry_allowed: false
+  alternative_tool_allowed: false
+  max_retries: 0
+  require_approval_if_risk_increases: true
+  forbidden_fallbacks:
+    - unallowlisted_tool
+    - destructive_action
+    - external_send
+    - secret_access
+    - docker_socket
+remediation_policy:
+  enabled: true
+  parallel_analysis_allowed: true
+  auto_fix_allowed: false
+  patch_candidate_allowed: true
+  require_evidence_pack: true
+  require_approval_if:
+    - file_mutation
+    - workflow_change
+    - skill_change
+    - tool_policy_change
+    - memory_change
+    - external_action

@@ -1,0 +1,145 @@
+$pantheon_schema: 1
+title: addressed_role_signal
+description: |
+  IRIS-mediated signal envelope. Mirrors ROLE_SIGNALS.md §6 (Addressed
+  signal envelope). IRIS may format substance for the addressed role
+  but must never lower risk, hide limitations, decide approval or
+  arbitrate.
+governance_refs:
+  - docs/governance/ROLE_SIGNALS.md
+  - docs/governance/ROLE_SIGNAL_PROFILES.md
+
+type: object
+required:
+  - id
+  - mediator_role
+  - from_role
+  - to_role
+  - signal_type
+  - sender_substance
+  - mediated_message
+  - status
+properties:
+  id:
+    type: string
+    pattern: ^RS-[0-9]{4}-[0-9A-Z_-]+$
+  mediator_role:
+    enum: [IRIS]
+  from_role:
+    enum:
+      - ZEUS
+      - METIS
+      - ATHENA
+      - ARGOS
+      - HECATE
+      - THEMIS
+      - APOLLO
+      - PROMETHEUS
+      - HEPHAESTUS
+      - HEPHAISTOS
+      - HESTIA
+      - MNEMOSYNE
+      - IRIS
+      - CHRONOS
+      - HERA
+      - ARES
+      - DIONYSOS
+      - DEMETER
+      - POSEIDON
+      - DAEDALUS
+  to_role:
+    enum:
+      - ZEUS
+      - METIS
+      - ATHENA
+      - ARGOS
+      - HECATE
+      - THEMIS
+      - APOLLO
+      - PROMETHEUS
+      - HEPHAESTUS
+      - HEPHAISTOS
+      - HESTIA
+      - MNEMOSYNE
+      - IRIS
+      - CHRONOS
+      - HERA
+      - ARES
+      - DIONYSOS
+      - DEMETER
+      - POSEIDON
+      - DAEDALUS
+  signal_type:
+    enum:
+      - role_need_statement
+      - information_transmission
+      - clarification_request
+      - role_consultation
+      - risk_warning
+      - veto_signal
+      - brief_adherence_signal
+      - workflow_revision_signal
+      - handoff_signal
+      - stop_gate_signal
+      - memory_candidate_signal
+      - skill_gap_signal
+      - asset_need_signal
+      - source_gap_signal
+  address_profile:
+    type: string
+  sender_substance:
+    type: object
+    required:
+      - content_summary
+    properties:
+      content_summary:
+        type: string
+      payload_ref:
+        type: string
+        nullable: true
+      confidence:
+        enum: [high, medium, low, partial]
+        nullable: true
+      limitations:
+        type: array
+        items:
+          type: string
+    forbidden_keys:
+      - raw_chain_of_thought
+      - hidden_prompt
+      - secret
+  mediated_message:
+    type: object
+    required:
+      - question_or_request
+    properties:
+      question_or_request:
+        type: string
+      requested_output:
+        type: array
+        items:
+          type: string
+    forbidden_keys:
+      - raw_chain_of_thought
+      - hidden_prompt
+      - secret
+  constraints:
+    type: object
+    properties:
+      preserve_risk_level:
+        type: boolean
+      preserve_limitations:
+        type: boolean
+      no_external_send:
+        type: boolean
+  status:
+    enum: [open, answered, superseded, blocked, closed]
+
+forbidden_keys:
+  - raw_chain_of_thought
+  - hidden_prompt
+  - secret
+  - api_key
+  - private_key
+  - tool_call
+  - lowered_risk_level

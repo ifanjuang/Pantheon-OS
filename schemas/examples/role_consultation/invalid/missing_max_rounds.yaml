@@ -1,0 +1,10 @@
+# Invalid: max_rounds is required (default cap = 1 round per ROLE_SIGNALS.md §9).
+id: RC-2026-0002
+from_role: IRIS
+to_role: THEMIS
+reason: clarification
+question: Should we proceed?
+context_summary: Draft client message.
+expected_output:
+  - risk_level
+status: open

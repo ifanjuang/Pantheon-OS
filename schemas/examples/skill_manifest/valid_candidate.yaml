@@ -1,0 +1,23 @@
+# Valid: candidate skill manifest with no Hermes mapping yet.
+# Mirrors SKILL_LIFECYCLE.md §5 + §6 (none_found case).
+id: project_context_resolution
+domain: general
+description: Resolve which project context, if any, is required for the request.
+lifecycle:
+  state: candidate
+  level: 0
+  xp:
+    validated: 0
+    pending: 0
+  last_review: null
+  review_required: true
+  probation_reason: null
+hermes_mapping:
+  type: none_found
+  checked: true
+approval_level: C0
+memory_impact: none
+evidence_required: true
+forbidden_tools:
+  - external_send
+  - memory_write

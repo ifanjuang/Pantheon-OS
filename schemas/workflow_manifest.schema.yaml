@@ -1,0 +1,105 @@
+$pantheon_schema: 1
+title: workflow_manifest
+description: |
+  Pantheon workflow manifest (workflow.yaml). Mirrors WORKFLOW_SCHEMA.md
+  §4 (Workflow fields). Workflow templates are reusable patterns, not
+  fixed rails; canonization requires review.
+governance_refs:
+  - docs/governance/WORKFLOW_SCHEMA.md
+  - docs/governance/WORKFLOW_ADAPTATION.md
+
+type: object
+required:
+  - id
+  - name
+  - domain
+  - status
+  - version
+  - pattern
+  - purpose
+  - inputs
+  - outputs
+  - agents
+  - approval_points
+  - memory_impact
+  - evidence_required
+properties:
+  id:
+    type: string
+    pattern: ^[a-z0-9_]+$
+  name:
+    type: string
+  domain:
+    type: string
+  status:
+    enum: [candidate, template, active, probation, archived, rejected]
+  version:
+    type: string
+    pattern: ^[0-9]+\.[0-9]+\.[0-9]+$
+  pattern:
+    enum:
+      - solo
+      - cascade
+      - parallel
+      - arena
+      - dependency_graph
+      - conditional
+      - crew
+      - flow
+  purpose:
+    type: string
+  inputs:
+    type: array
+    items:
+      type: string
+  outputs:
+    type: array
+    items:
+      type: string
+  agents:
+    type: array
+    items:
+      enum:
+        - ZEUS
+        - METIS
+        - ATHENA
+        - ARGOS
+        - HECATE
+        - THEMIS
+        - APOLLO
+        - PROMETHEUS
+        - HEPHAESTUS
+        - HEPHAISTOS
+        - HESTIA
+        - MNEMOSYNE
+        - IRIS
+        - CHRONOS
+        - HERA
+        - ARES
+        - DIONYSOS
+        - DEMETER
+        - POSEIDON
+        - DAEDALUS
+  skills:
+    type: array
+    items:
+      type: string
+  approval_points:
+    type: array
+    items:
+      type: string
+  memory_impact:
+    type: array
+    items:
+      type: string
+  evidence_required:
+    type: boolean
+  fallback:
+    type: string
+
+forbidden_keys:
+  - auto_canonize
+  - auto_activate
+  - silent_mutation
+  - secret
+  - api_key

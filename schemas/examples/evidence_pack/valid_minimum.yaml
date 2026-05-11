@@ -1,0 +1,37 @@
+# Valid: minimum Evidence Pack fragment for a read-only repo audit.
+# Mirrors EVIDENCE_PACK.md §3 (Minimum Evidence Pack).
+id: EP-2026-0001
+task_id: repo_consistency_audit
+date: '2026-05-10'
+operator: pantheon_doctor
+files_read:
+  - docs/governance/STATUS.md
+  - docs/governance/AGENTS.md
+sources_used: []
+commands_run: []
+tools_used:
+  - operations/doctor.py
+knowledge_bases_consulted: []
+documents_used: []
+assumptions:
+  - Doctor scope is C0 read-only.
+unsupported_claims: []
+limitations:
+  - Live API endpoints, OpenWebUI runtime, Hermes runtime and Docker stack are not probed.
+outputs:
+  - reports/doctor/2026-05-10-doctor-report.md
+approval_required:
+  level: C0
+  reason: Read-only diagnostic.
+next_safe_action: Review the report and decide remediation per finding.
+role_signal_traceability:
+  role_signals: []
+  addressed_role_signals: []
+  role_consultations: []
+  format_reminder_request: []
+  format_reminder_response: []
+  format_blocked: []
+  handoff_signals: []
+  veto_signal: []
+  stop_gate_signal: []
+  workflow_revision_signal: []

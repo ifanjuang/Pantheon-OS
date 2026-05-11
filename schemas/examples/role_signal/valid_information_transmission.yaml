@@ -1,0 +1,17 @@
+# Valid: ARGOS transmits a bounded fact set to DEMETER for review.
+# Mirrors ROLE_SIGNALS.md §10 (Information transmission).
+id: RS-2026-0001
+from_role: ARGOS
+to_role: DEMETER
+type: information_transmission
+purpose: Transmit extracted quantities for economic review.
+content_summary: Quantities extracted from the available DPGF.
+payload_ref: source_inventory.quantities
+confidence: partial
+limitations:
+  - The plumbing lot was not included in the provided schedule.
+risk_level: C1
+evidence_refs:
+  - EP-2026-0001.source_inventory
+requested_action: review
+status: open

@@ -1,0 +1,70 @@
+$pantheon_schema: 1
+title: format_reminder_response
+description: |
+  Structure-only response from the addressed role to a
+  format_reminder_request. Mirrors ROLE_SIGNAL_PROFILES.md §4.
+  Decision-bearing keys (`decision`, `approval`, `final_wording`,
+  `risk_level`) are forbidden — a response that decides instead of
+  describing structure is invalid evidence.
+governance_refs:
+  - docs/governance/ROLE_SIGNAL_PROFILES.md
+
+type: object
+required:
+  - id
+  - from_role
+  - to_role
+  - required_fields
+  - forbidden_fields
+  - escalation_conditions
+  - no_decision
+properties:
+  id:
+    type: string
+    pattern: ^FRR-[0-9]{4}-[0-9A-Z_-]+-RESPONSE$
+  from_role:
+    enum:
+      - ZEUS
+      - METIS
+      - ATHENA
+      - ARGOS
+      - HECATE
+      - THEMIS
+      - APOLLO
+      - PROMETHEUS
+      - HEPHAESTUS
+      - HEPHAISTOS
+      - HESTIA
+      - MNEMOSYNE
+      - CHRONOS
+      - HERA
+      - ARES
+      - DIONYSOS
+      - DEMETER
+      - POSEIDON
+      - DAEDALUS
+  to_role:
+    enum: [IRIS]
+  required_fields:
+    type: array
+    items:
+      type: string
+  forbidden_fields:
+    type: array
+    items:
+      type: string
+  escalation_conditions:
+    type: array
+    items:
+      type: string
+  no_decision:
+    enum: [true]
+
+forbidden_keys:
+  - decision
+  - approval
+  - final_wording
+  - risk_level
+  - softened_risk
+  - tool_call
+  - secret

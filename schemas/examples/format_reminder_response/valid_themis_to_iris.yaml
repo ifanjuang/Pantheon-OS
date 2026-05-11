@@ -1,0 +1,19 @@
+# Valid: THEMIS replies with structure only, no decision.
+# Mirrors ROLE_SIGNAL_PROFILES.md §4 (Allowed response).
+id: FRR-2026-0001-RESPONSE
+from_role: THEMIS
+to_role: IRIS
+required_fields:
+  - action_at_risk
+  - approval_level
+  - forbidden_transition
+  - safer_alternative
+forbidden_fields:
+  - final_approval_claim
+  - softened_risk
+  - missing_limitation
+escalation_conditions:
+  - C3_or_above
+  - external_use
+  - contractual_or_financial_impact
+no_decision: true

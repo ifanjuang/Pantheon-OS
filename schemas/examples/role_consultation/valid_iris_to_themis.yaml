@@ -1,0 +1,15 @@
+# Valid: IRIS asks THEMIS for a bounded answer on draft wording.
+# Mirrors ROLE_SIGNALS.md §9 (Ad hoc Role Consultation).
+id: RC-2026-0001
+from_role: IRIS
+to_role: THEMIS
+reason: possible_contractual_commitment
+question: Can this wording create unintended responsibility?
+context_summary: Draft client message about contractor quote review.
+expected_output:
+  - risk_level
+  - forbidden_wording
+  - safer_wording_guidance
+max_rounds: 1
+risk_level: C1
+status: open

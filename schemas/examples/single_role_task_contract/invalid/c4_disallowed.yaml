@@ -1,0 +1,22 @@
+# Invalid: single-role frame caps at C2; C4 requires escalation to a workflow.
+# Mirrors TASK_CONTRACT_REVISIONS.md §3 (Escalation from single-role to workflow).
+id: bad_external_draft
+domain: general
+role: IRIS
+purpose: Draft a client-facing letter directly.
+mode: draft
+approval_level: C4
+inputs:
+  required:
+    - intent
+outputs:
+  required:
+    - letter_text
+allowed_tools:
+  - text_review
+forbidden_tools:
+  - external_send
+memory_impact: none
+evidence_required: true
+escalation_conditions:
+  - external_send_requested

@@ -1,0 +1,9 @@
+# Invalid: resume_policy is required (no resumed execution without a resume policy).
+# Mirrors TASK_CONTRACT_REVISIONS.md §1 (Principle).
+parent_task_contract: TC-2026-0042
+revision_id: REV-002
+status: approved
+reason: Workflow simplification.
+changes:
+  removed_steps:
+    - argos_web_check
