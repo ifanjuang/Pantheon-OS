@@ -164,15 +164,16 @@ def find_governance_entry(path: str) -> GovernanceEntry | None:
 
 
 def _read_static_file(relative_path: str) -> str:
-    """Read a governance file relative to the repo root, returning '' on failure.
+    """Read a governance file relative to the repo root.
 
     Read-only: this function never writes, never opens for write, never executes
     shell commands and never calls the network.
+
+    Missing or unreadable indexed governance documents are not masked as empty
+    documents. They raise `FileNotFoundError` / `UnicodeDecodeError` so the API
+    fails visibly instead of returning a misleading 200 with empty content.
     """
-    try:
-        return (REPO_ROOT / relative_path).read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
-        return ""
+    return (REPO_ROOT / relative_path).read_text(encoding="utf-8")
 
 
 def load_governance_document(entry: GovernanceEntry) -> GovernanceDocument:
