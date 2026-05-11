@@ -1,6 +1,8 @@
 # Pantheon Next
 
-Pantheon Next est une couche de gouvernance documentaire, métier et opérationnelle pour piloter l’usage d’agents IA, de workflows, d’outils externes et de mémoire projet sans recréer un runtime agentique autonome.
+Pantheon Next est une couche de gouvernance déclarative pour systèmes agentiques.
+
+Pantheon Next n’est pas un runtime, pas un agent, pas un orchestrateur autonome et pas un moteur d’exécution. Il définit l’autorité, les règles, les contrats, les preuves, les transitions autorisées, les approvals, les limites d’action et les conditions de mémoire que les runtimes externes doivent respecter.
 
 La règle structurante du projet est simple :
 
@@ -10,7 +12,39 @@ Hermes Agent exécute.
 Pantheon Next gouverne.
 ```
 
-Pantheon Next ne remplace pas Hermes Agent, OpenWebUI ou les outils spécialisés. Il définit le cadre dans lequel ils travaillent.
+Execution belongs to runtimes.
+
+Authority belongs to Pantheon.
+
+Pantheon Next sert à rendre les workflows agentiques gouvernables, traçables, auditables et maintenables. Son centre de gravité n’est pas l’agent, le skill ou le workflow isolé. Son centre de gravité est l’événement de workflow.
+
+Chaque action significative doit pouvoir être rattachée à un événement typé : démarrage, transition, appel d’outil, validation, objection, arbitrage, échec, approval, création de mémoire candidate ou promotion mémoire. Ce ledger événementiel permet de comprendre ce qui a été demandé, ce qui a été autorisé, ce qui a été exécuté, avec quelles preuves, quelles limites et quel niveau d’approbation.
+
+Les primitives irréversibles de Pantheon Next sont :
+
+```text
+1. Workflow Event
+2. Task Contract
+3. Evidence Pack
+4. Memory Candidate
+5. Approval Policy
+```
+
+Ces primitives forment l’ossature du système.
+
+Un Workflow Event trace ce qui se passe dans un workflow gouverné.
+
+Un Task Contract définit ce qui est autorisé, attendu, interdit et requis avant exécution.
+
+Un Evidence Pack fournit la preuve structurée d’une action, d’une analyse ou d’une décision.
+
+Un Memory Candidate sépare strictement ce qui est proposé de ce qui devient canonique.
+
+Une Approval Policy définit le niveau de validation, les opérations permises, les opérations interdites et les preuves minimales nécessaires.
+
+Pantheon Next peut décrire des workflow dynamics avancées : états, transitions conditionnelles, escalades, retries, forums de désaccord, arbitrages pondérés, gates de validation et règles de promotion mémoire. Mais Pantheon Next ne les exécute pas. L’exécution appartient aux runtimes externes.
+
+Ce que Pantheon Next apporte n’est pas un agent de plus. C’est une couche stable de gouvernance, de traçabilité, de mémoire validée et de coordination pour empêcher les actions non cadrées, les certitudes non prouvées, les mémoires polluées, les outils non revus et les workflows qui dérivent.
 
 ---
 
