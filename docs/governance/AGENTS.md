@@ -47,6 +47,7 @@ Agents must apply these reference documents:
 APPROVALS.md
 TASK_CONTRACTS.md
 EVIDENCE_PACK.md
+EPISTEMIC_CONTROL.md
 HERMES_INTEGRATION.md
 KNOWLEDGE_TAXONOMY.md
 MEMORY.md
@@ -71,6 +72,7 @@ Rules:
 - no adaptive workflow change that bypasses THEMIS, APOLLO, approvals or tool policy;
 - no AGORA consultation may expose raw chain-of-thought;
 - no role signal may execute tools, approve actions, promote memory or mutate files;
+- no role signal may increase claim certainty without new evidence;
 - no inter-role agreement may replace THEMIS, APOLLO or required human approval.
 
 ---
@@ -129,7 +131,59 @@ Hermes Agent is not an agent in this table because Hermes Agent is the runtime e
 
 ---
 
-# 5. Request framing responsibilities
+# 5. Local agent files and Role Signal Profiles
+
+Agent folders may contain local maintenance metadata for each role.
+
+Recommended path:
+
+```text
+agents/{ROLE}/role_signal_profile.yaml
+```
+
+A local profile describes how that role uses the central Role Signal protocol.
+
+It may define:
+
+```text
+signals the role may emit
+signals the role may receive
+required payloads
+forbidden behaviors
+certainty constraints
+escalation triggers
+public summary rules
+```
+
+It must not define:
+
+```text
+a new Role Signal schema
+new runtime behavior
+tool execution authority
+approval authority
+memory promotion authority
+skill activation authority
+workflow canonization authority
+certainty upgrade without evidence
+```
+
+Canonical hierarchy:
+
+```text
+ROLE_SIGNALS.md defines the protocol.
+EPISTEMIC_CONTROL.md defines claim and uncertainty rules.
+ROLE_SIGNAL_PROFILES.md defines central profile invariants and fallback profiles.
+agents/{ROLE}/role_signal_profile.yaml defines local usage details.
+```
+
+If the local profile conflicts with governance documents, governance documents win.
+
+Local profiles are not required for every role at once. Missing local profile means IRIS uses the central fallback profile.
+
+---
+
+# 6. Request framing responsibilities
 
 METIS is the primary role for request framing.
 
@@ -193,7 +247,7 @@ METIS answer strategy: answer_with_assumptions or ask_targeted_question dependin
 
 ---
 
-# 6. Role signals and inter-role consultation
+# 7. Role signals and inter-role consultation
 
 Roles may consult other roles.
 
@@ -204,6 +258,7 @@ Reference:
 ```text
 ROLE_SIGNALS.md
 ROLE_SIGNAL_PROFILES.md
+EPISTEMIC_CONTROL.md
 ```
 
 Allowed signal families include:
@@ -223,6 +278,7 @@ memory_candidate_signal
 skill_gap_signal
 asset_need_signal
 source_gap_signal
+epistemic_payload_signal
 ```
 
 Forbidden signal behavior:
@@ -236,6 +292,7 @@ canonize_workflow
 send_external_message
 mutate_file
 access_secret
+increase_claim_certainty_without_evidence
 raw_chain_of_thought
 ```
 
@@ -254,7 +311,7 @@ Pantheon governs the schema.
 
 IRIS may mediate form only.
 
-IRIS must use the recipient profile first, may ask for a format reminder only as fallback, and must block if the reminder becomes a substantive decision.
+IRIS must use the local profile first when available, then the central recipient profile, may ask for a format reminder only as fallback, and must block if the reminder becomes a substantive decision.
 
 ```text
 IRIS formats the signal.
@@ -267,7 +324,7 @@ ZEUS owns arbitration.
 
 ---
 
-# 7. AGORA consultation mode
+# 8. AGORA consultation mode
 
 AGORA is a bounded, structured forum of roles.
 
@@ -309,6 +366,7 @@ decision_arbitration
 brief_adherence_review
 zeus_arbitration
 role_signal_summary
+claim_status_summary
 ```
 
 Forbidden AGORA behavior:
@@ -318,6 +376,7 @@ open-ended agent debate
 raw chain-of-thought
 majority vote overriding THEMIS
 majority vote overriding APOLLO
+certainty increase without evidence
 workflow canonization
 memory promotion
 skill activation
@@ -335,7 +394,7 @@ zeus_arbitrates: true
 
 ---
 
-# 8. Workflow adaptation responsibilities
+# 9. Workflow adaptation responsibilities
 
 Pantheon workflows are governed dependency graphs, not fixed linear chains.
 
@@ -384,7 +443,7 @@ They must not emit raw chain-of-thought.
 
 ---
 
-# 9. Agent limits
+# 10. Agent limits
 
 Agents must never:
 
@@ -401,11 +460,12 @@ Agents must never:
 - replace human approval where `APPROVALS.md` requires it;
 - use AGORA as a hidden autonomous runtime;
 - use role signals as a hidden message bus;
+- use local role profiles to redefine the Role Signal protocol;
 - treat inter-role agreement as final approval.
 
 ---
 
-# 10. Approval role by agent
+# 11. Approval role by agent
 
 | Approval area | Primary agent | Secondary agents |
 |---|---|---|
@@ -435,7 +495,7 @@ IRIS can format a message but cannot approve, send or decide.
 
 ---
 
-# 11. Interaction with task contracts
+# 12. Interaction with task contracts
 
 A governed task should map to a task contract when it involves:
 
@@ -468,7 +528,7 @@ Hermes Agent executes the approved frame.
 
 ---
 
-# 12. Interaction with Evidence Packs
+# 13. Interaction with Evidence Packs
 
 Evidence Pack review is mandatory for consequential outputs.
 
@@ -517,6 +577,7 @@ IRIS records when applicable:
 
 - addressed signal formatted;
 - recipient profile used;
+- local profile used if available;
 - format reminder requested;
 - format blocked because it required substantive decision.
 
@@ -525,6 +586,7 @@ Consequential Evidence Packs may also reference:
 ```text
 role_signals
 addressed_role_signals
+epistemic_payloads
 role_consultations
 handoffs
 risk_warnings
@@ -535,7 +597,7 @@ workflow_revision_signals
 
 ---
 
-# 13. Interaction with memory
+# 14. Interaction with memory
 
 Memory levels:
 
@@ -568,7 +630,7 @@ Use system memory, not agency memory.
 
 ---
 
-# 14. Interaction with skills
+# 15. Interaction with skills
 
 Agents select, review and interpret skills.
 
@@ -613,7 +675,7 @@ Rules:
 
 ---
 
-# 15. Interaction with Hermes Agent
+# 16. Interaction with Hermes Agent
 
 Hermes Agent is the operational worker.
 
@@ -644,9 +706,9 @@ A Hermes execution step may be assigned a Pantheon Role for a workflow step. It 
 
 ---
 
-# 16. Typical orchestration
+# 17. Typical orchestration
 
-## 16.1 Vague or consequential request
+## 17.1 Vague or consequential request
 
 ```text
 METIS → classify and enrich intent
@@ -658,7 +720,7 @@ APOLLO → validate coherence and evidence
 IRIS → formulate final answer or addressed role signals
 ```
 
-## 16.2 Repo consistency audit
+## 17.2 Repo consistency audit
 
 ```text
 METIS → classify request and expected output
@@ -670,7 +732,7 @@ APOLLO → final diagnostic
 ZEUS → final routing
 ```
 
-## 16.3 Quote versus CCTP review
+## 17.3 Quote versus CCTP review
 
 ```text
 METIS → interpret user intent and needed comparison level
@@ -684,7 +746,7 @@ APOLLO → final review
 IRIS → client-readable wording or addressed role signals if needed
 ```
 
-## 16.4 Client message review
+## 17.4 Client message review
 
 ```text
 METIS → intent and sensitivity
@@ -694,7 +756,7 @@ THEMIS → liability and C4 validation
 APOLLO → clarity, brief adherence and completeness
 ```
 
-## 16.5 Variant and arbitration flow
+## 17.5 Variant and arbitration flow
 
 ```text
 METIS → confirm true request
@@ -706,7 +768,7 @@ ZEUS → select, combine or reject
 IRIS → final wording
 ```
 
-## 16.6 Adaptive workflow design
+## 17.6 Adaptive workflow design
 
 ```text
 ZEUS → requests consultation
@@ -725,7 +787,7 @@ Hermes Agent → executes resulting Task Contract
 
 ---
 
-# 17. Evolution rule
+# 18. Evolution rule
 
 A new agent must:
 
@@ -744,9 +806,17 @@ A new consultation mode must:
 - avoid runtime behavior;
 - preserve THEMIS, APOLLO and human approval gates.
 
+A new local role signal profile must:
+
+- reference `ROLE_SIGNALS.md`, `ROLE_SIGNAL_PROFILES.md` and `EPISTEMIC_CONTROL.md`;
+- describe usage, not redefine schema;
+- preserve risk, limitations and weakest claim status;
+- avoid new runtime authority;
+- avoid certainty upgrades without evidence.
+
 ---
 
-# 18. Summary
+# 19. Summary
 
 ```text
 Pantheon Roles = reasoning and governance roles
@@ -755,6 +825,7 @@ Skills = reusable governed capabilities
 Workflows = adaptive governed dependency graphs
 Role Signals = structured role-to-role messages
 Role Signal Profiles = expected recipient message structures
+Local Role Signal Profiles = per-agent usage contracts, not protocol definitions
 IRIS = signal mediator and communicator, not dispatcher
 AGORA = bounded consultation mode, not an agent
 Task contracts = executable frames
