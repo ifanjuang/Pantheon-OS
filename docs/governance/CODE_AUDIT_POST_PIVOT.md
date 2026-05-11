@@ -27,6 +27,7 @@ Reference synthesis:
 
 ```text
 docs/governance/PRE_REFACTOR_ARCHITECTURE_FINDINGS.md
+reports/code_audit/2026-05-11-legacy-runtime-audit.md
 ```
 
 ---
@@ -82,11 +83,23 @@ Definitions:
 | Circuit breaker | `platform/api/core/circuit_breaker.py` | LLM resilience | reorient | Use as future operations/resilience pattern | Redis dependency if enabled | Document in operations doctor later | P2 |
 | Storage service | `platform/api/core/services/storage_service.py` | MinIO wrapper | reorient | Preserve object storage pattern for documents | MinIO not P0 | Keep P2, do not make mandatory now | P2 |
 | Agent service | `platform/api/apps/agent/service.py` | ReAct loop runtime | legacy | Do not revive; extract trace fields for Evidence Pack/Run Graph | Core runtime drift | Keep classified as legacy | P1 |
+| Agent router | `platform/api/apps/agent/router.py` | Exposes legacy `POST /agent/run` and history endpoints | legacy | Do not promote as canonical Pantheon execution API; keep only for legacy MVP compatibility until Hermes Gateway wiring replaces it | Agent Runtime surface remains reachable in legacy stack | Add Doctor coverage for `/agent/run` after this register is merged | P1 |
 | Agent memory | `platform/api/apps/agent/memory.py` | Automatic memory extraction/consolidation | legacy/reorient | Extract event/supersession schema only | Auto-promotion and agency memory | Block automatic promotion | P1 |
+| Memory app | `platform/api/apps/memory/` | CRUD over legacy `AgentMemory`, including `scope=agence` / `scope=projet` / `scope=session` | reorient | Reframe as candidate memory-review API only; rename `agence` terminology to `system` in a later C3 refactor | Reuses forbidden agency-memory vocabulary and may support auto-promotion flows | Plan controlled terminology refactor; do not expand current API | P1 |
 | Agent tools | `platform/api/apps/agent/tools.py` | Tool registry and web/RAG tools | reorient | Extract trusted sources and fetch-before-cite rule | Tool runtime drift | Move to `architecture_fr/knowledge_policy.md` | P1 |
+| Orchestra LangGraph runtime | `platform/api/apps/orchestra/` | Central LangGraph `StateGraph` with HITL interrupts and `POST /run`, `POST /run-hitl`, `POST /stream`, `POST /runs/{id}/approve` | to_verify | Treat as `blocked_until_review`; do not extend, do not enable as Pantheon runtime, do not route OpenWebUI to it | Critical LangGraph central orchestrator surface contradicting the pivot if reused | Freeze; add Doctor forbidden endpoint coverage for `/orchestra/*` in a follow-up | P1 |
+| Guards app | `platform/api/apps/guards/` | Rule + LLM criticality classification and structured veto patterns | reorient | Extract useful approval/veto patterns into `APPROVALS.md` and `EVIDENCE_PACK.md`; do not run as automatic classification authority | May create hidden auto-classification authority | Keep as pattern source only until C3 review | P2 |
+| MVP business apps | `platform/api/apps/{decisions,planning,chantier,communications,finance,flowmanager,scoring,wiki}/` | Legacy MVP business CRUD and scoring surfaces | reorient | Document as legacy MVP business surface, not Pantheon Next core runtime | POST/PUT/PATCH routes may look like active business engine authority | Keep for audit; avoid new dependencies | P2 |
+| Capture / Meeting / Preprocessing apps | `platform/api/apps/{capture,meeting,preprocessing}/` | Upload / extraction flows, some with side effects toward `run_agent` | reorient | Replace auto side effects with ingestion-review Task Contracts later | Can trigger legacy agent execution paths after upload | Keep but do not extend before side-effect audit | P2 |
+| Admin app | `platform/api/apps/admin/` | Admin operations surface | to_verify | Block until route, auth and mutation review is done | Admin mutation surface may bypass current governance | Review before any extension | P2 |
+| Webhooks app | `platform/api/apps/webhooks/` | Webhook entrypoints and trigger surface for legacy runtime | legacy | Keep legacy-only; do not connect external systems without C4/C5 review | External trigger surface can invoke legacy agent/orchestra paths | Freeze and classify linked routes before deployment | P2 |
+| Telegram webhook bot | `platform/api/apps/webhooks/telegram.py` | Telegram integration importing `apps.agent.service.run_agent` | legacy | Do not deploy; keep only as legacy reference until external communication policy is implemented | External communication + Agent Runtime coupling | Block for core; require C4 before any future external messaging use | P2 |
 | Hermes Console | `platform/api/apps/hermes_console/` | Runtime console and toggles | reorient | Future operations view; display first, mutations C3+ | Writes config without full approval path | Keep mutations inactive until approval wiring | P2/P3 |
+| Evaluation app | `platform/api/apps/evaluation/` | OpenClaw evaluation CLI / dataset scaffolding | reorient | Align with `EVALUATION.md`; keep as measurement support, not governance authority | Evaluation tool may be mistaken for approval authority | Document as evaluation-only, no automatic promotion | P2 |
+| V2 worker scaffolding | `platform/api/worker.v2.py`, `platform/api/core/queue.v2.py`, `platform/api/core/checkpointer.v2.py`, `platform/api/core/base_engine.py` | ARQ queue, LangGraph checkpointer and graph-engine scaffolding disabled by `.v2.py` convention | legacy | Keep disabled; do not import or wire; archive later only after Hermes-side runtime boundary is complete | Suggests Pantheon owns worker/scheduler/graph runtime | Keep frozen; candidate for move_to_legacy once replacement path is settled | P2 |
 | Alembic migrations | `platform/api/alembic/`, `alembic/` | Database migrations | to_verify | Keep only if supporting active Domain API or audited legacy data | Encodes old runtime assumptions | Audit migration chain before DB refactor | P1 |
 | `modules.yaml` | `modules.yaml` | App/module enable registry | legacy | Do not extend as canonical registry | Reactivates old modules | Treat as legacy MVP stack control | P1 |
+| `plugins.yaml` | `plugins.yaml` | Legacy plugin profile registry with enabled/disabled flags | reorient | Reframe as Hermes/OpenWebUI lab index only; no mutation by installer without C3 | Could become ungouverned plugin lifecycle | Keep classified; do not auto-install | P1 |
 | Docker Compose | `docker-compose.yml` | Previous MVP stack | legacy | Keep as documented legacy MVP wiring until split OpenWebUI/Hermes/Pantheon compose exists | OpenWebUI still points to Pantheon `/v1` in legacy compose; shared DB remains legacy | Do not use as final target deployment model | P1 |
 | `.env.example` | `.env.example` | Environment template | keep | Keep after domain correction | `DOMAIN=architecture_fr` fixed | Monitor future env templates | P0 |
 | `CLAUDE.md` | `CLAUDE.md` | Claude guidance | keep after rewrite | Previously described autonomous runtime | Aligned with Pantheon Next doctrine | P0 |
@@ -202,6 +215,22 @@ secret access by default
 public admin dashboard without auth/VPN
 ```
 
+Known legacy surfaces now explicitly registered from the 2026-05-11 audit:
+
+```text
+POST /agent/run
+POST /orchestra/run
+POST /orchestra/run-hitl
+POST /orchestra/stream
+POST /orchestra/runs/{id}/approve
+platform/api/apps/orchestra/
+platform/api/apps/webhooks/
+platform/api/apps/agent/
+platform/api/apps/memory/
+```
+
+These are recorded for governance visibility only. Their presence in the repo is not approval to use, extend, expose or route traffic to them.
+
 ---
 
 ## 8. Evidence required for audit decisions
@@ -236,6 +265,13 @@ repo_md_audit → code_audit_post_pivot → targeted code cleanup branch
 ```
 
 Code cleanup should start only after the documentation changes in this register are merged.
+
+Immediate follow-up from `reports/code_audit/2026-05-11-legacy-runtime-audit.md`:
+
+```text
+Extend Doctor forbidden endpoint checks for /agent/run and /orchestra/*.
+Keep this as a separate C3 PR because it changes validation behavior.
+```
 
 ---
 
