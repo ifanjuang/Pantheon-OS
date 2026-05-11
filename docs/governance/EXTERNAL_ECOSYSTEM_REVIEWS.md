@@ -50,6 +50,7 @@ Pantheon orchestration engine
 |---|---|
 | `benchmark` | Useful pattern source only |
 | `watch` | Track, do not use yet |
+| `inspiration_only` | May inspire doctrine or style, but must not be imported verbatim or treated as authority |
 | `candidate_dev_tool` | Possible local/operator aid after review |
 | `hermes_lab_only` | May be tested only in isolated Hermes Lab |
 | `openwebui_ops_candidate` | May support OpenWebUI administration only |
@@ -558,6 +559,79 @@ Strong candidate for local Markdown navigation and evidence preparation, but onl
 
 ---
 
+### 3.9 User-provided `anti-glaze` response style prompt image
+
+Classification:
+
+```yaml
+name: anti_glaze_response_style_prompt_image
+source: user_provided_image_reference_2026_05_11
+category:
+  - response_style_pattern
+  - critical_review_pattern
+  - anti_flattery_pattern
+  - epistemic_discipline_pattern
+status:
+  - inspiration_only
+  - blocked_for_core
+  - blocked_as_raw_prompt
+```
+
+Useful patterns:
+
+```text
+No flattery.
+No automatic premise validation.
+State when a premise is weak, false or unsupported.
+Lead with the strongest counterargument when the user appears to assume a fragile position.
+Separate fact, hypothesis, risk, decision and confidence.
+Use explicit confidence levels when useful.
+Do not capitulate under pushback without new evidence.
+Accuracy is more important than approval.
+```
+
+Pantheon extraction:
+
+```text
+IRIS may use the clarity pattern for user-facing language without adopting aggression.
+APOLLO may use the non-complacency pattern for final readiness review.
+THEMIS may use the risk and limits clarity pattern.
+ARGOS may use the evidence-before-confidence pattern.
+HECATE may use the uncertainty and hidden-assumption exposure pattern.
+ZEUS may use the strongest-counterargument pattern during arbitration.
+```
+
+Forbidden:
+
+```text
+Do not import the prompt verbatim.
+Do not override safety, privacy, legal or ethical constraints.
+Do not expose raw chain-of-thought.
+Do not remove required limitations or warnings.
+Do not adopt aggressive or humiliating tone.
+Do not turn contradiction into a style reflex.
+Do not treat confidence labels as proof.
+Do not use this as a system prompt for Pantheon, Hermes or OpenWebUI.
+```
+
+Recommended Pantheon formulation:
+
+```text
+Critical clarity, not brutality.
+Evidence before confidence.
+No flattery.
+No hidden certainty.
+No raw prompt import.
+```
+
+Decision:
+
+```text
+Keep as a response-style inspiration pattern only. It may inform future edits to ROLE_SIGNAL_PROFILES.md, REQUEST_ORCHESTRATION.md or EPISTEMIC_CONTROL.md, but only through a separate governance PR.
+```
+
+---
+
 ## 4. Extracted roadmap actions
 
 Candidate actions:
@@ -570,6 +644,7 @@ Create hermes_skill_sandbox_review skill candidate.
 Create diagram_asset_review skill candidate.
 Create markdown_retrieval_tool_review skill candidate.
 Create browser_agent_benchmark_review skill candidate.
+Create critical_response_style_review candidate.
 Create operations/hermes_lab.md.
 Create operations/hermes_skill_sandbox.md.
 Create operations/hermes_memory_lab.md only if memory lab is approved.
@@ -596,6 +671,9 @@ Hermes runtime replacement
 untrusted directory based installation
 production browser automation
 remote MCP connector use on private data
+raw prompt import from social media images
+response style prompt as system prompt
+safety or approval bypass through style instructions
 ```
 
 ---
@@ -608,4 +686,5 @@ Extract patterns.
 Do not import authority.
 Do not import runtime.
 Do not import memory.
+Do not import raw prompts.
 ```
