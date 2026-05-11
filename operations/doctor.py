@@ -175,6 +175,40 @@ FORBIDDEN_PATHS = (
 # Path that exists today but is legacy and should be classified.
 LEGACY_PATHS_TO_CLASSIFY = ("skills/generic",)
 
+# Legacy runtime POST surfaces identified by the Bloc 6 audit
+# (`reports/code_audit/2026-05-11-legacy-runtime-audit.md`) and recorded as
+# `legacy` / `to_verify` in `CODE_AUDIT_POST_PIVOT.md` §3.
+#
+# Each entry maps a legacy app to one of its declared POST routes. The Doctor
+# reports presence as `WARN` (transitional surface still present by design),
+# not `FAIL`, because removal is gated by Hermes Gateway wiring and explicit
+# C3+ review. The forbidden hard-blocker endpoints stay covered by
+# `check_forbidden_endpoints` (FAIL with critical risk).
+#
+# Tuple format: (app_module, local_route_in_router_py, exposed_path, reason)
+LEGACY_RUNTIME_ENDPOINTS = (
+    ("agent", "/run", "/agent/run", "Agent Runtime / ReAct loop"),
+    ("orchestra", "/run", "/orchestra/run", "LangGraph central orchestrator"),
+    (
+        "orchestra",
+        "/run-hitl",
+        "/orchestra/run-hitl",
+        "LangGraph central orchestrator with HITL interrupt",
+    ),
+    (
+        "orchestra",
+        "/stream",
+        "/orchestra/stream",
+        "LangGraph central orchestrator streaming surface",
+    ),
+    (
+        "orchestra",
+        "/runs/{run_id}/approve",
+        "/orchestra/runs/{run_id}/approve",
+        "HITL approve surface that can bypass Pantheon approvals",
+    ),
+)
+
 
 # ── Individual checks ───────────────────────────────────────────────────────
 
@@ -440,6 +474,60 @@ def check_forbidden_endpoints(repo: Path, report: Report) -> None:
         )
 
 
+def check_legacy_runtime_surfaces(repo: Path, report: Report) -> None:
+    """Flag legacy POST surfaces that may reintroduce a Pantheon runtime.
+
+    The check looks at each `platform/api/apps/<module>/router.py` listed in
+    `LEGACY_RUNTIME_ENDPOINTS` and reports `WARN` when the local route is
+    still defined. The audit report
+    `reports/code_audit/2026-05-11-legacy-runtime-audit.md` and the
+    `CODE_AUDIT_POST_PIVOT.md` entries for `apps/agent` and `apps/orchestra`
+    are the canonical source for this list.
+
+    `WARN` is intentional: these surfaces remain by design during the
+    transition to Hermes Gateway wiring. They are not hard-blockers like
+    `POST /agents/run`, `POST /runtime/execute` or `POST /memory/promote/auto`,
+    which keep their `FAIL` severity in `check_forbidden_endpoints`.
+    """
+    api_apps = repo / "platform" / "api" / "apps"
+    if not api_apps.is_dir():
+        report.add(
+            check="legacy_runtime_surfaces_absent",
+            status=NOT_APPLICABLE,
+            evidence="platform/api/apps/ not present",
+            category="runtime_boundary",
+        )
+        return
+    hits: list[str] = []
+    for module, local_route, exposed_path, reason in LEGACY_RUNTIME_ENDPOINTS:
+        router_path = api_apps / module / "router.py"
+        text = _read_text(router_path)
+        if not text:
+            continue
+        pattern = re.compile(r"""@\w+\.post\(\s*['"]""" + re.escape(local_route) + r"""['"]""")
+        if pattern.search(text):
+            hits.append(f"{exposed_path} ({reason})")
+    if not hits:
+        report.add(
+            check="legacy_runtime_surfaces_absent",
+            status=PASS,
+            evidence="no legacy POST surface for /agent/run or /orchestra/* in apps/",
+            category="runtime_boundary",
+        )
+    else:
+        report.add(
+            check="legacy_runtime_surfaces_absent",
+            status=WARN,
+            evidence=f"{len(hits)} legacy runtime surface(s) still defined: " + "; ".join(hits),
+            risk=RISK_HIGH,
+            next_action=(
+                "freeze; plan removal via Hermes Gateway wiring; "
+                "see CODE_AUDIT_POST_PIVOT.md §3 (Agent router / Orchestra LangGraph runtime)"
+            ),
+            category="runtime_boundary",
+        )
+
+
 def check_forbidden_paths(repo: Path, report: Report) -> None:
     found: list[str] = []
     for rel in FORBIDDEN_PATHS:
@@ -607,6 +695,7 @@ CHECKS: tuple[Callable[[Path, Report], None], ...] = (
     check_governance_index_coverage,
     check_governance_dead_links,
     check_forbidden_endpoints,
+    check_legacy_runtime_surfaces,
     check_forbidden_paths,
     check_legacy_path_classification,
     check_critical_todos,
@@ -751,8 +840,7 @@ def main(argv: list[str] | None = None) -> int:
         if output is None:
             allowed_dir = _doctor_reports_dir(repo).resolve()
             sys.stderr.write(
-                "Doctor output blocked: --output must stay under "
-                f"{allowed_dir}. No report file was written.\n"
+                f"Doctor output blocked: --output must stay under {allowed_dir}. No report file was written.\n"
             )
         else:
             output.parent.mkdir(parents=True, exist_ok=True)
