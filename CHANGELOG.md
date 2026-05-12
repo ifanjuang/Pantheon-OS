@@ -15,6 +15,7 @@ Le projet suit SemVer : `MAJOR.MINOR.PATCH`.
 
 ### Added
 
+- `agents/README.md` : guide de maintenance pour les profils locaux d’agents, avec rappel que `agents/{ROLE}/role_signal_profile.yaml` décrit l’usage local du protocole sans redéfinir le schéma ni créer de runtime.
 - `docs/governance/EPISTEMIC_CONTROL_PROPAGATION.md` : carte d’adoption pour appliquer `EPISTEMIC_CONTROL.md` dans Evidence Packs, Task Contracts, Role Signals, Skill Lifecycle, Workflow Adaptation, STATUS et ROADMAP. Documentation uniquement, sans runtime ni enforcement automatique.
 - `docs/governance/EPISTEMIC_CONTROL.md` : doctrine de contrôle des affirmations à l’échelle du claim, avec Claim Register, `epistemic_payload` pour Role Signals, `epistemic_contract` pour manifests de skills, `epistemic_requirements` pour Task Contracts et gates Source/Uncertainty/Risk/Final Claim. Documentation uniquement, sans runtime, sans agent supplémentaire et sans auto-canonisation.
 - `docs/governance/REQUEST_ORCHESTRATION.md` : doctrine de cadrage des demandes par METIS, mode AGORA, variantes, demandes de révision, arbitrage ZEUS et adhérence au brief. Documentation uniquement, sans runtime ni boucle agentique.
@@ -35,6 +36,10 @@ Le projet suit SemVer : `MAJOR.MINOR.PATCH`.
 
 ### Changed
 
+- `docs/governance/ROLE_SIGNAL_PROFILES.md` : transformation du document en registre central + invariants ; les profils détaillés peuvent vivre dans `agents/{ROLE}/role_signal_profile.yaml` sans redéfinir le protocole `ROLE_SIGNALS.md`.
+- `docs/governance/AGENTS.md` : ajout de la doctrine des fichiers locaux d’agents et des profils locaux de Role Signals.
+- `docs/governance/README.md` : ajout d’une section sur les profils locaux d’agents et clarification du rôle de `ROLE_SIGNAL_PROFILES.md`.
+- `docs/governance/EPISTEMIC_CONTROL_PROPAGATION.md` : mise à jour du statut de propagation pour les profils locaux de Role Signals.
 - `docs/governance/TASK_CONTRACTS.md` : ajout de `epistemic_requirements`, du cadrage des claims autorisés et de la politique de contradiction/incertitude par niveau de risque.
 - `docs/governance/ROLE_SIGNALS.md` : ajout de `epistemic_payload`, des règles de conservation de l’incertitude et de l’interdiction d’augmenter la certitude sans nouvelle preuve entre rôles.
 - `docs/governance/EVIDENCE_PACK.md` : ajout du Claim Register, de l’epistemic summary et des règles empêchant l’augmentation de certitude sans nouvelle preuve dans les Evidence Packs.
