@@ -30,11 +30,11 @@ The runtime must not treat these documents as decorative notes. They drive devel
 | `MEMORY_STORAGE_MODEL.md` | Canonical memory storage, indexing, candidate, evidence and approval model |
 | `OPENWEBUI_PLUGIN_POLICY.md` | OpenWebUI Functions, Tools, Pipes, Filters, Actions and plugin safety policy |
 | `MODULES.md` | Module and domain definition contract |
-| `AGENTS.md` | Abstract agent roster and responsibilities |
+| `AGENTS.md` | Abstract agent roster and responsibilities; local agent profile policy lives here and in `ROLE_SIGNAL_PROFILES.md` |
 | `REQUEST_ORCHESTRATION.md` | Request classification, METIS framing, AGORA consultation, variants, revision and arbitration doctrine |
 | `ROUTING_FOUNDATION.md` | Canonical routing foundation for role/skill/workflow boundaries, Request Briefs, W0-W5 and light role consultation |
 | `ROLE_SIGNALS.md` | Structured communication schema for role signals, consultations, handoffs, warnings, vetoes and stop gates |
-| `ROLE_SIGNAL_PROFILES.md` | Recipient profile registry and format reminder rules for IRIS-mediated addressed role signals |
+| `ROLE_SIGNAL_PROFILES.md` | Recipient profile registry, local profile invariants and format reminder rules for IRIS-mediated addressed role signals |
 | `DELIVERABLE_OPERATING_MODEL.md` | Governance model for complete deliverables, Deliverable Contracts, milestone gates, section gates, Stop Gates and bounded Night Run |
 | `GOVERNANCE_ENHANCEMENT_BACKLOG.md` | Candidate backlog for role/skill/workflow, deliverables, assets, Night Run and evaluation improvements |
 | `MEMORY.md` | Canonical memory governance |
@@ -87,6 +87,26 @@ Reference:
 
 ```text
 ai_logs/README.md
+```
+
+---
+
+## Local agent profiles
+
+Per-agent maintenance metadata may live under:
+
+```text
+agents/{ROLE}/role_signal_profile.yaml
+```
+
+This is allowed only as a local usage profile.
+
+It does not replace:
+
+```text
+docs/governance/ROLE_SIGNALS.md
+docs/governance/ROLE_SIGNAL_PROFILES.md
+docs/governance/EPISTEMIC_CONTROL.md
 ```
 
 ---
